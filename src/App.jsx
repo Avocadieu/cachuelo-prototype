@@ -1,3 +1,4 @@
+import { supabase } from './lib/supabase.js';
 import { useState, useEffect } from 'react';
 import {
   Home, Search, PlusCircle, Briefcase, User, Star, MapPin, Clock,
@@ -425,6 +426,41 @@ const OnboardingScreen = ({ onDone }) => {
 // 3. LOGIN ────────────────────────────────────────────────────────────────────
 const PAISES = ['Perú','Argentina','Bolivia','Brasil','Chile','Colombia','Ecuador','México','Paraguay','Uruguay','Venezuela','Otro'];
 
+const DEPARTAMENTOS_PERU = [
+  'Amazonas','Áncash','Apurímac','Arequipa','Ayacucho','Cajamarca',
+  'Callao','Cusco','Huancavelica','Huánuco','Ica','Junín','La Libertad',
+  'Lambayeque','Lima','Loreto','Madre de Dios','Moquegua','Pasco',
+  'Piura','Puno','San Martín','Tacna','Tumbes','Ucayali',
+];
+
+const CIUDADES_PERU = {
+  'Amazonas':     ['Chachapoyas','Bagua','Bagua Grande','Luya','Utcubamba','Condorcanqui'],
+  'Áncash':       ['Huaraz','Chimbote','Nuevo Chimbote','Caraz','Casma','Huarmey','Yungay','Recuay'],
+  'Apurímac':     ['Abancay','Andahuaylas','Chalhuanca','Tambobamba','Chincheros'],
+  'Arequipa':     ['Arequipa','Camaná','Mollendo','Caravelí','Cotahuasi','Islay'],
+  'Ayacucho':     ['Ayacucho','Huanta','San Miguel','Coracora','Cangallo','Vilcashuamán'],
+  'Cajamarca':    ['Cajamarca','Jaén','Chota','Cutervo','Cajabamba','San Ignacio','Hualgayoc','Celendín'],
+  'Callao':       ['Callao','Bellavista','La Perla','La Punta','Mi Perú','Ventanilla'],
+  'Cusco':        ['Cusco','Sicuani','Calca','Quillabamba','Urubamba','Espinar','Chumbivilcas'],
+  'Huancavelica': ['Huancavelica','Acobamba','Lircay','Castrovirreyna','Churcampa','Pampas'],
+  'Huánuco':      ['Huánuco','Tingo María','Ambo','La Unión','Huacaybamba','Puerto Inca'],
+  'Ica':          ['Ica','Chincha Alta','Pisco','Nazca','Palpa'],
+  'Junín':        ['Huancayo','La Oroya','Tarma','San Ramón','Satipo','Chupaca','Junín'],
+  'La Libertad':  ['Trujillo','Chepén','Otuzco','Pacasmayo','Ascope','Virú','Huamachuco'],
+  'Lambayeque':   ['Chiclayo','Lambayeque','Ferreñafe','Motupe','Olmos'],
+  'Lima':         ['Lima','Barranca','Huacho','Huaral','Cañete','Mala','Matucana','Oyón'],
+  'Loreto':       ['Iquitos','Requena','Yurimaguas','Nauta','Caballococha'],
+  'Madre de Dios':['Puerto Maldonado','Iberia','Iñapari','Laberinto'],
+  'Moquegua':     ['Moquegua','Ilo','Omate'],
+  'Pasco':        ['Cerro de Pasco','Oxapampa','Yanahuanca'],
+  'Piura':        ['Piura','Sullana','Paita','Talara','Huancabamba','Ayabaca','Sechura','Chulucanas'],
+  'Puno':         ['Puno','Juliaca','Azángaro','Ilave','Macusani','Yunguyo','Desaguadero'],
+  'San Martín':   ['Moyobamba','Tarapoto','Rioja','Juanjuí','Tocache','Bellavista','Saposoa'],
+  'Tacna':        ['Tacna','Tarata','Candarave','Locumba'],
+  'Tumbes':       ['Tumbes','Zarumilla','Aguas Verdes','Zorritos'],
+  'Ucayali':      ['Pucallpa','Atalaya','Aguaytía','Contamana','Sepahua'],
+};
+
 const LoginScreen = ({ onLogin, onAdmin }) => {
   const [mode, setMode] = useState('login'); // login | register | phone
   const [email, setEmail] = useState('');
@@ -432,12 +468,20 @@ const LoginScreen = ({ onLogin, onAdmin }) => {
 
   const [reg, setReg] = useState({
     nombre: '', apellido: '', pais: 'Perú', fechaNac: '',
-    email: '', emailConf: '', telefono: '', ciudad: '', pass: '', passConf: '',
+    email: '', emailConf: '', telefono: '', departamento: '', ciudad: '', pass: '', passConf: '',
   });
   const updReg = (k, v) => setReg(r => ({ ...r, [k]: v }));
 
   const emailMismatch = reg.emailConf && reg.email !== reg.emailConf;
   const passMismatch  = reg.passConf  && reg.pass  !== reg.passConf;
+
+  const passReqs = {
+    length: reg.pass.length >= 8,
+    upper:  /[A-Z]/.test(reg.pass),
+    number: /[0-9]/.test(reg.pass),
+    symbol: /[^A-Za-z0-9]/.test(reg.pass),
+  };
+  const passValid = Object.values(passReqs).every(Boolean);
 
   const handleLogin = () => {
     if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') {
@@ -447,16 +491,39 @@ const LoginScreen = ({ onLogin, onAdmin }) => {
     }
   };
 
-  const handleRegister = () => {
-    const users = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
-    users.push({ ...reg, id: Date.now(), createdAt: new Date().toISOString() });
-    localStorage.setItem('cachuelo_users', JSON.stringify(users));
-    onLogin();
-  };
+const handleRegister = async () => {
+  const { data, error } = await supabase.auth.signUp({
+    email: reg.email,
+    password: reg.pass,
+    options: {
+      data: {
+        nombre:       reg.nombre,
+        apellido:     reg.apellido,
+        pais:         reg.pais,
+        telefono:     '+51' + reg.telefono.replace(/\D/g, ''),
+        departamento: reg.departamento,
+        ciudad:       reg.ciudad,
+        fecha_nac:    reg.fechaNac,
+      }
+    }
+  });
+
+  if (error) {
+    alert('Error al registrar: ' + error.message);
+    return;
+  }
+
+  // Guardar también en localStorage para el prototipo
+  const users = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
+  users.push({ ...reg, id: data.user.id, createdAt: new Date().toISOString() });
+  localStorage.setItem('cachuelo_users', JSON.stringify(users));
+
+  onLogin();
+};
 
   const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac
-    && reg.telefono && reg.ciudad && reg.pass && reg.passConf
-    && !emailMismatch && !passMismatch;
+    && reg.telefono && reg.departamento && reg.ciudad && reg.pass && reg.passConf
+    && !emailMismatch && !passMismatch && passValid;
 
   const selectStyle = {
     width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
@@ -559,14 +626,99 @@ const LoginScreen = ({ onLogin, onAdmin }) => {
               {emailMismatch && <div style={{ fontSize: 11, color: C.danger, marginTop: 4 }}>Los correos no coinciden</div>}
             </div>
 
-            <Input label="Número de teléfono *" placeholder="+51 987 654 321" type="tel"
-              value={reg.telefono} onChange={e => updReg('telefono', e.target.value)} icon={<Phone size={15} />} />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
+                Número de teléfono *
+              </label>
+              <div style={{ display: 'flex', border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px',
+                  background: '#F3F4F6', borderRight: `1.5px solid ${C.border}`,
+                  fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
+                  🇵🇪 +51
+                </div>
+                <input
+                  type="tel"
+                  placeholder="987 654 321"
+                  value={reg.telefono}
+                  onChange={e => updReg('telefono', e.target.value.replace(/[^0-9 ]/g, ''))}
+                  style={{
+                    flex: 1, padding: '11px 12px', border: 'none', outline: 'none',
+                    fontSize: 14, color: C.text, background: 'transparent', fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+            </div>
 
-            <Input label="Ciudad *" placeholder="Ej: Lima"
-              value={reg.ciudad} onChange={e => updReg('ciudad', e.target.value)} icon={<MapPin size={15} />} />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
+                Departamento *
+              </label>
+              <select
+                value={reg.departamento}
+                onChange={e => { updReg('departamento', e.target.value); updReg('ciudad', ''); }}
+                style={selectStyle}
+              >
+                <option value="" disabled hidden>Selecciona un departamento</option>
+                {DEPARTAMENTOS_PERU.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
 
-            <Input label="Contraseña *" placeholder="Mín. 8 caracteres" type="password"
-              value={reg.pass} onChange={e => updReg('pass', e.target.value)} />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
+                Ciudad *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, pointerEvents: 'none', zIndex: 1 }}>
+                  <MapPin size={15} />
+                </span>
+                <select
+                  value={reg.ciudad}
+                  onChange={e => updReg('ciudad', e.target.value)}
+                  disabled={!reg.departamento}
+                  style={{ ...selectStyle, paddingLeft: 36, color: reg.ciudad ? C.text : C.textMuted, opacity: reg.departamento ? 1 : 0.5 }}
+                >
+                  <option value="" disabled hidden>Selecciona una ciudad</option>
+                  {reg.departamento && (CIUDADES_PERU[reg.departamento] || []).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
+                Contraseña *
+              </label>
+              <input
+                type="password"
+                placeholder="Mín. 8 caracteres"
+                value={reg.pass}
+                onChange={e => updReg('pass', e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px',
+                  border: `1.5px solid ${reg.pass && !passValid ? C.danger : C.border}`,
+                  borderRadius: 10, fontSize: 14, color: C.text,
+                  background: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
+              />
+              {reg.pass && (
+                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px' }}>
+                  {[
+                    { ok: passReqs.length, label: '8 caracteres' },
+                    { ok: passReqs.upper,  label: '1 mayúscula' },
+                    { ok: passReqs.number, label: '1 número' },
+                    { ok: passReqs.symbol, label: '1 símbolo (!@#...)' },
+                  ].map(({ ok, label }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                      <span style={{ color: ok ? C.success : C.danger, fontWeight: 700 }}>{ok ? '✓' : '✗'}</span>
+                      <span style={{ color: ok ? C.success : C.textMuted }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: passMismatch ? C.danger : C.textSec, marginBottom: 4, display: 'block' }}>
