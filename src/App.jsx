@@ -423,10 +423,46 @@ const OnboardingScreen = ({ onDone }) => {
 };
 
 // 3. LOGIN ────────────────────────────────────────────────────────────────────
-const LoginScreen = ({ onLogin }) => {
+const PAISES = ['Perú','Argentina','Bolivia','Brasil','Chile','Colombia','Ecuador','México','Paraguay','Uruguay','Venezuela','Otro'];
+
+const LoginScreen = ({ onLogin, onAdmin }) => {
   const [mode, setMode] = useState('login'); // login | register | phone
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+
+  const [reg, setReg] = useState({
+    nombre: '', apellido: '', pais: 'Perú', fechaNac: '',
+    email: '', emailConf: '', telefono: '', ciudad: '', pass: '', passConf: '',
+  });
+  const updReg = (k, v) => setReg(r => ({ ...r, [k]: v }));
+
+  const emailMismatch = reg.emailConf && reg.email !== reg.emailConf;
+  const passMismatch  = reg.passConf  && reg.pass  !== reg.passConf;
+
+  const handleLogin = () => {
+    if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') {
+      onAdmin();
+    } else {
+      onLogin();
+    }
+  };
+
+  const handleRegister = () => {
+    const users = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
+    users.push({ ...reg, id: Date.now(), createdAt: new Date().toISOString() });
+    localStorage.setItem('cachuelo_users', JSON.stringify(users));
+    onLogin();
+  };
+
+  const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac
+    && reg.telefono && reg.ciudad && reg.pass && reg.passConf
+    && !emailMismatch && !passMismatch;
+
+  const selectStyle = {
+    width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
+    borderRadius: 10, fontSize: 14, color: C.text, background: '#fff',
+    outline: 'none', fontFamily: 'inherit',
+  };
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: '#fff', overflowY: 'auto' }}>
@@ -457,22 +493,104 @@ const LoginScreen = ({ onLogin }) => {
           ))}
         </div>
 
-        <Input label="Correo electrónico" placeholder="tu@correo.com" type="email"
-          value={email} onChange={e => setEmail(e.target.value)} icon={<Mail size={15} />} />
-        <Input label="Contraseña" placeholder="••••••••" type="password"
-          value={pass} onChange={e => setPass(e.target.value)} />
-
+        {/* ── LOGIN ── */}
         {mode === 'login' && (
-          <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 14 }}>
-            <button style={{ background: 'none', border: 'none', color: C.primary, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+          <>
+            <Input label="Correo electrónico" placeholder="tu@correo.com" type="email"
+              value={email} onChange={e => setEmail(e.target.value)} icon={<Mail size={15} />} />
+            <Input label="Contraseña" placeholder="••••••••" type="password"
+              value={pass} onChange={e => setPass(e.target.value)} />
+            <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 14 }}>
+              <button style={{ background: 'none', border: 'none', color: C.primary, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+            <Btn onClick={handleLogin} style={{ width: '100%', marginBottom: 16 }}>Ingresar</Btn>
+          </>
         )}
 
-        <Btn onClick={onLogin} style={{ width: '100%', marginBottom: 16 }}>
-          {mode === 'login' ? 'Ingresar' : 'Crear cuenta'}
-        </Btn>
+        {/* ── REGISTRO ── */}
+        {mode === 'register' && (
+          <>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <Input label="Nombre *" placeholder="Ej: María"
+                  value={reg.nombre} onChange={e => updReg('nombre', e.target.value)} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Input label="Apellido *" placeholder="Ej: García"
+                  value={reg.apellido} onChange={e => updReg('apellido', e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>País de nacimiento</label>
+              <select value={reg.pais} onChange={e => updReg('pais', e.target.value)} style={selectStyle}>
+                {PAISES.map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Fecha de nacimiento *</label>
+              <input type="date" value={reg.fechaNac} onChange={e => updReg('fechaNac', e.target.value)} style={selectStyle} />
+            </div>
+
+            <Input label="Correo electrónico *" placeholder="tu@correo.com" type="email"
+              value={reg.email} onChange={e => updReg('email', e.target.value)} icon={<Mail size={15} />} />
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: emailMismatch ? C.danger : C.textSec, marginBottom: 4, display: 'block' }}>
+                Confirmar correo *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }}><Mail size={15} /></span>
+                <input
+                  type="email" placeholder="Repite tu correo" value={reg.emailConf}
+                  onChange={e => updReg('emailConf', e.target.value)}
+                  style={{
+                    width: '100%', padding: '11px 12px 11px 38px',
+                    border: `1.5px solid ${emailMismatch ? C.danger : C.border}`,
+                    borderRadius: 10, fontSize: 14, color: C.text,
+                    background: emailMismatch ? '#FEF2F2' : '#fff',
+                    outline: 'none', fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+              {emailMismatch && <div style={{ fontSize: 11, color: C.danger, marginTop: 4 }}>Los correos no coinciden</div>}
+            </div>
+
+            <Input label="Número de teléfono *" placeholder="+51 987 654 321" type="tel"
+              value={reg.telefono} onChange={e => updReg('telefono', e.target.value)} icon={<Phone size={15} />} />
+
+            <Input label="Ciudad *" placeholder="Ej: Lima"
+              value={reg.ciudad} onChange={e => updReg('ciudad', e.target.value)} icon={<MapPin size={15} />} />
+
+            <Input label="Contraseña *" placeholder="Mín. 8 caracteres" type="password"
+              value={reg.pass} onChange={e => updReg('pass', e.target.value)} />
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: passMismatch ? C.danger : C.textSec, marginBottom: 4, display: 'block' }}>
+                Confirmar contraseña *
+              </label>
+              <input
+                type="password" placeholder="Repite tu contraseña" value={reg.passConf}
+                onChange={e => updReg('passConf', e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px',
+                  border: `1.5px solid ${passMismatch ? C.danger : C.border}`,
+                  borderRadius: 10, fontSize: 14, color: C.text,
+                  background: passMismatch ? '#FEF2F2' : '#fff',
+                  outline: 'none', fontFamily: 'inherit',
+                }}
+              />
+              {passMismatch && <div style={{ fontSize: 11, color: C.danger, marginTop: 4 }}>Las contraseñas no coinciden</div>}
+            </div>
+
+            <Btn onClick={handleRegister} style={{ width: '100%', marginBottom: 16 }} disabled={!regFilled}>
+              Crear cuenta
+            </Btn>
+          </>
+        )}
 
         {/* Divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 16px' }}>
@@ -1214,7 +1332,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
 };
 
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
-const ProfileScreen = ({ onNavigate, onAdmin }) => {
+const ProfileScreen = ({ onNavigate, onAdmin, onLogout }) => {
   const menuItems = [
     { icon: Shield,     label: 'Verificar DNI',           desc: 'Aumenta tu confiabilidad',  color: C.primary,  action: null },
     { icon: Award,      label: 'Verificar CUL',           desc: 'Certificado único laboral',  color: C.purple,   action: null },
@@ -1222,7 +1340,7 @@ const ProfileScreen = ({ onNavigate, onAdmin }) => {
     { icon: BarChart2,  label: 'Dashboard Admin',         desc: 'KPIs y métricas',            color: C.success,  action: onAdmin },
     { icon: FileText,   label: 'Términos y condiciones',  desc: 'Aviso legal completo',       color: C.textSec,  action: null },
     { icon: Settings,   label: 'Configuración',           desc: 'Notificaciones y privacidad',color: C.textSec,  action: null },
-    { icon: LogOut,     label: 'Cerrar sesión',           desc: '',                           color: C.danger,   action: null },
+    { icon: LogOut,     label: 'Cerrar sesión',           desc: '',                           color: C.danger,   action: onLogout },
   ];
 
   return (
@@ -1293,6 +1411,9 @@ const ProfileScreen = ({ onNavigate, onAdmin }) => {
 
 // 10. DASHBOARD ADMIN ──────────────────────────────────────────────────────────
 const AdminDashboard = ({ onBack }) => {
+  const [adminTab, setAdminTab] = useState('kpis'); // kpis | users
+  const registeredUsers = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
+
   const kpis = [
     { label: 'Publicados',     value: '156',  icon: Package,    color: C.primary,  unit: '',   change: '+12%' },
     { label: 'Resueltos',      value: '89',   icon: CheckCircle,color: C.success,  unit: '',   change: '+8%'  },
@@ -1315,7 +1436,7 @@ const AdminDashboard = ({ onBack }) => {
     <div style={{ position: 'absolute', inset: 0, background: C.bg, overflowY: 'auto' }}>
       {/* Header */}
       <div style={{ background: `linear-gradient(135deg, #1A1A2E, #0f3460)`, padding: '44px 20px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={18} color="#fff" />
           </button>
@@ -1324,9 +1445,73 @@ const AdminDashboard = ({ onBack }) => {
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Cachuelo · Marzo 2026</div>
           </div>
         </div>
+        {/* Admin tabs */}
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 }}>
+          {[{ id: 'kpis', label: 'KPIs' }, { id: 'users', label: `Usuarios (${registeredUsers.length})` }].map(t => (
+            <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
+              flex: 1, padding: '8px 0', borderRadius: 8, border: 'none',
+              fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              background: adminTab === t.id ? '#fff' : 'transparent',
+              color: adminTab === t.id ? '#1A1A2E' : 'rgba(255,255,255,0.7)',
+              transition: 'all .2s',
+            }}>{t.label}</button>
+          ))}
+        </div>
       </div>
 
       <div style={{ padding: '16px 20px' }}>
+
+        {/* ── USUARIOS ── */}
+        {adminTab === 'users' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Usuarios Registrados</div>
+              <Badge color={C.purple}>{registeredUsers.length} total</Badge>
+            </div>
+            {registeredUsers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>👤</div>
+                <div style={{ fontWeight: 600 }}>Sin usuarios aún</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>Los registros aparecerán aquí</div>
+              </div>
+            ) : (
+              registeredUsers.map((u, i) => (
+                <div key={u.id} style={{
+                  background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                    <Avatar initials={`${u.nombre?.[0] || '?'}${u.apellido?.[0] || ''}`} size={40} fontSize={15} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{u.nombre} {u.apellido}</div>
+                      <div style={{ fontSize: 12, color: C.textSec, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                    </div>
+                    <Badge color={C.success}>#{i + 1}</Badge>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {[
+                      { label: 'Teléfono', value: u.telefono || '—' },
+                      { label: 'Ciudad', value: u.ciudad || '—' },
+                      { label: 'País', value: u.pais || '—' },
+                      { label: 'Nacimiento', value: u.fechaNac || '—' },
+                    ].map(f => (
+                      <div key={f.label} style={{ background: C.bg, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>{f.label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{f.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 10, color: C.textMuted, textAlign: 'right' }}>
+                    Registrado: {new Date(u.createdAt).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {/* ── KPIs ── */}
+        {adminTab === 'kpis' && <>
         {/* KPI grid */}
         <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>KPIs Principales</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 }}>
@@ -1392,6 +1577,7 @@ const AdminDashboard = ({ onBack }) => {
             );
           })}
         </div>
+        </>}
       </div>
     </div>
   );
@@ -1431,13 +1617,13 @@ export default function App() {
     switch (screen) {
       case 'splash':      return <SplashScreen />;
       case 'onboarding':  return <OnboardingScreen onDone={() => setScreen('login')} />;
-      case 'login':       return <LoginScreen onLogin={() => { setScreen('home'); setActiveTab('home'); }} />;
+      case 'login':       return <LoginScreen onLogin={() => { setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
       case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
       case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen('home')} onNavigate={navigate} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
       case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
-      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} />;
+      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onLogout={() => setScreen('login')} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       default:            return <SplashScreen />;
     }
