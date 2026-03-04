@@ -15,6 +15,8 @@ const C = {
   primary: '#FF6B35',
   primaryLight: '#FF8C5A',
   primaryDark: '#E55A25',
+  headerBg: '#2563EB',
+  headerDark: '#1D4ED8',
   bg: '#FAFAFA',
   card: '#FFFFFF',
   text: '#1A1A2E',
@@ -292,7 +294,7 @@ const TabBar = ({ active, onNavigate }) => {
             {isPublish ? (
               <div style={{
                 width: 52, height: 52, borderRadius: 26,
-                background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+                background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: `0 4px 14px ${C.primary}55`,
                 marginTop: -22, border: '3px solid #fff',
@@ -332,7 +334,7 @@ const SplashScreen = () => {
   return (
     <div style={{
       position: 'absolute', inset: 0,
-      background: `linear-gradient(160deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
+      background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 100%)`,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
@@ -535,7 +537,7 @@ const handleRegister = async () => {
     <div style={{ position: 'absolute', inset: 0, background: '#fff', overflowY: 'auto' }}>
       {/* Header */}
       <div style={{
-        background: `linear-gradient(160deg, ${C.primary}, ${C.primaryDark})`,
+        background: `linear-gradient(160deg, ${C.headerBg}, ${C.headerDark})`,
         padding: '60px 24px 40px', textAlign: 'center',
       }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>💼</div>
@@ -804,7 +806,7 @@ const HomeScreen = ({ onNavigate, onViewCachuelo }) => {
     <Screen withTabs activeTab="home" onNavigate={onNavigate}>
       {/* Header */}
       <div style={{
-        background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
+        background: `linear-gradient(135deg, ${C.headerBg} 0%, ${C.headerDark} 100%)`,
         padding: '44px 20px 20px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -980,7 +982,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate }) => {
     <Screen withTabs activeTab="home" onNavigate={onNavigate}>
       {/* Sticky header */}
       <div style={{
-        background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+        background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
         padding: '44px 20px 20px',
         position: 'sticky', top: 0, zIndex: 10,
       }}>
@@ -1148,7 +1150,7 @@ const PublishScreen = ({ onNavigate }) => {
   return (
     <Screen withTabs activeTab="publish" onNavigate={onNavigate}>
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, padding: '44px 20px 20px' }}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Publicar Cachuelo</div>
         {/* Step indicators */}
         <div style={{ display: 'flex', gap: 0 }}>
@@ -1343,7 +1345,7 @@ const SearchScreen = ({ onNavigate, onViewCachuelo }) => {
 
   return (
     <Screen withTabs activeTab="search" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, padding: '44px 20px 20px' }}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Buscar</div>
         <div style={{ background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
           <Search size={16} color={C.textMuted} />
@@ -1410,7 +1412,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
 
   return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, padding: '44px 20px 20px' }}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Mis Cachuelos</div>
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 3 }}>
           {['publicados','postulados'].map(t => (
@@ -1501,7 +1503,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onLogout }) => {
     <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
       {/* Header */}
       <div style={{
-        background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+        background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
         padding: '44px 20px 32px', textAlign: 'center',
       }}>
         <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
