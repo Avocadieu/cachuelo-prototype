@@ -821,7 +821,9 @@ const HomeScreen = ({ onNavigate, onViewCachuelo }) => {
               <Bell size={18} color="#fff" />
               <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, background: '#FCD34D', borderRadius: '50%' }} />
             </button>
-            <Avatar initials="SC" size={38} bg="rgba(255,255,255,0.25)" fontSize={13} />
+            <button onClick={() => onNavigate('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <Avatar initials="SC" size={38} bg="rgba(255,255,255,0.25)" fontSize={13} />
+            </button>
           </div>
         </div>
 
