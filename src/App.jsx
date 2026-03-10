@@ -463,10 +463,206 @@ const CIUDADES_PERU = {
   'Ucayali':      ['Pucallpa','Atalaya','Aguaytía','Contamana','Sepahua'],
 };
 
-const LoginScreen = ({ onLogin, onAdmin }) => {
+// ─── WELCOME SCREEN ──────────────────────────────────────────────────────────
+const TeacherSVG = () => (
+  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
+    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#DBEAFE" />
+    {/* Blackboard */}
+    <rect x="168" y="82" width="78" height="58" rx="6" fill="#064E3B" />
+    <rect x="172" y="86" width="70" height="50" rx="4" fill="#065F46" />
+    <line x1="180" y1="102" x2="234" y2="102" stroke="white" strokeWidth="2" opacity="0.8" />
+    <line x1="180" y1="114" x2="222" y2="114" stroke="white" strokeWidth="2" opacity="0.7" />
+    <line x1="180" y1="126" x2="230" y2="126" stroke="white" strokeWidth="2" opacity="0.5" />
+    {/* Body */}
+    <rect x="108" y="148" width="46" height="58" rx="10" fill="#2563EB" />
+    {/* Head */}
+    <circle cx="131" cy="126" r="22" fill="#FBBF8A" />
+    {/* Hair */}
+    <path d="M109 120 Q111 98 131 96 Q151 98 153 120 Q144 112 131 113 Q118 112 109 120 Z" fill="#3B2A1A" />
+    {/* Eyes */}
+    <circle cx="124" cy="124" r="2.5" fill="#3B2A1A" />
+    <circle cx="138" cy="124" r="2.5" fill="#3B2A1A" />
+    {/* Smile */}
+    <path d="M125 133 Q131 139 137 133" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    {/* Right arm pointing at board */}
+    <path d="M152 156 Q162 144 170 133" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
+    {/* Left arm with book */}
+    <path d="M110 156 Q98 164 90 172" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
+    <rect x="80" y="169" width="20" height="15" rx="3" fill="#EF4444" />
+    {/* Legs */}
+    <rect x="114" y="204" width="14" height="32" rx="7" fill="#1E3A8A" />
+    <rect x="134" y="204" width="14" height="32" rx="7" fill="#1E3A8A" />
+    <ellipse cx="121" cy="236" rx="12" ry="5" fill="#374151" />
+    <ellipse cx="141" cy="236" rx="12" ry="5" fill="#374151" />
+    {/* Floor books */}
+    <rect x="48" y="208" width="46" height="8" rx="3" fill="#F59E0B" />
+    <rect x="52" y="200" width="38" height="9" rx="3" fill="#6366F1" />
+    <rect x="55" y="192" width="32" height="9" rx="3" fill="#EC4899" />
+  </svg>
+);
+
+const WorkerSVG = () => (
+  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
+    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#FEF3C7" />
+    {/* Hard hat */}
+    <ellipse cx="133" cy="98" rx="30" ry="8" fill="#F59E0B" />
+    <path d="M103 98 Q103 78 133 76 Q163 78 163 98 Z" fill="#F59E0B" />
+    {/* Head */}
+    <circle cx="133" cy="116" r="22" fill="#FBBF8A" />
+    {/* Eyes & smile */}
+    <circle cx="126" cy="114" r="2.5" fill="#3B2A1A" />
+    <circle cx="140" cy="114" r="2.5" fill="#3B2A1A" />
+    <path d="M127 123 Q133 129 139 123" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    {/* Orange vest */}
+    <rect x="108" y="136" width="50" height="58" rx="10" fill="#EA580C" />
+    {/* Vest stripes */}
+    <rect x="110" y="148" width="46" height="5" rx="2" fill="#FCD34D" opacity="0.75" />
+    <rect x="110" y="162" width="46" height="5" rx="2" fill="#FCD34D" opacity="0.75" />
+    {/* Right arm + wrench */}
+    <path d="M156 145 Q173 150 182 162" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
+    <rect x="179" y="158" width="9" height="24" rx="4" fill="#9CA3AF" transform="rotate(25 183 170)" />
+    <ellipse cx="181" cy="159" rx="7" ry="6" fill="#6B7280" transform="rotate(25 183 170)" />
+    {/* Left arm */}
+    <path d="M110 145 Q95 153 86 162" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
+    {/* Legs */}
+    <rect x="113" y="192" width="15" height="36" rx="7" fill="#374151" />
+    <rect x="133" y="192" width="15" height="36" rx="7" fill="#374151" />
+    <ellipse cx="120" cy="228" rx="13" ry="6" fill="#1F2937" />
+    <ellipse cx="140" cy="228" rx="13" ry="6" fill="#1F2937" />
+    {/* Bricks */}
+    <rect x="188" y="160" width="52" height="14" rx="3" fill="#D97706" opacity="0.45" />
+    <rect x="192" y="177" width="48" height="14" rx="3" fill="#D97706" opacity="0.45" />
+    <rect x="188" y="194" width="52" height="14" rx="3" fill="#D97706" opacity="0.45" />
+  </svg>
+);
+
+const DogWalkerSVG = () => (
+  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
+    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#DCFCE7" />
+    {/* Sun */}
+    <circle cx="226" cy="88" r="18" fill="#FCD34D" opacity="0.65" />
+    {/* Tree */}
+    <rect x="218" y="162" width="10" height="48" rx="3" fill="#92400E" />
+    <ellipse cx="223" cy="148" rx="26" ry="28" fill="#16A34A" />
+    {/* Ground */}
+    <ellipse cx="140" cy="234" rx="112" ry="12" fill="#86EFAC" opacity="0.45" />
+    {/* Person - head */}
+    <circle cx="105" cy="114" r="22" fill="#FBBF8A" />
+    {/* Hair */}
+    <path d="M83 110 Q85 90 105 88 Q125 90 127 110 Q118 103 105 104 Q92 103 83 110 Z" fill="#1F2937" />
+    {/* Eyes & smile */}
+    <circle cx="98" cy="113" r="2.5" fill="#3B2A1A" />
+    <circle cx="112" cy="113" r="2.5" fill="#3B2A1A" />
+    <path d="M99 121 Q105 127 111 121" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    {/* Body */}
+    <rect x="83" y="134" width="44" height="58" rx="10" fill="#EC4899" />
+    {/* Leash arm */}
+    <path d="M125 142 Q142 140 155 143" stroke="#FBBF8A" strokeWidth="8" strokeLinecap="round" fill="none" />
+    {/* Leash rope */}
+    <path d="M155 141 Q168 148 178 158" stroke="#6B7280" strokeWidth="2" fill="none" strokeDasharray="5 3" />
+    {/* Other arm */}
+    <path d="M85 142 Q73 152 67 160" stroke="#FBBF8A" strokeWidth="8" strokeLinecap="round" fill="none" />
+    {/* Legs */}
+    <rect x="88" y="190" width="14" height="36" rx="7" fill="#1D4ED8" />
+    <rect x="107" y="190" width="14" height="36" rx="7" fill="#1D4ED8" />
+    <ellipse cx="95" cy="226" rx="12" ry="5" fill="#374151" />
+    <ellipse cx="114" cy="226" rx="12" ry="5" fill="#374151" />
+    {/* Dog body */}
+    <ellipse cx="192" cy="200" rx="24" ry="15" fill="#A16207" />
+    {/* Dog head */}
+    <circle cx="213" cy="188" r="15" fill="#B45309" />
+    {/* Dog ears */}
+    <ellipse cx="221" cy="180" rx="7" ry="10" fill="#A16207" />
+    <ellipse cx="206" cy="180" rx="6" ry="9" fill="#A16207" />
+    {/* Dog face */}
+    <ellipse cx="219" cy="192" rx="4" ry="3" fill="#1F2937" />
+    <circle cx="214" cy="185" r="2.5" fill="#1F2937" />
+    <circle cx="215" cy="184" r="1" fill="#fff" />
+    {/* Dog legs */}
+    <rect x="172" y="211" width="9" height="18" rx="4" fill="#A16207" />
+    <rect x="184" y="212" width="9" height="17" rx="4" fill="#A16207" />
+    <rect x="197" y="212" width="9" height="17" rx="4" fill="#A16207" />
+    <rect x="208" y="211" width="9" height="18" rx="4" fill="#A16207" />
+    {/* Dog tail */}
+    <path d="M169 196 Q156 184 161 172" stroke="#A16207" strokeWidth="7" strokeLinecap="round" fill="none" />
+  </svg>
+);
+
+const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setSlide(s => (s + 1) % 3), 3500);
+    return () => clearInterval(t);
+  }, []);
+
+  const slides = [
+    { title: 'Enseña y comparte tu conocimiento', sub: 'Conecta con quien necesita aprender cerca de ti', illustration: <TeacherSVG /> },
+    { title: 'Trabaja en lo que mejor sabes hacer', sub: 'Cachuelos de construcción, reparaciones y más', illustration: <WorkerSVG /> },
+    { title: 'Cuida mascotas cerca de tu hogar', sub: 'Encuentra trabajo flexible en tu barrio hoy mismo', illustration: <DogWalkerSVG /> },
+  ];
+
+  const { title, sub, illustration } = slides[slide];
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Logo */}
+      <div style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 22 }}>💼</span>
+        <span style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Cachuelo</span>
+      </div>
+
+      {/* Illustration */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 24px 0' }}>
+        {illustration}
+      </div>
+
+      {/* Title + dots */}
+      <div style={{ padding: '0 28px 18px', textAlign: 'center' }}>
+        <div style={{ fontSize: 19, fontWeight: 800, color: C.text, lineHeight: 1.35, marginBottom: 6 }}>{title}</div>
+        <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.5 }}>{sub}</div>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 14 }}>
+          {slides.map((_, i) => (
+            <div key={i} onClick={() => setSlide(i)} style={{
+              width: i === slide ? 20 : 8, height: 8, borderRadius: 4,
+              background: i === slide ? C.headerBg : C.border,
+              transition: 'all .3s', cursor: 'pointer',
+            }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div style={{ padding: '0 24px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Btn onClick={onEmailLogin} style={{ width: '100%', borderRadius: 50, fontSize: 14, padding: '14px 0' }}>
+          Iniciar sesión y buscar Cachuelos
+        </Btn>
+        <button onClick={onGoogleLogin} style={{
+          width: '100%', borderRadius: 50, fontSize: 14, padding: '14px 0',
+          border: `1.5px solid ${C.border}`, background: '#fff', cursor: 'pointer',
+          fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.text,
+        }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#4285F4', fontFamily: 'Arial' }}>G</span> Continuar con Google
+        </button>
+        <button onClick={onPhoneLogin} style={{
+          width: '100%', borderRadius: 50, fontSize: 14, padding: '14px 0',
+          border: `1.5px solid ${C.border}`, background: '#fff', cursor: 'pointer',
+          fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.text,
+        }}>
+          <Phone size={16} color={C.textSec} /> Continuar con Teléfono
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
   const [mode, setMode] = useState('login'); // login | register | phone
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [regSuccess, setRegSuccess] = useState(false);
 
   const [reg, setReg] = useState({
     nombre: '', apellido: '', pais: 'Perú', fechaNac: '',
@@ -485,15 +681,29 @@ const LoginScreen = ({ onLogin, onAdmin }) => {
   };
   const passValid = Object.values(passReqs).every(Boolean);
 
-  const handleLogin = () => {
-    if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') {
-      onAdmin();
-    } else {
-      onLogin();
+  const handleLogin = async () => {
+    setError('');
+    // Bypass admin dashboard
+    if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') { onAdmin(); return; }
+    // Cuenta demo
+    if (email === 'admin@cachuelo.com' && pass === 'cachuelo123') {
+      onLogin({ email, nombre: 'Sergio', apellido: 'Cotillo' }); return;
     }
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    setLoading(false);
+    if (error) { setError('Correo o contraseña incorrectos.'); return; }
+    onLogin({
+      id: data.user.id,
+      email: data.user.email,
+      nombre: data.user.user_metadata?.nombre || data.user.email.split('@')[0],
+      apellido: data.user.user_metadata?.apellido || '',
+    });
   };
 
 const handleRegister = async () => {
+  setError('');
+  setLoading(true);
   const { data, error } = await supabase.auth.signUp({
     email: reg.email,
     password: reg.pass,
@@ -509,18 +719,12 @@ const handleRegister = async () => {
       }
     }
   });
-
-  if (error) {
-    alert('Error al registrar: ' + error.message);
-    return;
-  }
-
-  // Guardar también en localStorage para el prototipo
-  const users = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
-  users.push({ ...reg, id: data.user.id, createdAt: new Date().toISOString() });
-  localStorage.setItem('cachuelo_users', JSON.stringify(users));
-
-  onLogin();
+  setLoading(false);
+  if (error) { setError(error.message); return; }
+  // Supabase requiere confirmación de email → mostrar mensaje
+  if (!data.session) { setRegSuccess(true); return; }
+  // Sin confirmación → entrar directo
+  onLogin({ id: data.user.id, email: data.user.email, nombre: reg.nombre, apellido: reg.apellido });
 };
 
   const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac
@@ -538,8 +742,18 @@ const handleRegister = async () => {
       {/* Header */}
       <div style={{
         background: `linear-gradient(160deg, ${C.headerBg}, ${C.headerDark})`,
-        padding: '60px 24px 40px', textAlign: 'center',
+        padding: '60px 24px 40px', textAlign: 'center', position: 'relative',
       }}>
+        {onBack && (
+          <button onClick={onBack} style={{
+            position: 'absolute', top: 16, left: 16,
+            width: 36, height: 36, borderRadius: 18,
+            background: 'rgba(255,255,255,0.2)', border: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+        )}
         <div style={{ fontSize: 40, marginBottom: 8 }}>💼</div>
         <div style={{ fontSize: 28, fontWeight: 800, color: '#fff' }}>Cachuelo</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Trabajos puntuales en Perú</div>
@@ -574,7 +788,14 @@ const handleRegister = async () => {
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
-            <Btn onClick={handleLogin} style={{ width: '100%', marginBottom: 16 }}>Ingresar</Btn>
+            {error && (
+              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
+                {error}
+              </div>
+            )}
+            <Btn onClick={handleLogin} style={{ width: '100%', marginBottom: 16 }} disabled={loading}>
+              {loading ? 'Ingresando...' : 'Ingresar'}
+            </Btn>
           </>
         )}
 
@@ -740,8 +961,20 @@ const handleRegister = async () => {
               {passMismatch && <div style={{ fontSize: 11, color: C.danger, marginTop: 4 }}>Las contraseñas no coinciden</div>}
             </div>
 
-            <Btn onClick={handleRegister} style={{ width: '100%', marginBottom: 16 }} disabled={!regFilled}>
-              Crear cuenta
+            {regSuccess && (
+              <div style={{ background: '#ECFDF5', border: `1px solid ${C.success}40`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, textAlign: 'center' }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>📧</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>¡Revisa tu correo!</div>
+                <div style={{ fontSize: 12, color: '#166534', marginTop: 4 }}>Te enviamos un link para confirmar tu cuenta.</div>
+              </div>
+            )}
+            {error && (
+              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
+                {error}
+              </div>
+            )}
+            <Btn onClick={handleRegister} style={{ width: '100%', marginBottom: 16 }} disabled={!regFilled || loading || regSuccess}>
+              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
             </Btn>
           </>
         )}
@@ -755,7 +988,7 @@ const handleRegister = async () => {
 
         {/* Social */}
         <div style={{ display: 'flex', gap: 10 }}>
-          <Btn variant="ghost" onClick={onLogin} style={{ flex: 1, border: `1px solid ${C.border}` }}>
+          <Btn variant="ghost" onClick={() => onLogin({ email: 'google@user.com', nombre: 'Usuario', apellido: 'Google' })} style={{ flex: 1, border: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 16 }}>🇬</span> Google
           </Btn>
           <Btn variant="ghost" onClick={() => setMode('phone')} style={{ flex: 1, border: `1px solid ${C.border}` }}>
@@ -766,7 +999,7 @@ const handleRegister = async () => {
         {mode === 'phone' && (
           <div style={{ marginTop: 16 }}>
             <Input label="Número de celular" placeholder="+51 987 654 321" type="tel" icon={<Phone size={15} />} />
-            <Btn style={{ width: '100%' }} onClick={onLogin}>Enviar código SMS</Btn>
+            <Btn style={{ width: '100%' }} onClick={() => onLogin({ email: 'sms@user.com', nombre: 'Usuario', apellido: 'SMS' })}>Enviar código SMS</Btn>
           </div>
         )}
 
@@ -968,13 +1201,14 @@ const CachuCard = ({ c, onPress }) => (
 );
 
 // 5. DETALLE DE CACHUELO ──────────────────────────────────────────────────────
-const DetailScreen = ({ cachuelo, onBack, onNavigate }) => {
+const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth }) => {
   const [message, setMessage] = useState('');
   const [applied, setApplied] = useState(false);
 
   if (!cachuelo) return null;
 
   const handleApply = () => {
+    if (!user) { onRequireAuth(); return; }
     if (!applied) { setApplied(true); }
   };
 
@@ -1746,11 +1980,34 @@ export default function App() {
   const [screen, setScreen] = useState('splash');
   const [activeTab, setActiveTab] = useState('home');
   const [selectedCachuelo, setSelectedCachuelo] = useState(null);
+  const [user, setUser] = useState(null);
 
-  // Auto-advance splash
+  // Escuchar cambios de sesión (login/logout en cualquier pantalla)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') { setUser(null); }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Auto-advance splash: si hay sesión activa → home, si no → onboarding
   useEffect(() => {
     if (screen === 'splash') {
-      const t = setTimeout(() => setScreen('onboarding'), 2400);
+      const t = setTimeout(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            nombre: session.user.user_metadata?.nombre || session.user.email.split('@')[0],
+            apellido: session.user.user_metadata?.apellido || '',
+          });
+          setScreen('home');
+          setActiveTab('home');
+        } else {
+          setScreen('onboarding');
+        }
+      }, 2400);
       return () => clearTimeout(t);
     }
   }, [screen]);
@@ -1772,14 +2029,19 @@ export default function App() {
   const renderScreen = () => {
     switch (screen) {
       case 'splash':      return <SplashScreen />;
-      case 'onboarding':  return <OnboardingScreen onDone={() => setScreen('login')} />;
-      case 'login':       return <LoginScreen onLogin={() => { setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
+      case 'onboarding':  return <OnboardingScreen onDone={() => setScreen('welcome')} />;
+      case 'welcome':     return <WelcomeScreen
+                            onEmailLogin={() => setScreen('login')}
+                            onGoogleLogin={() => { setUser({ email: 'google@user.com', nombre: 'Usuario', apellido: 'Google' }); setScreen('home'); setActiveTab('home'); }}
+                            onPhoneLogin={() => setScreen('login')}
+                          />;
+      case 'login':       return <LoginScreen onLogin={(u) => { setUser(u); setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
       case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
-      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen('home')} onNavigate={navigate} />;
+      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen('home')} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
       case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
-      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onLogout={() => setScreen('login')} />;
+      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       default:            return <SplashScreen />;
     }
