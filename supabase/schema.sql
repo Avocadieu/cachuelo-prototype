@@ -19,6 +19,7 @@ CREATE TABLE categorias (
 -- ------------------------------------------------------------
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
   nombre TEXT,
   apellido TEXT,
   telefono TEXT,
@@ -46,6 +47,7 @@ CREATE TABLE cachuelos (
   distrito TEXT,
   duracion TEXT,                 -- "1 día" | "1 semana" | "1 mes" | etc.
   tipo TEXT DEFAULT 'Presencial', -- Presencial | Remoto
+  fecha_inicio DATE,
   destacado BOOLEAN DEFAULT FALSE,
   estado TEXT DEFAULT 'Activo', -- Activo | Pausado | Cerrado | Completado
   horario TEXT,
@@ -139,9 +141,10 @@ CREATE POLICY "Usuario puede postularse"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, nombre, apellido, pais)
+  INSERT INTO public.profiles (id, email, nombre, apellido, pais)
   VALUES (
     NEW.id,
+    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'nombre',   ''),
     COALESCE(NEW.raw_user_meta_data->>'apellido',  ''),
     COALESCE(NEW.raw_user_meta_data->>'pais',     'Perú')

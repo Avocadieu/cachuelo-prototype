@@ -7,7 +7,7 @@ import {
   Phone, Mail, CreditCard, Zap, Camera, Truck, Wrench, BookOpen,
   Leaf, Monitor, Calendar, MessageCircle, Filter, Heart, Share2,
   LogOut, Eye, CheckCircle, AlertCircle, Package, Send, Hash,
-  DollarSign
+  DollarSign, Trash2, Pencil
 } from 'lucide-react';
 
 // ─── PALETA ────────────────────────────────────────────────────────────────
@@ -28,6 +28,18 @@ const C = {
   danger: '#EF4444',
   purple: '#8B5CF6',
 };
+
+// ─── DISTRITOS DE LIMA ───────────────────────────────────────────────────────
+const DISTRITOS = [
+  'Ancón','Ate','Barranco','Breña','Carabayllo','Cercado de Lima','Chaclacayo',
+  'Chorrillos','Cieneguilla','Comas','El Agustino','Independencia','Jesús María',
+  'La Molina','La Victoria','Lince','Los Olivos','Lurigancho','Lurín',
+  'Magdalena del Mar','Miraflores','Pachacámac','Pucusana','Pueblo Libre',
+  'Puente Piedra','Punta Hermosa','Punta Negra','Rímac','San Bartolo','San Borja',
+  'San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis',
+  'San Martín de Porres','San Miguel','Santa Anita','Santa María del Mar',
+  'Santa Rosa','Santiago de Surco','Surquillo','Villa El Salvador','Villa María del Triunfo',
+];
 
 // ─── DATOS MOCK ─────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -685,10 +697,6 @@ const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
     setError('');
     // Bypass admin dashboard
     if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') { onAdmin(); return; }
-    // Cuenta demo
-    if (email === 'admin@cachuelo.com' && pass === 'cachuelo123') {
-      onLogin({ email, nombre: 'Sergio', apellido: 'Cotillo' }); return;
-    }
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     setLoading(false);
@@ -1023,12 +1031,12 @@ const handleRegister = async () => {
 };
 
 // 4. HOME ─────────────────────────────────────────────────────────────────────
-const HomeScreen = ({ onNavigate, onViewCachuelo }) => {
+const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   const [filter, setFilter] = useState('Todos');
   const [selectedCat, setSelectedCat] = useState(null);
   const filters = ['Todos', 'Destacados', 'Remoto', 'Cerca'];
 
-  const filteredCachuelos = CACHUELOS.filter(c => {
+  const filteredCachuelos = cachuelos.filter(c => {
     if (filter === 'Destacados') return c.featured;
     if (filter === 'Remoto') return c.remote;
     if (selectedCat) return c.category === selectedCat;
@@ -1340,20 +1348,46 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth }) => 
 };
 
 // 6. PUBLICAR ─────────────────────────────────────────────────────────────────
-const PublishScreen = ({ onNavigate }) => {
+const PublishScreen = ({ onNavigate, user, onPublished }) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     title: '', category: '', description: '',
     price: '', payType: 'Fijo', district: '', duration: '',
-    featured: false, payMethod: '',
+    durNum: '', durUnit: 'día(s)', startDate: '',
+    tipo: 'Presencial', featured: false, payMethod: '',
   });
   const [published, setPublished] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const stepLabels = ['Info básica', 'Detalles', 'Pago'];
 
-  const handlePublish = () => setPublished(true);
+  const handlePublish = async () => {
+    if (!user) return;
+    setSaving(true);
+    setError(null);
+    const cat = CATEGORIES.find(c => c.label === form.category);
+    const { error: err } = await supabase.from('cachuelos').insert({
+      user_id: user.id,
+      titulo: form.title,
+      descripcion: form.description,
+      categoria_id: cat?.id || null,
+      precio: Number(form.price),
+      tipo_pago: form.payType,
+      distrito: form.district,
+      duracion: form.duration,
+      tipo: form.tipo,
+      destacado: form.featured,
+      fecha_inicio: form.startDate,
+      estado: 'Activo',
+    });
+    setSaving(false);
+    if (err) { console.error('Supabase insert error:', err); setError(`Error: ${err.message} (code: ${err.code})`); return; }
+    await onPublished?.();
+    setPublished(true);
+  };
 
   if (published) {
     return (
@@ -1459,12 +1493,64 @@ const PublishScreen = ({ onNavigate }) => {
                 </select>
               </div>
             </div>
-            <Input label="Distrito *" placeholder="Ej: Miraflores" value={form.district} onChange={e => upd('district', e.target.value)} icon={<MapPin size={15} />} />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Modalidad</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['Presencial', 'Remoto'].map(t => (
+                  <button key={t} onClick={() => upd('tipo', t)} style={{
+                    flex: 1, padding: '9px 0', borderRadius: 10,
+                    border: `1.5px solid ${form.tipo === t ? C.primary : C.border}`,
+                    background: form.tipo === t ? C.primary + '12' : '#fff',
+                    color: form.tipo === t ? C.primary : C.text,
+                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  }}>
+                    {t === 'Presencial' ? '📍' : '🌐'} {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
+                Distrito *
+              </label>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={15} color={C.textMuted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <select
+                  value={form.district}
+                  onChange={e => upd('district', e.target.value)}
+                  style={{
+                    width: '100%', padding: '11px 14px 11px 34px',
+                    border: `1.5px solid ${form.district ? C.primary : C.border}`,
+                    borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted,
+                    background: '#fff', outline: 'none', fontFamily: 'inherit',
+                    appearance: 'none', cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Selecciona un distrito...</option>
+                  {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Fecha de inicio *</label>
+              <input
+                type="date"
+                value={form.startDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={e => upd('startDate', e.target.value)}
+                style={{
+                  width: '100%', padding: '11px 14px', boxSizing: 'border-box',
+                  border: `1.5px solid ${form.startDate ? C.primary : C.border}`,
+                  borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted,
+                  background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                }}
+              />
+            </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Duración máxima (máx. 30 días)</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                 {['1 día','2 días','1 semana','2 semanas','3 semanas','1 mes'].map(d => (
-                  <button key={d} onClick={() => upd('duration', d)} style={{
+                  <button key={d} onClick={() => { upd('duration', d); upd('durNum', ''); upd('durUnit', 'día(s)'); }} style={{
                     padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.duration === d ? C.primary : C.border}`,
                     background: form.duration === d ? C.primary : '#fff',
                     color: form.duration === d ? '#fff' : C.text,
@@ -1472,10 +1558,43 @@ const PublishScreen = ({ onNavigate }) => {
                   }}>{d}</button>
                 ))}
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.textSec, whiteSpace: 'nowrap' }}>Otro:</span>
+                <input
+                  type="number" min="1" max="30" placeholder="Nº"
+                  value={form.durNum}
+                  onChange={e => {
+                    const n = e.target.value;
+                    upd('durNum', n);
+                    if (n) upd('duration', `${n} ${form.durUnit}`);
+                    else upd('duration', '');
+                  }}
+                  style={{
+                    width: 64, padding: '8px 10px', textAlign: 'center',
+                    border: `1.5px solid ${form.durNum ? C.primary : C.border}`,
+                    borderRadius: 10, fontSize: 13, color: C.text, outline: 'none', fontFamily: 'inherit',
+                  }}
+                />
+                <select
+                  value={form.durUnit}
+                  onChange={e => {
+                    upd('durUnit', e.target.value);
+                    if (form.durNum) upd('duration', `${form.durNum} ${e.target.value}`);
+                  }}
+                  style={{
+                    flex: 1, padding: '8px 10px', border: `1.5px solid ${C.border}`,
+                    borderRadius: 10, fontSize: 13, color: C.text,
+                    background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                  }}
+                >
+                  <option value="día(s)">día(s)</option>
+                  <option value="semana(s)">semana(s)</option>
+                </select>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1 }}><ChevronLeft size={16} /> Atrás</Btn>
-              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || !form.district || !form.duration}>
+              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || !form.district || !form.duration || !form.startDate}>
                 Siguiente <ChevronRight size={16} />
               </Btn>
             </div>
@@ -1554,10 +1673,15 @@ const PublishScreen = ({ onNavigate }) => {
               </div>
             </div>
 
+            {error && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#DC2626' }}>
+                {error}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
-              <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }}><ChevronLeft size={16} /> Atrás</Btn>
-              <Btn onClick={handlePublish} style={{ flex: 2 }} disabled={!form.payMethod}>
-                <Zap size={16} /> Publicar S/{form.featured ? 8 : 5}
+              <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }} disabled={saving}><ChevronLeft size={16} /> Atrás</Btn>
+              <Btn onClick={handlePublish} style={{ flex: 2 }} disabled={!form.payMethod || saving}>
+                <Zap size={16} /> {saving ? 'Publicando...' : `Publicar S/${form.featured ? 8 : 5}`}
               </Btn>
             </div>
           </>
@@ -1568,11 +1692,11 @@ const PublishScreen = ({ onNavigate }) => {
 };
 
 // 7. BUSCAR ────────────────────────────────────────────────────────────────────
-const SearchScreen = ({ onNavigate, onViewCachuelo }) => {
+const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   const [query, setQuery] = useState('');
   const [selectedCat, setSelectedCat] = useState(null);
 
-  const results = CACHUELOS.filter(c =>
+  const results = cachuelos.filter(c =>
     (!query || c.title.toLowerCase().includes(query.toLowerCase()) || c.category.toLowerCase().includes(query.toLowerCase())) &&
     (!selectedCat || c.category === selectedCat)
   );
@@ -1722,15 +1846,37 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
 };
 
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
-const ProfileScreen = ({ onNavigate, onAdmin, onLogout }) => {
+const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) => {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('*').eq('id', user.id).single()
+      .then(({ data }) => { if (data) setProfile(data); });
+  }, [user?.id]);
+
+  const nombre   = profile?.nombre   || user?.nombre   || '';
+  const apellido = profile?.apellido || user?.apellido || '';
+  const email    = profile?.email    || user?.email    || '';
+  const fullName = [nombre, apellido].filter(Boolean).join(' ') || email.split('@')[0];
+  const initials = `${nombre[0] || ''}${apellido[0] || ''}`.toUpperCase() || '??';
+  const rating   = profile?.rating ?? 0;
+  const completados = profile?.cachuelos_completados ?? 0;
+  const publicados  = profile?.cachuelos_publicados  ?? 0;
+  const dniVerificado = profile?.dni_verificado ?? false;
+  const isAdmin = profile?.rol === 'admin';
+
   const menuItems = [
-    { icon: Shield,     label: 'Verificar DNI',           desc: 'Aumenta tu confiabilidad',  color: C.primary,  action: null },
-    { icon: Award,      label: 'Verificar CUL',           desc: 'Certificado único laboral',  color: C.purple,   action: null },
-    { icon: Star,       label: 'Mis calificaciones',      desc: '4.8 · 24 reseñas',          color: C.warning,  action: null },
-    { icon: BarChart2,  label: 'Dashboard Admin',         desc: 'KPIs y métricas',            color: C.success,  action: onAdmin },
-    { icon: FileText,   label: 'Términos y condiciones',  desc: 'Aviso legal completo',       color: C.textSec,  action: null },
-    { icon: Settings,   label: 'Configuración',           desc: 'Notificaciones y privacidad',color: C.textSec,  action: null },
-    { icon: LogOut,     label: 'Cerrar sesión',           desc: '',                           color: C.danger,   action: onLogout },
+    { icon: Shield,     label: 'Verificar DNI',           desc: 'Aumenta tu confiabilidad',   color: C.primary,  action: null },
+    { icon: Award,      label: 'Verificar CUL',           desc: 'Certificado único laboral',   color: C.purple,   action: null },
+    { icon: Star,       label: 'Mis calificaciones',      desc: '4.8 · 24 reseñas',           color: C.warning,  action: null },
+    ...(isAdmin ? [
+      { icon: Wrench,   label: 'Herramientas Admin',      desc: 'Gestionar cachuelos',         color: '#7C3AED',  action: onAdminTools },
+      { icon: BarChart2,label: 'Dashboard Admin',         desc: 'KPIs y métricas',             color: C.success,  action: onAdmin },
+    ] : []),
+    { icon: FileText,   label: 'Términos y condiciones',  desc: 'Aviso legal completo',        color: C.textSec,  action: null },
+    { icon: Settings,   label: 'Configuración',           desc: 'Notificaciones y privacidad', color: C.textSec,  action: null },
+    { icon: LogOut,     label: 'Cerrar sesión',           desc: '',                            color: C.danger,   action: onLogout },
   ];
 
   return (
@@ -1741,29 +1887,32 @@ const ProfileScreen = ({ onNavigate, onAdmin, onLogout }) => {
         padding: '44px 20px 32px', textAlign: 'center',
       }}>
         <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
-          <Avatar initials="SC" size={80} bg="rgba(255,255,255,0.25)" fontSize={28} />
-          <div style={{
-            position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13,
-            background: C.success, border: '2px solid #fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <CheckCircle size={14} color="#fff" />
-          </div>
+          <Avatar initials={initials} size={80} bg="rgba(255,255,255,0.25)" fontSize={28} />
+          {dniVerificado && (
+            <div style={{
+              position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13,
+              background: C.success, border: '2px solid #fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircle size={14} color="#fff" />
+            </div>
+          )}
         </div>
-        <div style={{ color: '#fff', fontSize: 20, fontWeight: 800 }}>Sergio Cotillo</div>
-        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 }}>sergio.cotillo@gmail.com</div>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
-          <Badge color="#fff" bg="rgba(255,255,255,0.2)">DNI Verificado</Badge>
-          <Badge color="#fff" bg="rgba(255,255,255,0.2)">⭐ 4.8</Badge>
+        <div style={{ color: '#fff', fontSize: 20, fontWeight: 800 }}>{fullName}</div>
+        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 }}>{email}</div>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          {isAdmin && <Badge color="#7C3AED" bg="rgba(124,58,237,0.15)">🛡️ Admin</Badge>}
+          {dniVerificado && <Badge color="#fff" bg="rgba(255,255,255,0.2)">DNI Verificado</Badge>}
+          {rating > 0 && <Badge color="#fff" bg="rgba(255,255,255,0.2)">⭐ {rating.toFixed(1)}</Badge>}
         </div>
       </div>
 
       {/* Stats */}
       <div style={{ display: 'flex', background: '#fff', padding: '16px 0', borderBottom: `1px solid ${C.border}` }}>
         {[
-          { label: 'Rating', value: '4.8', icon: '⭐' },
-          { label: 'Completados', value: '12', icon: '✅' },
-          { label: 'Publicados', value: '5', icon: '📢' },
+          { label: 'Rating', value: rating > 0 ? rating.toFixed(1) : '—', icon: '⭐' },
+          { label: 'Completados', value: completados, icon: '✅' },
+          { label: 'Publicados', value: publicados, icon: '📢' },
         ].map((s, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
             <div style={{ fontSize: 22 }}>{s.icon}</div>
@@ -1973,6 +2122,158 @@ const AdminDashboard = ({ onBack }) => {
   );
 };
 
+// ── HERRAMIENTAS ADMIN ────────────────────────────────────────────────────────
+const AdminToolsScreen = ({ onBack, onRefresh }) => {
+  const [cachuelos, setCachuelos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const fetchAll = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('cachuelos')
+      .select(`*, categorias(label, emoji), profiles(nombre, apellido, email)`)
+      .order('created_at', { ascending: false });
+    setCachuelos(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, []);
+
+  const handleDelete = async (id) => {
+    setDeleting(id);
+    const { error } = await supabase.from('cachuelos').delete().eq('id', id);
+    if (error) {
+      alert(`Error al eliminar: ${error.message}`);
+    } else {
+      setCachuelos(prev => prev.filter(c => c.id !== id));
+      onRefresh?.();
+    }
+    setDeleting(null);
+  };
+
+  const startEdit = (c) => {
+    setEditingId(c.id);
+    setEditForm({ titulo: c.titulo, precio: c.precio, estado: c.estado, distrito: c.distrito });
+  };
+
+  const handleSaveEdit = async () => {
+    await supabase.from('cachuelos').update({
+      titulo: editForm.titulo,
+      precio: Number(editForm.precio),
+      estado: editForm.estado,
+      distrito: editForm.distrito,
+    }).eq('id', editingId);
+    setCachuelos(prev => prev.map(c => c.id === editingId ? { ...c, ...editForm, precio: Number(editForm.precio) } : c));
+    setEditingId(null);
+    onRefresh?.();
+  };
+
+  const publisherName = (c) =>
+    `${c.profiles?.nombre || ''} ${c.profiles?.apellido || ''}`.trim() || c.profiles?.email?.split('@')[0] || 'Usuario';
+
+  const estadoColor = { Activo: C.success, Pausado: C.warning, Cerrado: C.danger, Completado: C.purple };
+
+  return (
+    <Screen>
+      <div style={{ background: `linear-gradient(135deg, #7C3AED, #5B21B6)`, padding: '44px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>🛡️ Panel de administración</div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Herramientas Admin</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px 100px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>Cargando cachuelos...</div>
+        ) : cachuelos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: C.textMuted }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+            <div>No hay cachuelos publicados</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>{cachuelos.length} cachuelo{cachuelos.length !== 1 ? 's' : ''} en total</div>
+            {cachuelos.map(c => (
+              <div key={c.id} style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+                {editingId === c.id ? (
+                  /* ── MODO EDICIÓN ── */
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#7C3AED', marginBottom: 10 }}>Editando cachuelo</div>
+                    <Input label="Título" value={editForm.titulo} onChange={e => setEditForm(f => ({ ...f, titulo: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                      <div style={{ flex: 1 }}>
+                        <Input label="Precio (S/)" type="number" value={editForm.precio} onChange={e => setEditForm(f => ({ ...f, precio: e.target.value }))} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Estado</label>
+                        <select value={editForm.estado} onChange={e => setEditForm(f => ({ ...f, estado: e.target.value }))}
+                          style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit' }}>
+                          {['Activo','Pausado','Cerrado','Completado'].map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <Input label="Distrito" value={editForm.distrito} onChange={e => setEditForm(f => ({ ...f, distrito: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      <Btn variant="ghost" onClick={() => setEditingId(null)} style={{ flex: 1 }}>Cancelar</Btn>
+                      <Btn onClick={handleSaveEdit} style={{ flex: 2 }}><Check size={15} /> Guardar</Btn>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── MODO VISTA ── */
+                  <>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div style={{ fontSize: 28, lineHeight: 1 }}>{c.categorias?.emoji || '💼'}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                        <div style={{ fontSize: 12, color: C.textMuted }}>por {publisherName(c)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: C.primary }}>S/{c.precio}</div>
+                        <div style={{ fontSize: 10, color: estadoColor[c.estado] || C.textMuted, fontWeight: 600 }}>{c.estado}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, fontSize: 11, color: C.textMuted, marginBottom: 12 }}>
+                      <span>📍 {c.distrito}</span>
+                      <span>·</span>
+                      <span>{c.categorias?.label}</span>
+                      <span>·</span>
+                      <span>{c.duracion}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => startEdit(c)} style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        padding: '9px 0', borderRadius: 10, border: `1.5px solid #7C3AED`,
+                        background: 'rgba(124,58,237,0.06)', color: '#7C3AED', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                      }}>
+                        <Pencil size={14} /> Editar
+                      </button>
+                      <button onClick={() => handleDelete(c.id)} disabled={deleting === c.id} style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        padding: '9px 0', borderRadius: 10, border: `1.5px solid ${C.danger}`,
+                        background: 'rgba(239,68,68,0.06)', color: C.danger, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                      }}>
+                        <Trash2 size={14} /> {deleting === c.id ? 'Borrando...' : 'Eliminar'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </Screen>
+  );
+};
+
 // ════════════════════════════════════════════════════════════════════════════
 //  APP ROOT
 // ════════════════════════════════════════════════════════════════════════════
@@ -1981,6 +2282,40 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedCachuelo, setSelectedCachuelo] = useState(null);
   const [user, setUser] = useState(null);
+  const [cachuelos, setCachuelos] = useState(CACHUELOS); // fallback al mock mientras carga
+
+  const normalizeCachuelos = (data) => data.map(c => ({
+    id: c.id,
+    title: c.titulo,
+    category: c.categorias?.label || '',
+    emoji: c.categorias?.emoji || '💼',
+    location: c.distrito || 'Lima',
+    duration: c.duracion || '',
+    price: Number(c.precio),
+    type: c.tipo,
+    featured: c.destacado,
+    remote: c.tipo === 'Remoto',
+    publisher: {
+      name: `${c.profiles?.nombre || ''} ${c.profiles?.apellido || ''}`.trim() || c.profiles?.email?.split('@')[0] || 'Usuario',
+      rating: c.profiles?.rating || 0,
+      verified: c.profiles?.dni_verificado || false,
+      avatar: (`${c.profiles?.nombre?.[0] || ''}${c.profiles?.apellido?.[0] || ''}`).toUpperCase() || (c.profiles?.email?.[0] || 'U').toUpperCase(),
+    },
+    description: c.descripcion || '',
+    schedule: c.horario || '',
+  }));
+
+  const refreshCachuelos = async () => {
+    const { data, error } = await supabase
+      .from('cachuelos')
+      .select(`*, categorias(label, emoji, color), profiles(nombre, apellido, email, rating, dni_verificado)`)
+      .eq('estado', 'Activo')
+      .order('created_at', { ascending: false });
+    if (!error && data && data.length > 0) setCachuelos(normalizeCachuelos(data));
+  };
+
+  // Cargar cachuelos al iniciar
+  useEffect(() => { refreshCachuelos(); }, []);
 
   // Escuchar cambios de sesión (login/logout en cualquier pantalla)
   useEffect(() => {
@@ -2036,13 +2371,14 @@ export default function App() {
                             onPhoneLogin={() => setScreen('login')}
                           />;
       case 'login':       return <LoginScreen onLogin={(u) => { setUser(u); setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
-      case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
+      case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
       case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen('home')} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} />;
-      case 'publish':     return <PublishScreen onNavigate={navigate} />;
-      case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
+      case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
+      case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
       case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
-      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
+      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
+      case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;
       default:            return <SplashScreen />;
     }
   };
