@@ -1,0 +1,6 @@
+Cuentas:
+No existe recuperación de contraseña ni cuentas
+No existe verificación de cuentas
+
+Sistema Registro:
+Si creas una cuenta con un correo existente, no pasa nada

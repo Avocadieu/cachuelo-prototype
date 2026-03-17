@@ -1,0 +1,4 @@
+[norm] Miki → user_id: 495fa96a-7926-4ecb-b0a9-6d2c2aa87e93 → profile: {id: '495fa96a-7926-4ecb-b0a9-6d2c2aa87e93', nombre: 'Sergio', apellido: 'Cotillo', telefono: null, ciudad: null, …} → pubName: Sergio Cotillo
+App.jsx:2531 
+[norm] Prueba2 → user_id: 495fa96a-7926-4ecb-b0a9-6d2c2aa87e93 → profile: {id: '495fa96a-7926-4ecb-b0a9-6d2c2aa87e93', nombre: 'Sergio', apellido: 'Cotillo', telefono: null, ciudad: null, …} → pubName: Sergio Cotillo
+[norm] el bicho → user_id: ee424e86-0784-429d-9580-9febf5a1f66d → profile: {id: 'ee424e86-0784-429d-9580-9febf5a1f66d', nombre: '', apellido: '', telefono: null, ciudad: null, …} → pubName: Usuario

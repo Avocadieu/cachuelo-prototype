@@ -440,6 +440,16 @@ const OnboardingScreen = ({ onDone }) => {
 // 3. LOGIN ────────────────────────────────────────────────────────────────────
 const PAISES = ['Perú','Argentina','Bolivia','Brasil','Chile','Colombia','Ecuador','México','Paraguay','Uruguay','Venezuela','Otro'];
 
+const DISTRITOS_LIMA = [
+  'Ancón','Ate','Barranco','Breña','Carabayllo','Cercado de Lima','Chaclacayo','Chorrillos',
+  'Cieneguilla','Comas','El Agustino','Independencia','Jesús María','La Molina','La Victoria',
+  'Lince','Los Olivos','Lurigancho','Lurín','Magdalena del Mar','Miraflores','Pachacámac',
+  'Pucusana','Pueblo Libre','Puente Piedra','Punta Hermosa','Punta Negra','Rímac','San Bartolo',
+  'San Borja','San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis',
+  'San Martín de Porres','San Miguel','Santa Anita','Santa María del Mar','Santa Rosa',
+  'Santiago de Surco','Surquillo','Villa El Salvador','Villa María del Triunfo',
+];
+
 const DEPARTAMENTOS_PERU = [
   'Amazonas','Áncash','Apurímac','Arequipa','Ayacucho','Cajamarca',
   'Callao','Cusco','Huancavelica','Huánuco','Ica','Junín','La Libertad',
@@ -675,10 +685,13 @@ const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
 
   const [reg, setReg] = useState({
     nombre: '', apellido: '', pais: 'Perú', fechaNac: '',
-    email: '', emailConf: '', telefono: '', departamento: '', ciudad: '', pass: '', passConf: '',
+    email: '', emailConf: '', telefono: '', distrito: '', pass: '', passConf: '',
   });
   const updReg = (k, v) => setReg(r => ({ ...r, [k]: v }));
 
@@ -709,6 +722,16 @@ const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
     });
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) return;
+    setLoading(true);
+    await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    setForgotSent(true);
+  };
+
 const handleRegister = async () => {
   setError('');
   setLoading(true);
@@ -721,8 +744,9 @@ const handleRegister = async () => {
         apellido:     reg.apellido,
         pais:         reg.pais,
         telefono:     '+51' + reg.telefono.replace(/\D/g, ''),
-        departamento: reg.departamento,
-        ciudad:       reg.ciudad,
+        departamento: 'Lima',
+        ciudad:       'Lima',
+        distrito:     reg.distrito,
         fecha_nac:    reg.fechaNac,
       }
     }
@@ -736,7 +760,7 @@ const handleRegister = async () => {
 };
 
   const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac
-    && reg.telefono && reg.departamento && reg.ciudad && reg.pass && reg.passConf
+    && reg.telefono && reg.distrito && reg.pass && reg.passConf
     && !emailMismatch && !passMismatch && passValid;
 
   const selectStyle = {
@@ -792,10 +816,51 @@ const handleRegister = async () => {
             <Input label="Contraseña" placeholder="••••••••" type="password"
               value={pass} onChange={e => setPass(e.target.value)} />
             <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 14 }}>
-              <button style={{ background: 'none', border: 'none', color: C.primary, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+              <button onClick={() => { setForgotMode(true); setForgotEmail(email); setForgotSent(false); }}
+                style={{ background: 'none', border: 'none', color: C.primary, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
+
+            {forgotMode && (
+              <div style={{ background: '#F0F9FF', border: `1px solid ${C.primary}30`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                {forgotSent ? (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 4 }}>¡Correo enviado!</div>
+                    <div style={{ fontSize: 12, color: C.textSec, marginBottom: 10 }}>
+                      Revisa tu bandeja de entrada (y spam) para restablecer tu contraseña.
+                    </div>
+                    <button onClick={() => setForgotMode(false)}
+                      style={{ background: 'none', border: 'none', color: C.primary, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                      Volver al login
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8 }}>
+                      Ingresa tu correo y te enviaremos un link para restablecer tu contraseña.
+                    </div>
+                    <Input
+                      placeholder="tu@correo.com"
+                      type="email"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      icon={<Mail size={15} />}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <button onClick={() => setForgotMode(false)}
+                        style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', color: C.textSec, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                        Cancelar
+                      </button>
+                      <button onClick={handleForgotPassword} disabled={!forgotEmail || loading}
+                        style={{ flex: 2, padding: '10px 0', borderRadius: 10, border: 'none', background: C.primary, color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 700, opacity: (!forgotEmail || loading) ? 0.6 : 1 }}>
+                        {loading ? 'Enviando...' : 'Enviar link'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {error && (
               <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
                 {error}
@@ -884,36 +949,19 @@ const handleRegister = async () => {
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
-                Departamento *
-              </label>
-              <select
-                value={reg.departamento}
-                onChange={e => { updReg('departamento', e.target.value); updReg('ciudad', ''); }}
-                style={selectStyle}
-              >
-                <option value="" disabled hidden>Selecciona un departamento</option>
-                {DEPARTAMENTOS_PERU.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
-                Ciudad *
+                Distrito *
               </label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, pointerEvents: 'none', zIndex: 1 }}>
                   <MapPin size={15} />
                 </span>
                 <select
-                  value={reg.ciudad}
-                  onChange={e => updReg('ciudad', e.target.value)}
-                  disabled={!reg.departamento}
-                  style={{ ...selectStyle, paddingLeft: 36, color: reg.ciudad ? C.text : C.textMuted, opacity: reg.departamento ? 1 : 0.5 }}
+                  value={reg.distrito}
+                  onChange={e => updReg('distrito', e.target.value)}
+                  style={{ ...selectStyle, paddingLeft: 36, color: reg.distrito ? C.text : C.textMuted }}
                 >
-                  <option value="" disabled hidden>Selecciona una ciudad</option>
-                  {reg.departamento && (CIUDADES_PERU[reg.departamento] || []).map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  <option value="" disabled hidden>Selecciona tu distrito</option>
+                  {DISTRITOS_LIMA.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
@@ -1031,9 +1079,33 @@ const handleRegister = async () => {
 };
 
 // 4. HOME ─────────────────────────────────────────────────────────────────────
-const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
+const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotifications }) => {
   const [filter, setFilter] = useState('Todos');
   const [selectedCat, setSelectedCat] = useState(null);
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchCount = async () => {
+      // Postulaciones a mis cachuelos (como publicador)
+      const { data: misCachuelos } = await supabase
+        .from('cachuelos').select('id').eq('user_id', user.id);
+      const ids = (misCachuelos || []).map(c => c.id);
+      let count = 0;
+      if (ids.length > 0) {
+        const { count: c1 } = await supabase.from('postulaciones')
+          .select('id', { count: 'exact', head: true }).in('cachuelo_id', ids);
+        count += c1 || 0;
+      }
+      // Mis postulaciones con cambio de estado (como postulante)
+      const { count: c2 } = await supabase.from('postulaciones')
+        .select('id', { count: 'exact', head: true })
+        .eq('postulante_id', user.id).neq('estado', 'Pendiente');
+      count += c2 || 0;
+      setNotifCount(count);
+    };
+    fetchCount();
+  }, [user?.id]);
   const filters = ['Todos', 'Destacados', 'Remoto', 'Cerca'];
 
   const filteredCachuelos = cachuelos.filter(c => {
@@ -1053,19 +1125,23 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>Buenos días 👋</div>
-            <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginTop: 2 }}>Hola, Cotillo</div>
+            <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginTop: 2 }}>Hola, {user?.nombre || 'Cachueler@'}</div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => {}} style={{
+            <button onClick={onNotifications} style={{
               width: 38, height: 38, borderRadius: 19, background: 'rgba(255,255,255,0.2)',
               border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               position: 'relative',
             }}>
               <Bell size={18} color="#fff" />
-              <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, background: '#FCD34D', borderRadius: '50%' }} />
+              {notifCount > 0 && (
+                <div style={{ position: 'absolute', top: 5, right: 5, minWidth: 16, height: 16, background: '#FCD34D', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#000', padding: '0 3px' }}>
+                  {notifCount > 99 ? '99+' : notifCount}
+                </div>
+              )}
             </button>
             <button onClick={() => onNavigate('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <Avatar initials="SC" size={38} bg="rgba(255,255,255,0.25)" fontSize={13} />
+              <Avatar initials={user ? (`${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`).toUpperCase() || 'U' : 'U'} size={38} bg="rgba(255,255,255,0.25)" fontSize={13} />
             </button>
           </div>
         </div>
@@ -1209,15 +1285,53 @@ const CachuCard = ({ c, onPress }) => (
 );
 
 // 5. DETALLE DE CACHUELO ──────────────────────────────────────────────────────
-const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth }) => {
+const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onViewPublisher, onVerPostulantes }) => {
   const [message, setMessage] = useState('');
   const [applied, setApplied] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applicantCount, setApplicantCount] = useState(null);
+
+  const isOwner = user?.id && cachuelo?.userId && user.id === cachuelo.userId;
+
+  useEffect(() => {
+    if (!user?.id || !cachuelo?.id) return;
+    if (isOwner) {
+      supabase.from('postulaciones')
+        .select('id', { count: 'exact' })
+        .eq('cachuelo_id', cachuelo.id)
+        .then(({ count }) => setApplicantCount(count ?? 0));
+    } else {
+      supabase.from('postulaciones')
+        .select('id')
+        .eq('cachuelo_id', cachuelo.id)
+        .eq('postulante_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => { if (data) setApplied(true); });
+    }
+  }, [user?.id, cachuelo?.id, isOwner]);
 
   if (!cachuelo) return null;
 
-  const handleApply = () => {
+  const pubName    = cachuelo.publisher?.name    || 'Usuario';
+  const pubRating  = cachuelo.publisher?.rating  ?? 0;
+  const pubVerified = cachuelo.publisher?.verified ?? false;
+  const pubAvatar  = cachuelo.publisher?.avatar  || 'U';
+  const fechaDisplay = cachuelo?.fecha_inicio
+    ? new Date(cachuelo.fecha_inicio + 'T00:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : cachuelo?.schedule || '';
+
+  const handleApply = async () => {
     if (!user) { onRequireAuth(); return; }
-    if (!applied) { setApplied(true); }
+    if (applied || applying) return;
+    setApplying(true);
+    const { error } = await supabase.from('postulaciones').insert({
+      cachuelo_id: cachuelo.id,
+      postulante_id: user.id,
+      mensaje: message,
+      estado: 'Pendiente',
+    });
+    setApplying(false);
+    if (!error) setApplied(true);
   };
 
   return (
@@ -1293,55 +1407,88 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth }) => 
         <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>Descripción</div>
           <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7 }}>{cachuelo.description}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', background: '#F0FDF4', borderRadius: 10 }}>
-            <Calendar size={14} color={C.success} />
-            <span style={{ fontSize: 12, color: '#166534', fontWeight: 500 }}>{cachuelo.schedule}</span>
-          </div>
+          {fechaDisplay ? (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fecha de inicio</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: '#F0FDF4', borderRadius: 10 }}>
+                <Calendar size={14} color={C.success} />
+                <span style={{ fontSize: 12, color: '#166534', fontWeight: 500 }}>{fechaDisplay}</span>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Publisher */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div onClick={() => cachuelo.userId && onViewPublisher?.(cachuelo.userId)}
+          style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: cachuelo.userId ? 'pointer' : 'default' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Publicado por</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar initials={cachuelo.publisher.avatar} size={48} bg={C.primaryLight} fontSize={16} />
+            <Avatar initials={pubAvatar} size={48} bg={C.primaryLight} fontSize={16} />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{cachuelo.publisher.name}</span>
-                {cachuelo.publisher.verified && (
+                <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{pubName}</span>
+                {pubVerified && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: '#ECFDF5', padding: '2px 7px', borderRadius: 10 }}>
                     <Shield size={10} color={C.success} />
                     <span style={{ fontSize: 10, color: C.success, fontWeight: 600 }}>Verificado</span>
                   </div>
                 )}
               </div>
-              <Stars rating={cachuelo.publisher.rating} size={14} />
-              <span style={{ fontSize: 11, color: C.textSec, marginLeft: 4 }}>{cachuelo.publisher.rating} / 5</span>
+              {pubRating > 0
+                ? <><Stars rating={pubRating} size={14} /><span style={{ fontSize: 11, color: C.textSec, marginLeft: 4 }}>{pubRating} / 5</span></>
+                : <span style={{ fontSize: 11, color: C.textMuted }}>Sin reseñas todavía</span>
+              }
             </div>
+            {cachuelo.userId && <ChevronRight size={18} color={C.textMuted} />}
           </div>
         </div>
 
-        {/* Message + Apply */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <Textarea
-            label="Tu mensaje (opcional)"
-            placeholder="Cuéntale por qué eres el candidato ideal para este cachuelo..."
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            rows={3}
-          />
-          <Btn
-            onClick={handleApply}
-            style={{ width: '100%', fontSize: 15, padding: '14px 0' }}
-            disabled={applied}
-          >
-            {applied ? <><CheckCircle size={18} /> Postulado con éxito</> : <><Send size={18} /> Postularme</>}
-          </Btn>
-          {applied && (
-            <p style={{ fontSize: 11, color: C.success, textAlign: 'center', marginTop: 8 }}>
-              ¡Tu postulación fue enviada! El publicador te contactará pronto.
-            </p>
-          )}
-        </div>
+        {/* Message + Apply / Owner panel */}
+        {isOwner ? (
+          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Tu publicación</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#F0F9FF', borderRadius: 12, padding: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 24, background: C.primary + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={22} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: C.primary, lineHeight: 1 }}>
+                  {applicantCount === null ? '...' : applicantCount}
+                </div>
+                <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                  {applicantCount === 1 ? 'persona se postuló' : 'personas se postularon'}
+                </div>
+              </div>
+            </div>
+            {applicantCount > 0 && (
+              <Btn onClick={() => onVerPostulantes?.(cachuelo)} style={{ width: '100%', marginTop: 14 }}>
+                <Users size={16} /> Ver postulantes
+              </Btn>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <Textarea
+              label="Tu mensaje (opcional)"
+              placeholder="Cuéntale por qué eres el candidato ideal para este cachuelo..."
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              rows={3}
+            />
+            <Btn
+              onClick={handleApply}
+              style={{ width: '100%', fontSize: 15, padding: '14px 0' }}
+              disabled={applied || applying}
+            >
+              {applied ? <><CheckCircle size={18} /> Postulado con éxito</> : applying ? 'Enviando...' : <><Send size={18} /> Postularme</>}
+            </Btn>
+            {applied && (
+              <p style={{ fontSize: 11, color: C.success, textAlign: 'center', marginTop: 8 }}>
+                ¡Tu postulación fue enviada! El publicador te contactará pronto.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </Screen>
   );
@@ -1760,11 +1907,50 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
 };
 
 // 8. MIS CACHUELOS ────────────────────────────────────────────────────────────
-const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
+const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes }) => {
   const [tab, setTab] = useState('publicados');
+  const [publicados, setPublicados] = useState([]);
+  const [postulados, setPostulados] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const publicados = CACHUELOS.slice(0, 2).map(c => ({ ...c, status: 'Activo', applicants: Math.floor(Math.random() * 8) + 1 }));
-  const postulados = CACHUELOS.slice(2, 5).map(c => ({ ...c, status: ['Pendiente', 'Visto', 'Aceptado'][Math.floor(Math.random() * 3)] }));
+  useEffect(() => {
+    if (!user?.id) { setLoading(false); return; }
+    const fetchData = async () => {
+      setLoading(true);
+      const [pubRes, postRes] = await Promise.all([
+        supabase.from('cachuelos')
+          .select('*, categorias(label, emoji), postulaciones(id)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase.from('postulaciones')
+          .select('id, estado, cachuelos(id, titulo, precio, distrito, duracion, categorias(label, emoji))')
+          .eq('postulante_id', user.id)
+          .order('created_at', { ascending: false }),
+      ]);
+      if (!pubRes.error && pubRes.data) {
+        setPublicados(pubRes.data.map(c => ({
+          id: c.id, title: c.titulo, emoji: c.categorias?.emoji || '💼',
+          price: Number(c.precio), duration: c.duracion || '',
+          status: c.estado, applicants: c.postulaciones?.length || 0,
+          // campos para onViewCachuelo
+          category: c.categorias?.label || '', location: c.distrito || 'Lima',
+          type: c.tipo, featured: c.destacado, remote: c.tipo === 'Remoto',
+          description: c.descripcion || '', fecha_inicio: c.fecha_inicio || '',
+          userId: c.user_id, publisher: { name: user.nombre || 'Yo', rating: 0, verified: false, avatar: (user.nombre?.[0] || 'Y').toUpperCase() },
+        })));
+      }
+      if (!postRes.error && postRes.data) {
+        setPostulados(postRes.data.map(p => ({
+          id: p.cachuelos?.id, postulacionId: p.id,
+          title: p.cachuelos?.titulo, emoji: p.cachuelos?.categorias?.emoji || '💼',
+          price: Number(p.cachuelos?.precio), location: p.cachuelos?.distrito || 'Lima',
+          duration: p.cachuelos?.duracion || '', status: p.estado,
+        })));
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, [user?.id]);
 
   const statusColor = s => ({ Activo: C.success, Pendiente: C.warning, Visto: C.purple, Aceptado: C.success }[s] || C.textMuted);
 
@@ -1788,9 +1974,17 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
       </div>
 
       <div style={{ padding: '16px 20px' }}>
-        {tab === 'publicados' && (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}>Cargando...</div>
+        ) : tab === 'publicados' ? (
           <>
-            {publicados.map(c => (
+            {publicados.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <div style={{ fontSize: 44, marginBottom: 10 }}>📋</div>
+                <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no publicaste cachuelos</div>
+                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Publica tu primer cachuelo y empieza a recibir postulantes</div>
+              </div>
+            ) : publicados.map(c => (
               <div key={c.id} onClick={() => onViewCachuelo(c)}
                 style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
@@ -1809,7 +2003,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
                     <Users size={14} color={C.textMuted} />
                     <span style={{ fontSize: 12, color: C.textSec }}>{c.applicants} postulante{c.applicants !== 1 ? 's' : ''}</span>
                   </div>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontSize: 12, fontWeight: 600 }}>
+                  <button onClick={e => { e.stopPropagation(); onVerPostulantes?.(c); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontSize: 12, fontWeight: 600 }}>
                     Ver postulantes
                   </button>
                 </div>
@@ -1819,17 +2013,22 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo }) => {
               <PlusCircle size={16} /> Publicar nuevo cachuelo
             </Btn>
           </>
-        )}
-
-        {tab === 'postulados' && (
-          postulados.map(c => (
-            <div key={c.id} onClick={() => onViewCachuelo(c)}
-              style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
+        ) : (
+          postulados.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ fontSize: 44, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no te postulaste a ningún cachuelo</div>
+              <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Explora los cachuelos disponibles y postúlate</div>
+              <Btn onClick={() => onNavigate('home')}>Explorar cachuelos</Btn>
+            </div>
+          ) : postulados.map(c => (
+            <div key={c.postulacionId}
+              style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
                 <div style={{ fontSize: 28 }}>{c.emoji}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
-                  <div style={{ fontSize: 12, color: C.textSec }}>{c.publisher.name}</div>
+                  <div style={{ fontSize: 12, color: C.textSec }}>{c.duration}</div>
                 </div>
                 <Badge color={statusColor(c.status)}>{c.status}</Badge>
               </div>
@@ -2134,7 +2333,7 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
     setLoading(true);
     const { data } = await supabase
       .from('cachuelos')
-      .select(`*, categorias(label, emoji), profiles(nombre, apellido, email)`)
+      .select(`*, categorias(label, emoji)`)
       .order('created_at', { ascending: false });
     setCachuelos(data || []);
     setLoading(false);
@@ -2275,52 +2474,649 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
+// ── NOTIFICACIONES ────────────────────────────────────────────────────────────
+const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onViewCachuelo }) => {
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [readIds, setReadIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cachuelo_read_notifs') || '[]'); } catch { return []; }
+  });
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchData = async () => {
+      setLoading(true);
+      const result = [];
+
+      // 1. Postulaciones a mis cachuelos
+      const { data: misCachuelos } = await supabase
+        .from('cachuelos').select('id, titulo').eq('user_id', user.id);
+      if (misCachuelos?.length > 0) {
+        const ids = misCachuelos.map(c => c.id);
+        const { data: posts } = await supabase
+          .from('postulaciones')
+          .select('id, created_at, postulante_id, cachuelo_id')
+          .in('cachuelo_id', ids)
+          .order('created_at', { ascending: false });
+        if (posts?.length > 0) {
+          const pIds = [...new Set(posts.map(p => p.postulante_id).filter(Boolean))];
+          const { data: perfiles } = await supabase.from('profiles').select('*').in('id', pIds);
+          const pMap = {};
+          (perfiles || []).forEach(p => { pMap[p.id] = p; });
+          posts.forEach(p => {
+            const cachuelo = misCachuelos.find(c => c.id === p.cachuelo_id);
+            const prof = pMap[p.postulante_id];
+            const nombre = prof ? `${prof.nombre || ''} ${prof.apellido || ''}`.trim() || prof.email?.split('@')[0] : 'Alguien';
+            result.push({
+              id: `pub-${p.id}`, tipo: 'postulacion_recibida',
+              icono: '👤', titulo: 'Nueva postulación',
+              desc: `${nombre || 'Un usuario'} se postuló a "${cachuelo?.titulo}"`,
+              fecha: p.created_at, color: C.primary,
+              cachuelo_ref: cachuelo,
+            });
+          });
+        }
+      }
+
+      // 2. Mis postulaciones con cambio de estado
+      const { data: misPostulaciones } = await supabase
+        .from('postulaciones')
+        .select('id, estado, updated_at, cachuelo_id, cachuelos(titulo)')
+        .eq('postulante_id', user.id)
+        .order('updated_at', { ascending: false });
+      (misPostulaciones || []).forEach(p => {
+        const titulo = p.cachuelos?.titulo || 'un cachuelo';
+        if (p.estado === 'Visto') result.push({ id: `post-${p.id}`, tipo: 'vista', icono: '👀', titulo: 'Postulación vista', desc: `El empleador vio tu postulación a "${titulo}"`, fecha: p.updated_at, color: C.purple, cachuelo_id: p.cachuelo_id });
+        if (p.estado === 'Aceptado') result.push({ id: `post-${p.id}`, tipo: 'aceptada', icono: '🎉', titulo: '¡Postulación aceptada!', desc: `Fuiste aceptado para "${titulo}". El empleador te contactará pronto.`, fecha: p.updated_at, color: C.success, cachuelo_id: p.cachuelo_id });
+        if (p.estado === 'Rechazado') result.push({ id: `post-${p.id}`, tipo: 'rechazada', icono: '❌', titulo: 'Postulación no seleccionada', desc: `No fuiste seleccionado para "${titulo}". ¡Sigue intentando!`, fecha: p.updated_at, color: C.danger, cachuelo_id: p.cachuelo_id });
+      });
+
+      // Ordenar por fecha desc
+      result.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      setNotifs(result);
+      setLoading(false);
+    };
+    fetchData();
+  }, [user?.id]);
+
+  const markRead = (id) => {
+    setReadIds(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      localStorage.setItem('cachuelo_read_notifs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleClick = async (n) => {
+    markRead(n.id);
+    if (n.tipo === 'postulacion_recibida' && n.cachuelo_ref) {
+      onViewPostulantes?.(n.cachuelo_ref);
+    } else if (['vista', 'aceptada', 'rechazada'].includes(n.tipo) && n.cachuelo_id) {
+      const { data } = await supabase
+        .from('cachuelos').select('*, categorias(label, emoji, color)').eq('id', n.cachuelo_id).single();
+      if (data) {
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', data.user_id).single();
+        const profileMap = prof ? { [prof.id]: prof } : {};
+        const [normalized] = normalizeCachuelos([data], profileMap);
+        onViewCachuelo?.(normalized);
+      }
+    }
+  };
+
+  const formatFecha = (f) => {
+    const d = new Date(f);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 60000);
+    if (diff < 60) return `Hace ${diff || 1} min`;
+    if (diff < 1440) return `Hace ${Math.floor(diff / 60)}h`;
+    return d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <Screen withTabs activeTab="home" onNavigate={onNavigate}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Notificaciones</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px 40px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>Cargando...</div>
+        ) : notifs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div style={{ fontSize: 52, marginBottom: 12 }}>🔔</div>
+            <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Sin notificaciones</div>
+            <div style={{ fontSize: 13, color: C.textSec }}>Aquí aparecerán tus actividades y novedades</div>
+          </div>
+        ) : notifs.map(n => {
+          const isRead = readIds.includes(n.id);
+          return (
+            <div key={n.id} onClick={() => handleClick(n)} style={{ background: isRead ? '#F9FAFB' : '#EFF6FF', borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${isRead ? C.border : '#BFDBFE'}`, borderLeft: `4px solid ${isRead ? C.border : C.headerBg}`, display: 'flex', gap: 14, alignItems: 'flex-start', cursor: 'pointer' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 21, background: (isRead ? '#9CA3AF' : n.color) + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                {n.icono}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: isRead ? 500 : 700, fontSize: 13, color: isRead ? C.textSec : C.text, marginBottom: 3 }}>{n.titulo}</div>
+                <div style={{ fontSize: 12, color: isRead ? C.textMuted : C.textSec, lineHeight: 1.5, marginBottom: 4 }}>{n.desc}</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>{formatFecha(n.fecha)}</div>
+              </div>
+              {!isRead && <div style={{ width: 8, height: 8, borderRadius: 4, background: C.headerBg, flexShrink: 0, marginTop: 4 }} />}
+            </div>
+          );
+        })}
+      </div>
+    </Screen>
+  );
+};
+
+// ── POSTULANTES ───────────────────────────────────────────────────────────────
+const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onNavigate }) => {
+  const [postulantes, setPostulantes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!cachuelo?.id) return;
+    const fetchData = async () => {
+      setLoading(true);
+      const { data: posts } = await supabase
+        .from('postulaciones')
+        .select('id, mensaje, estado, created_at, postulante_id')
+        .eq('cachuelo_id', cachuelo.id)
+        .order('created_at', { ascending: false });
+
+      if (!posts || posts.length === 0) { setPostulantes([]); setLoading(false); return; }
+
+      const ids = posts.map(p => p.postulante_id);
+      const { data: profiles } = await supabase
+        .from('profiles').select('*').in('id', ids);
+
+      const profileMap = {};
+      (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+      setPostulantes(posts.map(p => {
+        const prof = profileMap[p.postulante_id] || {};
+        const nombre = prof.nombre || '';
+        const apellido = prof.apellido || '';
+        return {
+          id: p.id, postulante_id: p.postulante_id,
+          nombre: [nombre, apellido].filter(Boolean).join(' ') || prof.email?.split('@')[0] || 'Usuario',
+          initials: (`${nombre[0] || ''}${apellido[0] || ''}`).toUpperCase() || 'U',
+          rating: prof.rating || 0,
+          completados: prof.cachuelos_completados || 0,
+          distrito: prof.distrito || prof.ciudad || 'Lima',
+          verificado: prof.dni_verificado || false,
+          mensaje: p.mensaje || '',
+          estado: p.estado,
+          fecha: new Date(p.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }),
+        };
+      }));
+      setLoading(false);
+    };
+    fetchData();
+  }, [cachuelo?.id]);
+
+  const estadoColor = { Pendiente: C.warning, Visto: C.purple, Aceptado: C.success, Rechazado: C.danger };
+
+  return (
+    <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Postulantes</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{cachuelo?.title}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 20px 40px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>Cargando...</div>
+        ) : postulantes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>👀</div>
+            <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no hay postulantes</div>
+            <div style={{ fontSize: 13, color: C.textSec }}>Cuando alguien se postule aparecerá aquí</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 14 }}>
+              {postulantes.length} postulante{postulantes.length !== 1 ? 's' : ''}
+            </div>
+            {postulantes.map(p => (
+              <div key={p.id} style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+                {/* Header postulante */}
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                  <button onClick={() => onViewProfile?.(p.postulante_id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                    <Avatar initials={p.initials} size={48} bg={C.primaryLight} fontSize={16} />
+                  </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{p.nombre}</span>
+                      {p.verificado && <Shield size={12} color={C.success} />}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: C.textSec, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <MapPin size={10} /> {p.distrito}
+                      </span>
+                      <span style={{ fontSize: 11, color: C.textSec, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <CheckCircle size={10} color={C.success} /> {p.completados} completados
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <Badge color={estadoColor[p.estado] || C.textMuted}>{p.estado}</Badge>
+                    <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>{p.fecha}</div>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div style={{ marginBottom: 10 }}>
+                  {p.rating > 0 ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Stars rating={p.rating} size={13} />
+                      <span style={{ fontSize: 11, color: C.textSec }}>{p.rating.toFixed(1)} como trabajador</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 11, color: C.textMuted, fontStyle: 'italic' }}>El usuario todavía no tiene reseñas</span>
+                  )}
+                </div>
+
+                {/* Mensaje */}
+                {p.mensaje ? (
+                  <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: C.textSec, lineHeight: 1.5, borderLeft: `3px solid ${C.primary}`, marginBottom: 12 }}>
+                    "{p.mensaje}"
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.textMuted, fontStyle: 'italic', marginBottom: 12 }}>Sin mensaje adjunto</div>
+                )}
+
+                {/* Botón Iniciar Chat */}
+                <button onClick={() => onIniciarChat?.({ postulacion_id: p.id, cachuelo, postulante: p })}
+                  style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: C.headerBg, color: '#fff', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <MessageCircle size={16} /> Iniciar Chat
+                </button>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </Screen>
+  );
+};
+
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
+  const { postulacion_id, cachuelo, postulante } = chatData || {};
+  const storageKey = `cachuelo_chat_${postulacion_id}`;
+  const [messages, setMessages] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+  });
+  const [text, setText] = useState('');
+  const [estado, setEstado] = useState('Pendiente');
+  const [updatingEstado, setUpdatingEstado] = useState(false);
+  const messagesEndRef = { current: null };
+
+  useEffect(() => {
+    // Fetch estado actual de la postulacion
+    if (!postulacion_id) return;
+    supabase.from('postulaciones').select('estado').eq('id', postulacion_id).single()
+      .then(({ data }) => { if (data) setEstado(data.estado); });
+  }, [postulacion_id]);
+
+  const sendMessage = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const msg = { id: Date.now(), sender_id: currentUser?.id, text: trimmed, ts: new Date().toISOString() };
+    const updated = [...messages, msg];
+    setMessages(updated);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+    setText('');
+  };
+
+  const updateEstado = async (nuevoEstado) => {
+    if (updatingEstado) return;
+    setUpdatingEstado(true);
+    const { error } = await supabase.from('postulaciones').update({ estado: nuevoEstado, updated_at: new Date().toISOString() }).eq('id', postulacion_id);
+    if (!error) setEstado(nuevoEstado);
+    setUpdatingEstado(false);
+  };
+
+  const formatTs = (ts) => {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const estadoConfig = {
+    Pendiente: { color: C.warning, label: 'Pendiente' },
+    Visto:     { color: C.purple,  label: 'Visto' },
+    Aceptado:  { color: C.success, label: 'Aceptado' },
+    Rechazado: { color: C.danger,  label: 'Rechazado' },
+  };
+  const ec = estadoConfig[estado] || estadoConfig.Pendiente;
+  const isDecided = estado === 'Aceptado' || estado === 'Rechazado';
+
+  return (
+    <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
+      {/* Header */}
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 16px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{postulante?.nombre || 'Postulante'}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cachuelo?.title}</div>
+          </div>
+          <span style={{ background: ec.color + '33', color: ec.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: `1px solid ${ec.color}55`, flexShrink: 0 }}>{ec.label}</span>
+        </div>
+
+        {/* Botones Aceptar / Rechazar */}
+        {!isDecided && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => updateEstado('Rechazado')} disabled={updatingEstado}
+              style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.6)', color: '#FCA5A5', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <X size={15} /> Rechazar
+            </button>
+            <button onClick={() => updateEstado('Aceptado')} disabled={updatingEstado}
+              style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(16,185,129,0.15)', border: '1.5px solid rgba(16,185,129,0.6)', color: '#6EE7B7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Check size={15} /> Aceptar
+            </button>
+          </div>
+        )}
+        {isDecided && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 2 }}>
+            {estado === 'Aceptado' ? '✅ Postulación aceptada' : '❌ Postulación rechazada'}
+          </div>
+        )}
+      </div>
+
+      {/* Mensajes */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F3F4F6' }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
+            Inicia la conversación
+          </div>
+        )}
+        {messages.map(m => {
+          const isMe = m.sender_id === currentUser?.id;
+          return (
+            <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+              <div style={{ maxWidth: '75%', background: isMe ? C.headerBg : '#fff', color: isMe ? '#fff' : C.text, borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontSize: 13, lineHeight: 1.5, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                <div>{m.text}</div>
+                <div style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.65)' : C.textMuted, marginTop: 4, textAlign: 'right' }}>{formatTs(m.ts)}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={el => { messagesEndRef.current = el; }} />
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: '10px 16px 16px', background: '#fff', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+        <textarea value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+          placeholder="Escribe un mensaje..." rows={1}
+          style={{ flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 20, padding: '10px 16px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, maxHeight: 100, overflow: 'auto' }} />
+        <button onClick={sendMessage}
+          style={{ width: 42, height: 42, borderRadius: 21, background: C.headerBg, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Send size={18} color="#fff" />
+        </button>
+      </div>
+    </Screen>
+  );
+};
+
+// ── PERFIL PÚBLICO ────────────────────────────────────────────────────────────
+const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => {
+  const [profile, setProfile] = useState(null);
+  const [cachuelos, setCachuelos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchData = async () => {
+      setLoading(true);
+      const [profRes, cachRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('cachuelos')
+          .select('*, categorias(label, emoji)')
+          .eq('user_id', userId)
+          .eq('estado', 'Activo')
+          .order('created_at', { ascending: false }),
+      ]);
+      if (profRes.data) setProfile(profRes.data);
+      if (!cachRes.error && cachRes.data) setCachuelos(cachRes.data);
+      setLoading(false);
+    };
+    fetchData();
+  }, [userId]);
+
+  const nombre = profile?.nombre || '';
+  const apellido = profile?.apellido || '';
+  const fullName = [nombre, apellido].filter(Boolean).join(' ') || profile?.email?.split('@')[0] || 'Usuario';
+  const initials = (`${nombre[0] || ''}${apellido[0] || ''}`).toUpperCase() || 'U';
+  const rating = profile?.rating ?? 0;
+
+  return (
+    <Screen withTabs activeTab="home" onNavigate={onNavigate}>
+      {/* Header */}
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Perfil del publicador</div>
+        </div>
+        {loading ? (
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Cargando...</div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Avatar initials={initials} size={64} bg="rgba(255,255,255,0.2)" fontSize={22} color="#fff" />
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{fullName}</div>
+              {rating > 0
+                ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Stars rating={rating} size={14} />
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{rating} / 5</span>
+                  </div>
+                : <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Sin reseñas todavía</span>
+              }
+              {profile?.dni_verificado && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: 10, marginTop: 6 }}>
+                  <Shield size={11} color="#fff" />
+                  <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>Verificado</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '20px 20px 40px' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+          Cachuelos activos ({cachuelos.length})
+        </div>
+        {cachuelos.length === 0 && !loading ? (
+          <div style={{ textAlign: 'center', padding: '30px 0', color: C.textMuted, fontSize: 13 }}>
+            No tiene cachuelos activos en este momento
+          </div>
+        ) : cachuelos.map(c => (
+          <div key={c.id} onClick={() => onViewCachuelo?.({
+            id: c.id, userId: c.user_id, title: c.titulo, emoji: c.categorias?.emoji || '💼',
+            category: c.categorias?.label || '', location: c.distrito || 'Lima',
+            duration: c.duracion || '', price: Number(c.precio), type: c.tipo,
+            featured: c.destacado, remote: c.tipo === 'Remoto',
+            description: c.descripcion || '', fecha_inicio: c.fecha_inicio || '',
+            publisher: { name: fullName, rating, verified: profile?.dni_verificado || false, avatar: initials },
+          })}
+            style={{ background: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{ fontSize: 26 }}>{c.categorias?.emoji || '💼'}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                <div style={{ display: 'flex', gap: 10, fontSize: 11, color: C.textSec }}>
+                  <span>📍 {c.distrito || 'Lima'}</span>
+                  <span>⏱ {c.duracion}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, flexShrink: 0 }}>S/{c.precio}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Screen>
+  );
+};
+
+// ── RESETEAR CONTRASEÑA ───────────────────────────────────────────────────────
+const ResetPasswordScreen = ({ onDone }) => {
+  const [pass, setPass] = useState('');
+  const [passConf, setPassConf] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const passValid = pass.length >= 8 && /[A-Z]/.test(pass) && /[0-9]/.test(pass);
+  const mismatch = passConf && pass !== passConf;
+  const canSubmit = passValid && !mismatch && pass === passConf;
+
+  const handleReset = async () => {
+    setError('');
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    setLoading(false);
+    if (error) { setError(error.message); return; }
+    setSuccess(true);
+    setTimeout(onDone, 2000);
+  };
+
+  return (
+    <PhoneFrame>
+      <div style={{ padding: '60px 28px 40px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>🔐</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: C.text, textAlign: 'center', marginBottom: 8 }}>
+          Nueva contraseña
+        </div>
+        <div style={{ fontSize: 13, color: C.textSec, textAlign: 'center', marginBottom: 28 }}>
+          Elige una contraseña segura para tu cuenta
+        </div>
+
+        {success ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <div style={{ fontWeight: 700, color: C.success, fontSize: 16 }}>¡Contraseña actualizada!</div>
+            <div style={{ fontSize: 13, color: C.textSec, marginTop: 8 }}>Redirigiendo al inicio...</div>
+          </div>
+        ) : (
+          <>
+            <Input label="Nueva contraseña" placeholder="Mín. 8 caracteres" type="password"
+              value={pass} onChange={e => setPass(e.target.value)} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 14 }}>
+              {[['8+ caracteres', pass.length >= 8], ['Mayúscula', /[A-Z]/.test(pass)], ['Número', /[0-9]/.test(pass)]].map(([label, ok]) => (
+                <span key={label} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20,
+                  background: ok ? '#ECFDF5' : '#F3F4F6', color: ok ? C.success : C.textMuted, fontWeight: 600 }}>
+                  {ok ? '✓' : '·'} {label}
+                </span>
+              ))}
+            </div>
+            <Input label="Confirmar contraseña" placeholder="Repite tu contraseña" type="password"
+              value={passConf} onChange={e => setPassConf(e.target.value)} />
+            {mismatch && (
+              <div style={{ fontSize: 12, color: C.danger, marginTop: -10, marginBottom: 10 }}>
+                Las contraseñas no coinciden
+              </div>
+            )}
+            {error && (
+              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10,
+                padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
+                {error}
+              </div>
+            )}
+            <Btn onClick={handleReset} disabled={!canSubmit || loading} style={{ width: '100%', marginTop: 8 }}>
+              {loading ? 'Guardando...' : 'Guardar contraseña'}
+            </Btn>
+          </>
+        )}
+      </div>
+    </PhoneFrame>
+  );
+};
+
 //  APP ROOT
 // ════════════════════════════════════════════════════════════════════════════
 export default function App() {
   const [screen, setScreen] = useState('splash');
   const [activeTab, setActiveTab] = useState('home');
   const [selectedCachuelo, setSelectedCachuelo] = useState(null);
+  const [viewedUserId, setViewedUserId] = useState(null);
+  const [prevScreen, setPrevScreen] = useState('home');
+  const [cachueloParaPostulantes, setCachueloParaPostulantes] = useState(null);
+  const [chatData, setChatData] = useState(null); // { postulacion_id, cachuelo, postulante, isOwner }
   const [user, setUser] = useState(null);
   const [cachuelos, setCachuelos] = useState(CACHUELOS); // fallback al mock mientras carga
 
-  const normalizeCachuelos = (data) => data.map(c => ({
-    id: c.id,
-    title: c.titulo,
-    category: c.categorias?.label || '',
-    emoji: c.categorias?.emoji || '💼',
-    location: c.distrito || 'Lima',
-    duration: c.duracion || '',
-    price: Number(c.precio),
-    type: c.tipo,
-    featured: c.destacado,
-    remote: c.tipo === 'Remoto',
-    publisher: {
-      name: `${c.profiles?.nombre || ''} ${c.profiles?.apellido || ''}`.trim() || c.profiles?.email?.split('@')[0] || 'Usuario',
-      rating: c.profiles?.rating || 0,
-      verified: c.profiles?.dni_verificado || false,
-      avatar: (`${c.profiles?.nombre?.[0] || ''}${c.profiles?.apellido?.[0] || ''}`).toUpperCase() || (c.profiles?.email?.[0] || 'U').toUpperCase(),
-    },
-    description: c.descripcion || '',
-    schedule: c.horario || '',
-  }));
+  const normalizeCachuelos = (data, profileMap = {}) => data.map(c => {
+    const p = profileMap[c.user_id];
+    const pubName = p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || p.email?.split('@')[0] || 'Usuario' : 'Usuario';
+    const pubAvatar = p ? (`${p.nombre?.[0] || ''}${p.apellido?.[0] || ''}`).toUpperCase() || 'U' : 'U';
+    return {
+      id: c.id,
+      title: c.titulo,
+      category: c.categorias?.label || '',
+      emoji: c.categorias?.emoji || '💼',
+      location: c.distrito || 'Lima',
+      duration: c.duracion || '',
+      price: Number(c.precio),
+      type: c.tipo,
+      featured: c.destacado,
+      remote: c.tipo === 'Remoto',
+      publisher: {
+        name: pubName,
+        rating: p?.rating || 0,
+        verified: p?.dni_verificado || false,
+        avatar: pubAvatar,
+      },
+      description: c.descripcion || '',
+      schedule: c.horario || '',
+      fecha_inicio: c.fecha_inicio || '',
+      userId: c.user_id,
+    };
+  });
 
   const refreshCachuelos = async () => {
     const { data, error } = await supabase
       .from('cachuelos')
-      .select(`*, categorias(label, emoji, color), profiles(nombre, apellido, email, rating, dni_verificado)`)
+      .select(`*, categorias(label, emoji, color)`)
       .eq('estado', 'Activo')
       .order('created_at', { ascending: false });
-    if (!error && data && data.length > 0) setCachuelos(normalizeCachuelos(data));
+    if (error || !data || data.length === 0) return;
+    const userIds = [...new Set(data.map(c => c.user_id).filter(Boolean))];
+    const { data: profiles, error: profError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+    const profileMap = {};
+    (profiles || []).forEach(p => { profileMap[p.id] = p; });
+    setCachuelos(normalizeCachuelos(data, profileMap));
   };
 
   // Cargar cachuelos al iniciar
   useEffect(() => { refreshCachuelos(); }, []);
 
-  // Escuchar cambios de sesión (login/logout en cualquier pantalla)
+  // Escuchar cambios de sesión (login/logout/recovery en cualquier pantalla)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') { setUser(null); }
+      if (event === 'PASSWORD_RECOVERY') { setScreen('resetpassword'); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -2357,12 +3153,14 @@ export default function App() {
   };
 
   const viewCachuelo = (c) => {
+    setPrevScreen(screen);
     setSelectedCachuelo(c);
     setScreen('detail');
   };
 
   const renderScreen = () => {
     switch (screen) {
+      case 'resetpassword': return <ResetPasswordScreen onDone={() => setScreen('login')} />;
       case 'splash':      return <SplashScreen />;
       case 'onboarding':  return <OnboardingScreen onDone={() => setScreen('welcome')} />;
       case 'welcome':     return <WelcomeScreen
@@ -2371,11 +3169,15 @@ export default function App() {
                             onPhoneLogin={() => setScreen('login')}
                           />;
       case 'login':       return <LoginScreen onLogin={(u) => { setUser(u); setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
-      case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
-      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen('home')} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} />;
+      case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
+      case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} />;
+      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('detail'); setScreen('postulantes'); }} />;
+      case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} />;
+      case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(prevScreen)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
+      case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
-      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} />;
+      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('mycachuelos'); setScreen('postulantes'); }} />;
       case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;

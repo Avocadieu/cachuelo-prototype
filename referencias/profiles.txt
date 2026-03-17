@@ -1,0 +1,28 @@
+[profiles] 
+(2) [{…}, {…}]
+0
+: 
+{id: '495fa96a-7926-4ecb-b0a9-6d2c2aa87e93', nombre: 'Sergio', apellido: 'Cotillo', telefono: null, ciudad: null, …}
+1
+: 
+{id: 'ee424e86-0784-429d-9580-9febf5a1f66d', nombre: '', apellido: '', telefono: null, ciudad: null, …}
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
+ [error] null [userIds] 
+(2) ['495fa96a-7926-4ecb-b0a9-6d2c2aa87e93', 'ee424e86-0784-429d-9580-9febf5a1f66d']
+0
+: 
+"495fa96a-7926-4ecb-b0a9-6d2c2aa87e93"
+1
+: 
+"ee424e86-0784-429d-9580-9febf5a1f66d"
+length
+: 
+2
+[[Prototype]]
+: 
+Array(0)
