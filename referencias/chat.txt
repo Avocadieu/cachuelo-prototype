@@ -1,0 +1,62 @@
+CHAT CACHUELO – chat.txt
+Actualizado: 2026-03-18
+========================
+
+== DESCRIPCIÓN ==
+Pantalla de chat entre el PUBLICADOR de un cachuelo y un POSTULANTE.
+Se accede desde la pantalla de Postulantes ("Iniciar Chat") o desde una
+notificación de mensaje nuevo en la campana.
+
+== QUIÉN PUEDE CHATEAR ==
+- Solo los dos participantes de una postulación: el publicador del cachuelo
+  y el postulante que aplicó.
+- No hay chats grupales ni con terceros.
+
+== ACCESO AL CHAT ==
+- Desde PostulantesScreen: botón "Iniciar Chat" en la tarjeta de cada postulante
+- Desde NotificationsScreen: clic en notificación 💬 de mensaje nuevo
+
+== DATOS QUE RECIBE EL CHAT (chatData) ==
+- postulacion_id : ID de la postulación (llave del chat en BD)
+- cachuelo       : objeto del cachuelo (title, userId, etc.)
+- postulante     : objeto del postulante (id, nombre)
+
+== ALMACENAMIENTO ==
+- Tabla en Supabase: `mensajes`
+- Campos: id, postulacion_id, sender_id, recipient_id, texto, leido, created_at
+- Los mensajes se cargan al abrir el chat (ordenados por created_at ASC)
+- Al abrir el chat, los mensajes no leídos dirigidos al usuario actual
+  se marcan automáticamente como leido=true
+
+== REALTIME ==
+- Suscripción activa a la tabla `mensajes` filtrada por postulacion_id
+- Los mensajes del otro participante aparecen al instante sin recargar
+- Al recibir un mensaje nuevo vía realtime, se marca como leido=true
+  automáticamente si el receptor es el usuario actual
+
+== FUNCIONALIDADES ACTUALES ==
+- Enviar mensaje con botón o con Enter (Shift+Enter = salto de línea)
+- Mensajes propios aparecen a la derecha (azul)
+- Mensajes del otro aparecen a la izquierda (blanco)
+- Timestamp en cada mensaje (hora:minuto)
+- Estado de la postulación visible en el header (Pendiente / Visto / Aceptado / Rechazado)
+- Botones Aceptar / Rechazar en el header (solo para el publicador, mientras no haya decisión)
+- Aceptar/Rechazar actualiza `postulaciones.estado` en Supabase en tiempo real
+
+== ESTADO DE POSTULACIÓN DESDE EL CHAT ==
+Pendiente  → amarillo  – aún sin revisar
+Visto      → morado    – el empleador vio la postulación
+Aceptado   → verde     – postulante seleccionado para el cachuelo
+Rechazado  → rojo      – postulante no seleccionado
+
+Una vez decidido (Aceptado o Rechazado), los botones desaparecen y
+se muestra un mensaje de estado en su lugar.
+
+== PENDIENTES ==
+- Al aceptar a un postulante, el cachuelo debería pasar a estado "cerrado"
+- Historial de cambios de estado del postulante
+- Contraoferta de precio desde el chat
+
+== HISTORIAL DE CAMBIOS ==
+v0.06 (2026-03-18): Chat básico con localStorage; botones Aceptar/Rechazar
+v0.07 (2026-03-18): Migración a Supabase (tabla mensajes); realtime; marcar como leído automático

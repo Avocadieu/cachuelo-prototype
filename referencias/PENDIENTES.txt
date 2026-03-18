@@ -1,6 +1,27 @@
 Cuentas:
-No existe recuperación de contraseña ni cuentas
 No existe verificación de cuentas
 
 Sistema Registro:
 Si creas una cuenta con un correo existente, no pasa nada
+
+Pantalla MiCachuelo:
+No se ven Cachuelos reales
+
+Creación de Cachuelos:
+Debería aparecer la opción de fecha de inicio FLEXIBLE en lugar de poner una sola fecha
+
+Contraoferta de Cachuelos:
+Puedes pedir más dinero para realizar un trabajo como usuario, si te quieren pagar 30so por arreglar un armario, el postulante podría ofrecer otro precio
+
+Pantalla Mis Cachuelos:
+Con la lista de postulantes debería abrirse un chat y un botón para que confirmes que esa persona te ralizará el cachuelo
+
+Chat de trabajo:
+El chat debe funcionar correctamente,
+Aceptar o rechazar cachuelo deben tener funcionalidad
+El punto antrior debería generar datos que almacenemos como creadores
+NOTIFICACIONES PUSH
+
+* poder cambiar status de postulante
+* historial de cambios de status
+* al aprobar un postulante, el cachuelo como tal pasa a "cerrado" o similares

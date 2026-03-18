@@ -1087,21 +1087,28 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
   useEffect(() => {
     if (!user?.id) return;
     const fetchCount = async () => {
-      // Postulaciones a mis cachuelos (como publicador)
-      const { data: misCachuelos } = await supabase
-        .from('cachuelos').select('id').eq('user_id', user.id);
-      const ids = (misCachuelos || []).map(c => c.id);
+      const readIds = JSON.parse(localStorage.getItem('cachuelo_read_notifs') || '[]');
       let count = 0;
-      if (ids.length > 0) {
-        const { count: c1 } = await supabase.from('postulaciones')
-          .select('id', { count: 'exact', head: true }).in('cachuelo_id', ids);
-        count += c1 || 0;
+
+      // Postulaciones recibidas no leídas (como publicador)
+      const { data: misCachuelos } = await supabase.from('cachuelos').select('id').eq('user_id', user.id);
+      const cachIds = (misCachuelos || []).map(c => c.id);
+      if (cachIds.length > 0) {
+        const { data: posts } = await supabase.from('postulaciones').select('id').in('cachuelo_id', cachIds);
+        count += (posts || []).filter(p => !readIds.includes(`pub-${p.id}`)).length;
       }
-      // Mis postulaciones con cambio de estado (como postulante)
-      const { count: c2 } = await supabase.from('postulaciones')
+
+      // Mis postulaciones con estado cambiado, no leídas (como postulante)
+      const { data: misPostulaciones } = await supabase.from('postulaciones')
+        .select('id').eq('postulante_id', user.id).neq('estado', 'Pendiente');
+      count += (misPostulaciones || []).filter(p => !readIds.includes(`post-${p.id}`)).length;
+
+      // Mensajes no leídos (siempre exacto desde BD)
+      const { count: c3 } = await supabase.from('mensajes')
         .select('id', { count: 'exact', head: true })
-        .eq('postulante_id', user.id).neq('estado', 'Pendiente');
-      count += c2 || 0;
+        .eq('recipient_id', user.id).eq('leido', false);
+      count += c3 || 0;
+
       setNotifCount(count);
     };
     fetchCount();
@@ -1907,7 +1914,7 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
 };
 
 // 8. MIS CACHUELOS ────────────────────────────────────────────────────────────
-const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes }) => {
+const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIniciarChat }) => {
   const [tab, setTab] = useState('publicados');
   const [publicados, setPublicados] = useState([]);
   const [postulados, setPostulados] = useState([]);
@@ -2032,9 +2039,15 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes }) => 
                 </div>
                 <Badge color={statusColor(c.status)}>{c.status}</Badge>
               </div>
-              <div style={{ display: 'flex', gap: 14 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}><MapPin size={11} />{c.location}</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}><DollarSign size={11} />S/{c.price}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 14 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}><MapPin size={11} />{c.location}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}><DollarSign size={11} />S/{c.price}</span>
+                </div>
+                <button onClick={() => onIniciarChat?.({ postulacion_id: c.postulacionId, cachuelo: null, postulante: null })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, background: C.headerBg, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                  <MessageCircle size={13} /> Chatear
+                </button>
               </div>
             </div>
           ))
@@ -2475,7 +2488,7 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
 
 // ════════════════════════════════════════════════════════════════════════════
 // ── NOTIFICACIONES ────────────────────────────────────────────────────────────
-const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onViewCachuelo }) => {
+const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onViewCachuelo, onOpenChat }) => {
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [readIds, setReadIds] = useState(() => {
@@ -2531,6 +2544,41 @@ const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onVi
         if (p.estado === 'Rechazado') result.push({ id: `post-${p.id}`, tipo: 'rechazada', icono: '❌', titulo: 'Postulación no seleccionada', desc: `No fuiste seleccionado para "${titulo}". ¡Sigue intentando!`, fecha: p.updated_at, color: C.danger, cachuelo_id: p.cachuelo_id });
       });
 
+      // 3. Mensajes no leídos dirigidos a mí
+      const { data: mensajesNoLeidos } = await supabase
+        .from('mensajes').select('id, created_at, postulacion_id, sender_id')
+        .eq('recipient_id', user.id).eq('leido', false)
+        .order('created_at', { ascending: false });
+      if (mensajesNoLeidos?.length > 0) {
+        const byPost = {};
+        mensajesNoLeidos.forEach(m => {
+          if (!byPost[m.postulacion_id]) byPost[m.postulacion_id] = { count: 0, latest: m.created_at, sender_id: m.sender_id };
+          byPost[m.postulacion_id].count++;
+        });
+        const senderIds = [...new Set(mensajesNoLeidos.map(m => m.sender_id).filter(Boolean))];
+        const postIds = Object.keys(byPost);
+        const [{ data: senderProfiles }, { data: postulaciones }] = await Promise.all([
+          supabase.from('profiles').select('*').in('id', senderIds),
+          supabase.from('postulaciones').select('id, cachuelo_id, cachuelos(titulo)').in('id', postIds),
+        ]);
+        const senderMap = {};
+        (senderProfiles || []).forEach(p => { senderMap[p.id] = p; });
+        const postMap = {};
+        (postulaciones || []).forEach(p => { postMap[p.id] = p; });
+        Object.entries(byPost).forEach(([postulacion_id, { count, latest, sender_id }]) => {
+          const sender = senderMap[sender_id];
+          const post = postMap[postulacion_id];
+          const nombre = sender ? `${sender.nombre || ''} ${sender.apellido || ''}`.trim() || sender.email?.split('@')[0] : 'Alguien';
+          const titulo = post?.cachuelos?.titulo || 'un cachuelo';
+          result.push({
+            id: `msg-${postulacion_id}`, tipo: 'mensaje_nuevo', icono: '💬',
+            titulo: `${count} mensaje${count > 1 ? 's' : ''} nuevo${count > 1 ? 's' : ''}`,
+            desc: `${nombre} te escribió sobre "${titulo}"`,
+            fecha: latest, color: C.headerBg, postulacion_id,
+          });
+        });
+      }
+
       // Ordenar por fecha desc
       result.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
       setNotifs(result);
@@ -2561,6 +2609,9 @@ const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onVi
         const [normalized] = normalizeCachuelos([data], profileMap);
         onViewCachuelo?.(normalized);
       }
+    } else if (n.tipo === 'mensaje_nuevo' && n.postulacion_id) {
+      // Navegar inmediatamente — ChatScreen carga sus propios datos desde postulacion_id
+      onOpenChat?.({ postulacion_id: n.postulacion_id, cachuelo: null, postulante: null });
     }
   };
 
@@ -2754,31 +2805,114 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
 
 // ── CHAT ──────────────────────────────────────────────────────────────────────
 const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
-  const { postulacion_id, cachuelo, postulante } = chatData || {};
-  const storageKey = `cachuelo_chat_${postulacion_id}`;
-  const [messages, setMessages] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
-  });
+  const { postulacion_id } = chatData || {};
+  const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [estado, setEstado] = useState('Pendiente');
   const [updatingEstado, setUpdatingEstado] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [cachuelo, setCachuelo] = useState(chatData?.cachuelo || null);
+  const [postulante, setPostulante] = useState(chatData?.postulante || null);
+  const [recipientId, setRecipientId] = useState(null);
   const messagesEndRef = { current: null };
 
   useEffect(() => {
-    // Fetch estado actual de la postulacion
     if (!postulacion_id) return;
-    supabase.from('postulaciones').select('estado').eq('id', postulacion_id).single()
-      .then(({ data }) => { if (data) setEstado(data.estado); });
-  }, [postulacion_id]);
 
-  const sendMessage = () => {
+    const fetchData = async () => {
+      try {
+        // 1. Postulacion: estado, ids, y mensaje inicial de postulación
+        const { data: post } = await supabase.from('postulaciones')
+          .select('estado, cachuelo_id, postulante_id, mensaje, created_at')
+          .eq('id', postulacion_id).single();
+
+        if (post) {
+          setEstado(post.estado);
+
+          // 2. Cachuelo (minimal, sin join) + perfil del postulante
+          const { data: cachMin } = await supabase
+            .from('cachuelos').select('id, user_id, titulo').eq('id', post.cachuelo_id).single();
+          const { data: postlanteProfile } = await supabase
+            .from('profiles').select('id, nombre, apellido, email').eq('id', post.postulante_id).single();
+
+          if (cachMin) {
+            const publisherId = cachMin.user_id;
+            // Calcular recipient: si soy el postulante → escribo al publicador, y viceversa
+            setRecipientId(currentUser?.id === post.postulante_id ? publisherId : post.postulante_id);
+            setCachuelo({ id: cachMin.id, title: cachMin.titulo, userId: publisherId });
+          }
+
+          if (postlanteProfile) {
+            const p = postlanteProfile;
+            setPostulante({ id: p.id, postulante_id: p.id, nombre: `${p.nombre || ''} ${p.apellido || ''}`.trim() || p.email?.split('@')[0] || 'Postulante' });
+          }
+
+          // 3. Mensajes del chat + prepend del mensaje inicial de postulación
+          const { data: msgs } = await supabase
+            .from('mensajes').select('*')
+            .eq('postulacion_id', postulacion_id)
+            .order('created_at', { ascending: true });
+
+          const textoInicial = post.mensaje?.trim();
+          const msgInicial = textoInicial ? [{
+            id: `inicial-${postulacion_id}`,
+            sender_id: post.postulante_id,
+            texto: textoInicial,
+            created_at: post.created_at,
+            leido: true,
+          }] : [];
+
+          setMessages([...msgInicial, ...(msgs || [])]);
+
+          // 4. Marcar mensajes dirigidos a mí como leídos
+          if (currentUser?.id) {
+            supabase.from('mensajes')
+              .update({ leido: true })
+              .eq('postulacion_id', postulacion_id)
+              .eq('recipient_id', currentUser.id)
+              .eq('leido', false);
+          }
+        }
+      } catch (err) {
+        // Error silencioso — setLoading(false) siempre corre en finally
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Suscripción realtime para mensajes nuevos
+    const channel = supabase
+      .channel(`chat-${postulacion_id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `postulacion_id=eq.${postulacion_id}` },
+        (payload) => {
+          // Solo agregar si es del otro usuario y no está ya en la lista
+          if (payload.new.sender_id !== currentUser?.id) {
+            setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new]);
+          }
+          if (payload.new.recipient_id === currentUser?.id) {
+            supabase.from('mensajes').update({ leido: true }).eq('id', payload.new.id);
+          }
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [postulacion_id, currentUser?.id]);
+
+  const sendMessage = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    const msg = { id: Date.now(), sender_id: currentUser?.id, text: trimmed, ts: new Date().toISOString() };
-    const updated = [...messages, msg];
-    setMessages(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    if (!trimmed || !recipientId) return;
     setText('');
+    const { data: inserted } = await supabase.from('mensajes').insert({
+      postulacion_id,
+      sender_id: currentUser?.id,
+      recipient_id: recipientId,
+      texto: trimmed,
+      leido: false,
+    }).select().single();
+    // Mostrar el mensaje inmediatamente sin esperar realtime
+    if (inserted) setMessages(prev => prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]);
   };
 
   const updateEstado = async (nuevoEstado) => {
@@ -2804,9 +2938,14 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
   const isDecided = estado === 'Aceptado' || estado === 'Rechazado';
 
   return (
-    <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
-      {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 16px 16px' }}>
+    <div style={{ position: 'absolute', inset: 0 }}>
+      {/* TabBar absoluto al fondo — fuera del flujo flex */}
+      <TabBar active="mycachuelos" onNavigate={onNavigate} />
+
+      {/* Contenedor principal: ocupa todo menos los 72px del TabBar */}
+      <div style={{ position: 'absolute', inset: 0, bottom: 72, display: 'flex', flexDirection: 'column' }}>
+      {/* Header – fijo arriba */}
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 16px 16px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ArrowLeft size={18} color="#fff" />
@@ -2818,8 +2957,8 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
           <span style={{ background: ec.color + '33', color: ec.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, border: `1px solid ${ec.color}55`, flexShrink: 0 }}>{ec.label}</span>
         </div>
 
-        {/* Botones Aceptar / Rechazar */}
-        {!isDecided && (
+        {/* Botones Aceptar / Rechazar — solo para el publicador */}
+        {!isDecided && cachuelo?.userId === currentUser?.id && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => updateEstado('Rechazado')} disabled={updatingEstado}
               style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.6)', color: '#FCA5A5', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -2838,21 +2977,23 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
         )}
       </div>
 
-      {/* Mensajes */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F3F4F6' }}>
-        {messages.length === 0 && (
+      {/* Mensajes – zona scrolleable */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F3F4F6' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>Cargando...</div>
+        ) : messages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
             Inicia la conversación
           </div>
-        )}
+        ) : null}
         {messages.map(m => {
           const isMe = m.sender_id === currentUser?.id;
           return (
             <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth: '75%', background: isMe ? C.headerBg : '#fff', color: isMe ? '#fff' : C.text, borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontSize: 13, lineHeight: 1.5, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                <div>{m.text}</div>
-                <div style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.65)' : C.textMuted, marginTop: 4, textAlign: 'right' }}>{formatTs(m.ts)}</div>
+                <div>{m.texto}</div>
+                <div style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.65)' : C.textMuted, marginTop: 4, textAlign: 'right' }}>{formatTs(m.created_at)}</div>
               </div>
             </div>
           );
@@ -2860,8 +3001,8 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
         <div ref={el => { messagesEndRef.current = el; }} />
       </div>
 
-      {/* Input */}
-      <div style={{ padding: '10px 16px 16px', background: '#fff', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+      {/* Input – fijo arriba del TabBar */}
+      <div style={{ padding: '10px 16px 16px', background: '#fff', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
         <textarea value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           placeholder="Escribe un mensaje..." rows={1}
@@ -2871,7 +3012,8 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
           <Send size={18} color="#fff" />
         </button>
       </div>
-    </Screen>
+      </div>{/* fin contenedor principal */}
+    </div>
   );
 };
 
@@ -3060,6 +3202,7 @@ export default function App() {
   const [viewedUserId, setViewedUserId] = useState(null);
   const [prevScreen, setPrevScreen] = useState('home');
   const [cachueloParaPostulantes, setCachueloParaPostulantes] = useState(null);
+  const [postulantesParent, setPostulantesParent] = useState('mycachuelos');
   const [chatData, setChatData] = useState(null); // { postulacion_id, cachuelo, postulante, isOwner }
   const [user, setUser] = useState(null);
   const [cachuelos, setCachuelos] = useState(CACHUELOS); // fallback al mock mientras carga
@@ -3170,14 +3313,14 @@ export default function App() {
                           />;
       case 'login':       return <LoginScreen onLogin={(u) => { setUser(u); setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
       case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
-      case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} />;
-      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('detail'); setScreen('postulantes'); }} />;
+      case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} onOpenChat={(data) => { setChatData(data); setPrevScreen('notifications'); setScreen('chat'); }} />;
+      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
       case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} />;
-      case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(prevScreen)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
+      case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(postulantesParent)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
       case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
-      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPrevScreen('mycachuelos'); setScreen('postulantes'); }} />;
+      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} />;
       case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;

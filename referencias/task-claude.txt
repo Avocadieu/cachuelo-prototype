@@ -1,0 +1,38 @@
+PENDIENTES CACHUELO – task-claude.txt
+Actualizado: 2026-03-18
+======================================
+
+== BUGS CRÍTICOS ==
+- Registro con correo existente no muestra error al usuario
+
+== FLUJO DE POSTULACIÓN / CHAT ==
+- ✅ Chat migrado a Supabase (tabla mensajes, realtime)
+- ✅ Notificaciones de mensajes nuevos en chat
+- Aceptar/Rechazar postulante debe cambiar estado real en BD
+- Al aprobar un postulante, el cachuelo pasa a estado "cerrado" o similar
+- Historial de cambios de estado del postulante
+- Contraoferta: el postulante puede proponer otro precio al publicador
+
+== PUBLICACIÓN DE CACHUELOS ==
+- Fecha de inicio FLEXIBLE como opción (además de fecha fija)
+- Poder editar un cachuelo ya publicado
+- Poder cerrar/cancelar un cachuelo sin necesidad de aceptar a alguien
+
+== PERFIL Y REPUTACIÓN ==
+- Subir foto de perfil
+- Rating real del usuario (actualmente es dato mock)
+- Dejar reseña/rating al otro usuario tras completar un cachuelo
+
+== FLUJO POST-ACEPTACIÓN ==
+- Pantalla o estado de "trabajo en progreso" después de aceptar postulante
+- Forma de marcar un cachuelo como completado
+
+== TÉCNICO / BD ==
+- Verificación DNI real
+- Pagos reales (Yape / Plin / Tarjeta)
+- Paginación en home (actualmente carga todos los cachuelos de BD)
+
+== PENDIENTES ORIGINALES (referencias/PENDIENTES.txt) ==
+- En la lista de postulantes, abrir chat y confirmar que esa persona realizará el cachuelo
+- Poder cambiar status de postulante
+- Al aprobar postulante → cachuelo pasa a "cerrado"

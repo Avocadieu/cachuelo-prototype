@@ -1,0 +1,51 @@
+NOTIFICACIONES CACHUELO – notificaciones.txt
+Actualizado: 2026-03-18
+==============================================
+
+== NOTIFICACIONES ACTUALES ==
+
+-- Como PUBLICADOR de un cachuelo --
+👤 "Nueva postulación"
+   Trigger: alguien se postula a uno de tus cachuelos
+   Acción al clic: navega a la lista de postulantes del cachuelo
+
+-- Como POSTULANTE --
+👀 "Postulación vista"
+   Trigger: el empleador ve tu postulación (estado cambia a "Visto")
+   Acción al clic: navega al detalle del cachuelo
+
+🎉 "¡Postulación aceptada!"
+   Trigger: el empleador acepta tu postulación (estado "Aceptado")
+   Acción al clic: navega al detalle del cachuelo
+
+❌ "Postulación no seleccionada"
+   Trigger: el empleador rechaza tu postulación (estado "Rechazado")
+   Acción al clic: navega al detalle del cachuelo
+
+-- Como cualquier usuario con chat activo --
+💬 "X mensajes nuevos"
+   Trigger: el otro participante del chat envió mensajes no leídos
+   Agrupación: una notificación por conversación (no una por mensaje)
+   Acción al clic: abre directamente el chat correspondiente
+   Persistencia: los mensajes se marcan como leídos (leido=true en BD)
+                 al abrir el chat o al hacer clic en la notificación
+
+== ESTADO DE LEÍDAS ==
+- Las notificaciones no leídas se muestran en azul con borde izquierdo azul
+- Las leídas se muestran en gris
+- El estado de "leída" de postulaciones persiste en localStorage (clave: cachuelo_read_notifs)
+- El estado de "leído" de mensajes persiste en Supabase (campo leido en tabla mensajes)
+- El contador en la campana (🔔) suma: postulaciones nuevas + estados cambiados + mensajes no leídos
+
+== FUENTE DE DATOS ==
+- Postulaciones: tabla `postulaciones` en Supabase
+- Mensajes: tabla `mensajes` en Supabase (leido = false, recipient_id = usuario actual)
+
+== LO QUE NO GENERA NOTIFICACIÓN (pendiente) ==
+- Cuando un cachuelo se cierra o completa
+- Cuando el empleador confirma formalmente al trabajador seleccionado
+- Contraoferta de precio recibida (feature pendiente)
+
+== HISTORIAL DE CAMBIOS ==
+v0.06 (2026-03-18): Versión inicial – postulaciones recibidas, estado visto/aceptado/rechazado
+v0.07 (2026-03-18): Notificación 💬 de mensajes no leídos; contador de campana incluye mensajes; clic abre chat directamente
