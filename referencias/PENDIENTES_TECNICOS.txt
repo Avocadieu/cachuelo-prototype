@@ -1,0 +1,116 @@
+PENDIENTES TÉCNICOS – CACHUELO PROTOTYPE
+=========================================
+Fecha: Abril 2026
+
+
+1. CONTRAOFERTA DE PRECIO DESDE EL CHAT
+----------------------------------------
+Descripción:
+  Permite que el trabajador proponga un precio distinto al publicado
+  directamente desde el chat. El empleador puede aceptar o rechazar
+  la contraoferta.
+
+Implementación posible sin servicios externos:
+  - Agregar un botón "Proponer precio" en el input del chat
+  - Al tocar, abre un modal con un campo numérico
+  - Se envía como un mensaje especial (tipo: 'contraoferta') guardado
+    en la tabla `mensajes` con un campo extra `tipo` y `valor`
+  - El empleador ve el mensaje con botones "Aceptar" / "Rechazar"
+  - Si acepta, se actualiza el precio en `postulaciones` o `cachuelos`
+
+Necesita servicios externos: NO
+  Todo se puede manejar con Supabase (campo `tipo` en mensajes y
+  lógica en el frontend).
+
+
+2. VERIFICACIÓN DNI REAL
+-------------------------
+Descripción:
+  Verificar que el DNI ingresado por el usuario corresponde realmente
+  a su identidad, consultando una fuente oficial.
+
+Por qué necesita un servicio externo:
+  El DNI es un documento emitido por RENIEC (Registro Nacional de
+  Identificación y Estado Civil del Perú). No existe una API pública
+  oficial gratuita para consultarlo. Las opciones son:
+
+  Opción A – APIs de terceros (requiere contrato/pago):
+    · Apiperu.dev – API peruana de consulta RENIEC (~$30/mes)
+    · Apis.net.pe – similar, con planes de pago
+    · SUNAT/RENIEC directamente – requiere convenio institucional
+
+  Opción B – Verificación manual (viable para prototipo):
+    · El usuario sube foto de su DNI (frontal + posterior)
+    · Un administrador lo revisa manualmente desde el panel
+    · Se marca como verificado en `profiles.dni_verificado = true`
+    · No requiere API externa, solo Supabase Storage
+
+  Recomendación para MVP: usar la opción B (verificación manual)
+  mientras se escala el producto.
+
+
+3. PAGOS REALES (YAPE / PLIN / TARJETA)
+-----------------------------------------
+Descripción:
+  Procesar el pago de publicación de cachuelos (S/5 estándar, S/8
+  destacado) con métodos reales en lugar de la simulación actual.
+
+Por qué necesita un servicio externo:
+  El procesamiento de pagos requiere integrarse con pasarelas de pago
+  autorizadas que cumplan con regulaciones financieras.
+
+  Opciones para el mercado peruano:
+
+  · Culqi (culqi.com)
+      - Pasarela peruana, acepta tarjetas Visa/Mastercard
+      - API REST bien documentada
+      - Comisión: ~3.99% + S/1.00 por transacción
+      - Requiere RUC y cuenta bancaria peruana
+
+  · Izipay (izipay.pe)
+      - Otra opción peruana, similar a Culqi
+      - También acepta pagos con QR (Yape/Plin indirectamente)
+
+  · Yape para empresas (yape.com.pe/negocios)
+      - Requiere afiliación como negocio en BCP
+      - API disponible solo para empresas registradas
+
+  · Plin para negocios
+      - Similar a Yape, requiere acuerdo con los bancos participantes
+        (BBVA, Scotiabank, Interbank, BanBif)
+
+  · Stripe (stripe.com)
+      - Internacional, acepta tarjetas en Perú
+      - Más fácil de integrar técnicamente
+      - Comisión: ~2.9% + $0.30 USD por transacción
+      - No soporta Yape/Plin directamente
+
+  Recomendación para MVP: empezar con Culqi para tarjetas
+  (es la opción más accesible para startups peruanas) y agregar
+  Yape/Plin cuando se formalice el negocio.
+
+
+4. PAGINACIÓN EN HOME
+----------------------
+Descripción:
+  Actualmente el home carga todos los cachuelos activos de una sola
+  vez. Con muchos registros esto se vuelve lento e ineficiente.
+
+Implementación posible sin servicios externos:
+  Supabase soporta paginación nativa con `.range(from, to)`:
+
+    Ejemplo:
+      supabase.from('cachuelos')
+        .select('...')
+        .eq('estado', 'Activo')
+        .range(0, 9)   // primera página, 10 items
+        .range(10, 19) // segunda página, etc.
+
+  Opciones de UX:
+    · Paginación clásica (botones Anterior / Siguiente)
+    · Scroll infinito – cargar más al llegar al fondo de la lista
+      (recomendado para mobile)
+
+  Necesita servicios externos: NO
+    Es puramente un cambio de lógica en el frontend y la query
+    de Supabase.

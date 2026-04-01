@@ -121,12 +121,14 @@ const Stars = ({ rating, size = 12 }) => (
   </span>
 );
 
-const Avatar = ({ initials, size = 36, bg = C.primary, color = '#fff', fontSize = 13 }) => (
+const Avatar = ({ initials, src, size = 36, bg = C.primary, color = '#fff', fontSize = 13 }) => (
   <div style={{
     width: size, height: size, borderRadius: size, background: bg,
     color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontWeight: 700, fontSize, flexShrink: 0,
-  }}>{initials}</div>
+    fontWeight: 700, fontSize, flexShrink: 0, overflow: 'hidden',
+  }}>
+    {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+  </div>
 );
 
 const Badge = ({ children, color = C.primary, bg }) => (
@@ -753,6 +755,11 @@ const handleRegister = async () => {
   });
   setLoading(false);
   if (error) { setError(error.message); return; }
+  // Supabase no retorna error cuando el correo ya existe, pero sí retorna identities vacío
+  if (data.user?.identities?.length === 0) {
+    setError('Este correo ya está registrado. Intenta iniciar sesión.');
+    return;
+  }
   // Supabase requiere confirmación de email → mostrar mensaje
   if (!data.session) { setRegSuccess(true); return; }
   // Sin confirmación → entrar directo
@@ -1323,22 +1330,29 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
   const pubRating  = cachuelo.publisher?.rating  ?? 0;
   const pubVerified = cachuelo.publisher?.verified ?? false;
   const pubAvatar  = cachuelo.publisher?.avatar  || 'U';
-  const fechaDisplay = cachuelo?.fecha_inicio
-    ? new Date(cachuelo.fecha_inicio + 'T00:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    : cachuelo?.schedule || '';
+  const fechaDisplay = cachuelo?.fecha_inicio === 'flexible'
+    ? 'A coordinar'
+    : cachuelo?.fecha_inicio
+      ? new Date(cachuelo.fecha_inicio + 'T00:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : cachuelo?.schedule || '';
 
   const handleApply = async () => {
     if (!user) { onRequireAuth(); return; }
     if (applied || applying) return;
     setApplying(true);
-    const { error } = await supabase.from('postulaciones').insert({
+    const { data: postData, error } = await supabase.from('postulaciones').insert({
       cachuelo_id: cachuelo.id,
       postulante_id: user.id,
       mensaje: message,
       estado: 'Pendiente',
-    });
+    }).select().single();
     setApplying(false);
-    if (!error) setApplied(true);
+    if (!error) {
+      setApplied(true);
+      if (postData?.id) {
+        await supabase.from('postulacion_historial').insert({ postulacion_id: postData.id, estado: 'Pendiente' });
+      }
+    }
   };
 
   return (
@@ -1534,7 +1548,8 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
       duracion: form.duration,
       tipo: form.tipo,
       destacado: form.featured,
-      fecha_inicio: form.startDate,
+      fecha_inicio: form.startDate === 'flexible' ? null : (form.startDate || null),
+      fecha_flexible: form.startDate === 'flexible',
       estado: 'Activo',
     });
     setSaving(false);
@@ -1686,19 +1701,26 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Fecha de inicio *</label>
-              <input
-                type="date"
-                value={form.startDate}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={e => upd('startDate', e.target.value)}
-                style={{
-                  width: '100%', padding: '11px 14px', boxSizing: 'border-box',
-                  border: `1.5px solid ${form.startDate ? C.primary : C.border}`,
-                  borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted,
-                  background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
-                }}
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec }}>Fecha de inicio *</label>
+                <button onClick={() => upd('startDate', form.startDate === 'flexible' ? '' : 'flexible')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: form.startDate === 'flexible' ? C.primary : C.textMuted }}>
+                  <div style={{ width: 32, height: 18, borderRadius: 9, background: form.startDate === 'flexible' ? C.primary : C.border, position: 'relative', transition: 'background .2s' }}>
+                    <div style={{ position: 'absolute', top: 2, left: form.startDate === 'flexible' ? 16 : 2, width: 14, height: 14, borderRadius: 7, background: '#fff', transition: 'left .2s' }} />
+                  </div>
+                  A coordinar
+                </button>
+              </div>
+              {form.startDate !== 'flexible' && (
+                <input type="date" value={form.startDate} min={new Date().toISOString().split('T')[0]}
+                  onChange={e => upd('startDate', e.target.value)}
+                  style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
+              )}
+              {form.startDate === 'flexible' && (
+                <div style={{ padding: '10px 14px', background: C.primary + '12', borderRadius: 10, fontSize: 13, color: C.primary, fontWeight: 500 }}>
+                  📅 Se coordinará con el trabajador aceptado
+                </div>
+              )}
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Duración máxima (máx. 30 días)</label>
@@ -1748,7 +1770,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1 }}><ChevronLeft size={16} /> Atrás</Btn>
-              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || !form.district || !form.duration || !form.startDate}>
+              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || !form.district || !form.duration || !form.startDate && form.startDate !== 'flexible'}>
                 Siguiente <ChevronRight size={16} />
               </Btn>
             </div>
@@ -1845,7 +1867,162 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
   );
 };
 
-// 7. BUSCAR ────────────────────────────────────────────────────────────────────
+// 7. EDITAR CACHUELO ──────────────────────────────────────────────────────────
+const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
+  const [form, setForm] = useState({
+    title:       cachuelo?.title        || '',
+    category:    cachuelo?.category     || '',
+    description: cachuelo?.description  || '',
+    price:       cachuelo?.price        ? String(cachuelo.price) : '',
+    payType:     cachuelo?.payType      || 'Fijo',
+    district:    cachuelo?.location     || '',
+    duration:    cachuelo?.duration     || '',
+    startDate:   cachuelo?.fecha_inicio || '',
+    tipo:        cachuelo?.type         || 'Presencial',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState(null);
+  const [saved, setSaved]   = useState(false);
+
+  const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    const cat = CATEGORIES.find(c => c.label === form.category);
+    const { error: err } = await supabase.from('cachuelos').update({
+      titulo:      form.title,
+      descripcion: form.description,
+      categoria_id: cat?.id || null,
+      precio:      Number(form.price),
+      distrito:    form.district,
+      duracion:    form.duration,
+      tipo:        form.tipo,
+      fecha_inicio: form.startDate === 'flexible' ? null : (form.startDate || null),
+      fecha_flexible: form.startDate === 'flexible',
+    }).eq('id', cachuelo.id);
+    setSaving(false);
+    if (err) { setError(`Error: ${err.message}`); return; }
+    await onSaved?.();
+    setSaved(true);
+  };
+
+  const canSave = form.title && form.category && form.description && form.price && form.district && form.duration;
+
+  if (saved) return (
+    <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 32px', textAlign: 'center', minHeight: 500 }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 8 }}>¡Cambios guardados!</div>
+        <div style={{ fontSize: 13, color: C.textSec, marginBottom: 32 }}>Tu cachuelo ha sido actualizado.</div>
+        <Btn style={{ width: '100%' }} onClick={onBack}>Volver a Mis Cachuelos</Btn>
+      </div>
+    </Screen>
+  );
+
+  return (
+    <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Editar Cachuelo</div>
+            <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cachuelo?.title}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 32px' }}>
+        {/* Info básica */}
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Info básica</div>
+        <Input label="Título *" placeholder="Ej: Necesito diseñador para logo" value={form.title} onChange={e => upd('title', e.target.value)} />
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Categoría *</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => upd('category', cat.label)}
+                style={{ padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`, background: form.category === cat.label ? C.primary + '18' : '#fff', color: form.category === cat.label ? C.primary : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                {cat.emoji} {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Textarea label="Descripción *" placeholder="Describe detalladamente lo que necesitas..." value={form.description} onChange={e => upd('description', e.target.value)} rows={4} />
+
+        {/* Detalles */}
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 12, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Detalles</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <Input label="Pago (S/) *" placeholder="200" type="number" value={form.price} onChange={e => upd('price', e.target.value)} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Tipo de pago</label>
+            <select value={form.payType} onChange={e => upd('payType', e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit' }}>
+              {['Fijo', 'Por hora', 'Por entrega', 'A convenir'].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Modalidad</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['Presencial', 'Remoto'].map(t => (
+              <button key={t} onClick={() => upd('tipo', t)} style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${form.tipo === t ? C.primary : C.border}`, background: form.tipo === t ? C.primary + '12' : '#fff', color: form.tipo === t ? C.primary : C.text, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                {t === 'Presencial' ? '📍' : '🌐'} {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Distrito *</label>
+          <div style={{ position: 'relative' }}>
+            <MapPin size={15} color={C.textMuted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <select value={form.district} onChange={e => upd('district', e.target.value)} style={{ width: '100%', padding: '11px 14px 11px 34px', border: `1.5px solid ${form.district ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}>
+              <option value="">Selecciona un distrito...</option>
+              {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec }}>Fecha de inicio</label>
+            <button onClick={() => upd('startDate', form.startDate === 'flexible' ? '' : 'flexible')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: form.startDate === 'flexible' ? C.primary : C.textMuted }}>
+              <div style={{ width: 32, height: 18, borderRadius: 9, background: form.startDate === 'flexible' ? C.primary : C.border, position: 'relative', transition: 'background .2s' }}>
+                <div style={{ position: 'absolute', top: 2, left: form.startDate === 'flexible' ? 16 : 2, width: 14, height: 14, borderRadius: 7, background: '#fff', transition: 'left .2s' }} />
+              </div>
+              A coordinar
+            </button>
+          </div>
+          {form.startDate !== 'flexible' && (
+            <input type="date" value={form.startDate} onChange={e => upd('startDate', e.target.value)} style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
+          )}
+          {form.startDate === 'flexible' && (
+            <div style={{ padding: '10px 14px', background: C.primary + '12', borderRadius: 10, fontSize: 13, color: C.primary, fontWeight: 500 }}>
+              📅 Se coordinará con el trabajador aceptado
+            </div>
+          )}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: 'block' }}>Duración *</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {['1 día','2 días','1 semana','2 semanas','3 semanas','1 mes'].map(d => (
+              <button key={d} onClick={() => upd('duration', d)} style={{ padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.duration === d ? C.primary : C.border}`, background: form.duration === d ? C.primary : '#fff', color: form.duration === d ? '#fff' : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
+            ))}
+          </div>
+        </div>
+
+        {error && <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>{error}</div>}
+        <Btn onClick={handleSave} style={{ width: '100%' }} disabled={!canSave || saving}>
+          {saving ? 'Guardando...' : '💾 Guardar cambios'}
+        </Btn>
+      </div>
+    </Screen>
+  );
+};
+
+// 8. BUSCAR ────────────────────────────────────────────────────────────────────
 const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   const [query, setQuery] = useState('');
   const [selectedCat, setSelectedCat] = useState(null);
@@ -1914,7 +2091,7 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
 };
 
 // 8. MIS CACHUELOS ────────────────────────────────────────────────────────────
-const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIniciarChat }) => {
+const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIniciarChat, onEditar }) => {
   const [tab, setTab] = useState('publicados');
   const [publicados, setPublicados] = useState([]);
   const [postulados, setPostulados] = useState([]);
@@ -1930,7 +2107,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
         supabase.from('postulaciones')
-          .select('id, estado, cachuelos(id, titulo, precio, distrito, duracion, categorias(label, emoji))')
+          .select('id, estado, cachuelos(id, titulo, precio, distrito, duracion, estado, categorias(label, emoji))')
           .eq('postulante_id', user.id)
           .order('created_at', { ascending: false }),
       ]);
@@ -1952,6 +2129,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           title: p.cachuelos?.titulo, emoji: p.cachuelos?.categorias?.emoji || '💼',
           price: Number(p.cachuelos?.precio), location: p.cachuelos?.distrito || 'Lima',
           duration: p.cachuelos?.duracion || '', status: p.estado,
+          cachueloEstado: p.cachuelos?.estado,
         })));
       }
       setLoading(false);
@@ -1959,7 +2137,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
     fetchData();
   }, [user?.id]);
 
-  const statusColor = s => ({ Activo: C.success, Pendiente: C.warning, Visto: C.purple, Aceptado: C.success }[s] || C.textMuted);
+  const statusColor = s => ({ Activo: C.success, Pausado: C.warning, Cerrado: C.danger, Completado: C.purple, Pendiente: C.warning, Visto: C.purple, Aceptado: C.success, Rechazado: C.danger }[s] || C.textMuted);
 
   return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
@@ -1983,52 +2161,77 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
       <div style={{ padding: '16px 20px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}>Cargando...</div>
-        ) : tab === 'publicados' ? (
-          <>
-            {publicados.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                <div style={{ fontSize: 44, marginBottom: 10 }}>📋</div>
-                <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no publicaste cachuelos</div>
-                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Publica tu primer cachuelo y empieza a recibir postulantes</div>
-              </div>
-            ) : publicados.map(c => (
-              <div key={c.id} onClick={() => onViewCachuelo(c)}
-                style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div style={{ fontSize: 28 }}>{c.emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <Badge color={statusColor(c.status)}>{c.status}</Badge>
-                      <span style={{ fontSize: 11, color: C.textSec }}>{c.duration}</span>
-                    </div>
+        ) : tab === 'publicados' ? (() => {
+          const pubActivos    = publicados.filter(c => c.status !== 'Cerrado' && c.status !== 'Completado');
+          const pubRealizados = publicados.filter(c => c.status === 'Cerrado' || c.status === 'Completado');
+          const CardPub = ({ c }) => (
+            <div key={c.id} onClick={() => onViewCachuelo(c)}
+              style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ fontSize: 28 }}>{c.emoji}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <Badge color={statusColor(c.status)}>{c.status}</Badge>
+                    <span style={{ fontSize: 11, color: C.textSec }}>{c.duration}</span>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.primary, flexShrink: 0 }}>S/{c.price}</div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Users size={14} color={C.textMuted} />
-                    <span style={{ fontSize: 12, color: C.textSec }}>{c.applicants} postulante{c.applicants !== 1 ? 's' : ''}</span>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); onVerPostulantes?.(c); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontSize: 12, fontWeight: 600 }}>
-                    Ver postulantes
-                  </button>
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.primary, flexShrink: 0 }}>S/{c.price}</div>
               </div>
-            ))}
-            <Btn style={{ width: '100%' }} onClick={() => onNavigate('publish')}>
-              <PlusCircle size={16} /> Publicar nuevo cachuelo
-            </Btn>
-          </>
-        ) : (
-          postulados.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ fontSize: 44, marginBottom: 10 }}>🔍</div>
-              <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no te postulaste a ningún cachuelo</div>
-              <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Explora los cachuelos disponibles y postúlate</div>
-              <Btn onClick={() => onNavigate('home')}>Explorar cachuelos</Btn>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Users size={14} color={C.textMuted} />
+                  <span style={{ fontSize: 12, color: C.textSec }}>{c.applicants} postulante{c.applicants !== 1 ? 's' : ''}</span>
+                </div>
+                {c.status !== 'Cerrado' && c.status !== 'Completado' && (
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button onClick={e => { e.stopPropagation(); onEditar?.(c); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      ✏️ Editar
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); onVerPostulantes?.(c); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontSize: 12, fontWeight: 600 }}>
+                      Ver postulantes
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : postulados.map(c => (
+          );
+          return (
+            <>
+              {pubActivos.length === 0 && pubRealizados.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <div style={{ fontSize: 44, marginBottom: 10 }}>📋</div>
+                  <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no publicaste cachuelos</div>
+                  <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Publica tu primer cachuelo y empieza a recibir postulantes</div>
+                </div>
+              ) : (
+                <>
+                  {pubActivos.map(c => <CardPub key={c.id} c={c} />)}
+                  {pubRealizados.length > 0 && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 14px' }}>
+                        <div style={{ flex: 1, height: 1, background: C.border }} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.textSec }}>Realizados ({pubRealizados.length})</span>
+                        <div style={{ flex: 1, height: 1, background: C.border }} />
+                      </div>
+                      {pubRealizados.map(c => (
+                        <div key={c.id} style={{ opacity: 0.75 }}>
+                          <CardPub c={c} />
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+              <Btn style={{ width: '100%' }} onClick={() => onNavigate('publish')}>
+                <PlusCircle size={16} /> Publicar nuevo cachuelo
+              </Btn>
+            </>
+          );
+        })() : (() => {
+          const postActivos    = postulados.filter(c => c.cachueloEstado !== 'Cerrado' && c.cachueloEstado !== 'Completado');
+          const postRealizados = postulados.filter(c => c.cachueloEstado === 'Cerrado' || c.cachueloEstado === 'Completado');
+          const CardPost = ({ c }) => (
             <div key={c.postulacionId}
               style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
@@ -2050,8 +2253,34 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
                 </button>
               </div>
             </div>
-          ))
-        )}
+          );
+          return postulados.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ fontSize: 44, marginBottom: 10 }}>🔍</div>
+              <div style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>Aún no te postulaste a ningún cachuelo</div>
+              <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Explora los cachuelos disponibles y postúlate</div>
+              <Btn onClick={() => onNavigate('home')}>Explorar cachuelos</Btn>
+            </div>
+          ) : (
+            <>
+              {postActivos.map(c => <CardPost key={c.postulacionId} c={c} />)}
+              {postRealizados.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 14px' }}>
+                    <div style={{ flex: 1, height: 1, background: C.border }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.textSec }}>Realizados ({postRealizados.length})</span>
+                    <div style={{ flex: 1, height: 1, background: C.border }} />
+                  </div>
+                  {postRealizados.map(c => (
+                    <div key={c.postulacionId} style={{ opacity: 0.75 }}>
+                      <CardPost c={c} />
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
     </Screen>
   );
@@ -2060,12 +2289,41 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
 const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) => {
   const [profile, setProfile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     if (!user?.id) return;
     supabase.from('profiles').select('*').eq('id', user.id).single()
       .then(({ data }) => { if (data) setProfile(data); });
   }, [user?.id]);
+
+  const handleSelectPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreviewFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const handleConfirmPhoto = async () => {
+    if (!previewFile || !user?.id) return;
+    setUploadingPhoto(true);
+    const ext = previewFile.name.split('.').pop();
+    const path = `${user.id}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, previewFile, { upsert: true });
+    if (!uploadError) {
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+      setProfile(p => ({ ...p, avatar_url: publicUrl }));
+    }
+    setUploadingPhoto(false);
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  };
 
   const nombre   = profile?.nombre   || user?.nombre   || '';
   const apellido = profile?.apellido || user?.apellido || '';
@@ -2099,13 +2357,14 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
         padding: '44px 20px 32px', textAlign: 'center',
       }}>
         <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
-          <Avatar initials={initials} size={80} bg="rgba(255,255,255,0.25)" fontSize={28} />
+          <Avatar initials={initials} src={profile?.avatar_url} size={80} bg="rgba(255,255,255,0.25)" fontSize={28} />
+          {/* Botón subir foto */}
+          <label style={{ position: 'absolute', bottom: 0, left: 0, width: 26, height: 26, borderRadius: 13, background: C.primary, border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Camera size={13} color="#fff" />
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
+          </label>
           {dniVerificado && (
-            <div style={{
-              position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13,
-              background: C.success, border: '2px solid #fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, background: C.success, border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CheckCircle size={14} color="#fff" />
             </div>
           )}
@@ -2156,6 +2415,30 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
           );
         })}
       </div>
+
+      {/* Modal preview de foto */}
+      {previewUrl && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
+          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>Vista previa</div>
+              <div style={{ fontSize: 12, color: C.textSec }}>¿Te gusta cómo se ve?</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <div style={{ width: 120, height: 120, borderRadius: 60, overflow: 'hidden', border: `3px solid ${C.primary}` }}>
+                <img src={previewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            </div>
+            <Btn onClick={handleConfirmPhoto} disabled={uploadingPhoto} style={{ width: '100%', marginBottom: 10 }}>
+              {uploadingPhoto ? 'Subiendo...' : '✅ Usar esta foto'}
+            </Btn>
+            <button onClick={() => { setPreviewFile(null); setPreviewUrl(null); }}
+              style={{ width: '100%', padding: '10px 0', borderRadius: 12, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </Screen>
   );
 };
@@ -2808,12 +3091,18 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
   const { postulacion_id } = chatData || {};
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
-  const [estado, setEstado] = useState('Pendiente');
+  const [estado, setEstado] = useState(chatData?.postulante?.estado || 'Pendiente');
   const [updatingEstado, setUpdatingEstado] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cachuelo, setCachuelo] = useState(chatData?.cachuelo || null);
   const [postulante, setPostulante] = useState(chatData?.postulante || null);
   const [recipientId, setRecipientId] = useState(null);
+  const [historial, setHistorial] = useState([]);
+  const [showHistorial, setShowHistorial] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingStars, setRatingStars] = useState(5);
+  const [ratingComment, setRatingComment] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
   const messagesEndRef = { current: null };
 
   useEffect(() => {
@@ -2872,6 +3161,14 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
               .eq('recipient_id', currentUser.id)
               .eq('leido', false);
           }
+
+          // 5. Historial de estados
+          const { data: hist } = await supabase
+            .from('postulacion_historial')
+            .select('estado, created_at')
+            .eq('postulacion_id', postulacion_id)
+            .order('created_at', { ascending: true });
+          if (hist) setHistorial(hist);
         }
       } catch (err) {
         // Error silencioso — setLoading(false) siempre corre en finally
@@ -2919,8 +3216,43 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
     if (updatingEstado) return;
     setUpdatingEstado(true);
     const { error } = await supabase.from('postulaciones').update({ estado: nuevoEstado, updated_at: new Date().toISOString() }).eq('id', postulacion_id);
-    if (!error) setEstado(nuevoEstado);
+    if (!error) {
+      setEstado(nuevoEstado);
+      await supabase.from('postulacion_historial').insert({ postulacion_id, estado: nuevoEstado });
+      if (nuevoEstado === 'Aceptado' && cachuelo?.id) {
+        await supabase.from('cachuelos').update({ estado: 'Cerrado' }).eq('id', cachuelo.id);
+      }
+      if (nuevoEstado === 'Completado' && cachuelo?.id) {
+        await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id);
+      }
+    }
     setUpdatingEstado(false);
+  };
+
+  const handleCompletar = async () => {
+    if (submittingRating) return;
+    setSubmittingRating(true);
+    // 1. Marcar postulacion y cachuelo como completados
+    await supabase.from('postulaciones').update({ estado: 'Completado', updated_at: new Date().toISOString() }).eq('id', postulacion_id);
+    await supabase.from('postulacion_historial').insert({ postulacion_id, estado: 'Completado' });
+    if (cachuelo?.id) await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id);
+    // 2. Actualizar rating del trabajador (promedio acumulado)
+    const trabajadorId = postulante?.postulante_id || postulante?.id;
+    if (trabajadorId) {
+      const { data: prof } = await supabase.from('profiles').select('rating, cachuelos_completados').eq('id', trabajadorId).single();
+      if (prof) {
+        const completados = prof.cachuelos_completados || 0;
+        const oldRating   = prof.rating || 0;
+        const newRating   = completados > 0 ? (oldRating * completados + ratingStars) / (completados + 1) : ratingStars;
+        await supabase.from('profiles').update({
+          rating: Math.round(newRating * 10) / 10,
+          cachuelos_completados: completados + 1,
+        }).eq('id', trabajadorId);
+      }
+    }
+    setEstado('Completado');
+    setShowRatingModal(false);
+    setSubmittingRating(false);
   };
 
   const formatTs = (ts) => {
@@ -2929,13 +3261,15 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
   };
 
   const estadoConfig = {
-    Pendiente: { color: C.warning, label: 'Pendiente' },
-    Visto:     { color: C.purple,  label: 'Visto' },
-    Aceptado:  { color: C.success, label: 'Aceptado' },
-    Rechazado: { color: C.danger,  label: 'Rechazado' },
+    Pendiente:   { color: C.warning, label: 'Pendiente' },
+    Visto:       { color: C.purple,  label: 'Visto' },
+    Aceptado:    { color: C.success, label: 'Aceptado' },
+    Rechazado:   { color: C.danger,  label: 'Rechazado' },
+    Completado:  { color: C.purple,  label: 'Completado' },
   };
   const ec = estadoConfig[estado] || estadoConfig.Pendiente;
-  const isDecided = estado === 'Aceptado' || estado === 'Rechazado';
+  const isDecided = estado === 'Aceptado' || estado === 'Rechazado' || estado === 'Completado';
+  const isPublisher = cachuelo?.userId === currentUser?.id;
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -2958,7 +3292,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
         </div>
 
         {/* Botones Aceptar / Rechazar — solo para el publicador */}
-        {!isDecided && cachuelo?.userId === currentUser?.id && (
+        {!loading && !isDecided && cachuelo?.userId === currentUser?.id && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => updateEstado('Rechazado')} disabled={updatingEstado}
               style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.6)', color: '#FCA5A5', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -2970,12 +3304,60 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
             </button>
           </div>
         )}
-        {isDecided && (
+        {estado === 'Aceptado' && isPublisher && (
+          <button onClick={() => setShowRatingModal(true)}
+            style={{ width: '100%', padding: '9px 0', borderRadius: 10, background: 'rgba(139,92,246,0.2)', border: '1.5px solid rgba(139,92,246,0.6)', color: '#C4B5FD', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <CheckCircle size={15} /> Marcar como completado
+          </button>
+        )}
+        {estado === 'Aceptado' && !isPublisher && (
           <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 2 }}>
-            {estado === 'Aceptado' ? '✅ Postulación aceptada' : '❌ Postulación rechazada'}
+            ✅ Postulación aceptada · Esperando confirmación del empleador
+          </div>
+        )}
+        {estado === 'Completado' && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#C4B5FD', paddingBottom: 2, fontWeight: 700 }}>
+            🎉 Trabajo completado
+          </div>
+        )}
+        {estado === 'Rechazado' && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 2 }}>
+            ❌ Postulación rechazada
           </div>
         )}
       </div>
+
+      {/* Historial de estados */}
+      {historial.length > 0 && (
+        <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <button onClick={() => setShowHistorial(h => !h)}
+            style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.textSec }}>📋 Historial de postulación</span>
+            <span style={{ fontSize: 11, color: C.textMuted }}>{showHistorial ? '▲ Ocultar' : `▼ Ver (${historial.length} eventos)`}</span>
+          </button>
+          {showHistorial && (
+            <div style={{ padding: '4px 16px 12px' }}>
+              {historial.map((h, i) => {
+                const cfg = { Pendiente: { icon: '📩', color: C.warning }, Visto: { icon: '👀', color: C.purple }, Aceptado: { icon: '✅', color: C.success }, Rechazado: { icon: '❌', color: C.danger }, Completado: { icon: '🎉', color: C.purple } };
+                const { icon, color } = cfg[h.estado] || { icon: '•', color: C.textMuted };
+                const fecha = new Date(h.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < historial.length - 1 ? 8 : 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                      <span style={{ fontSize: 16 }}>{icon}</span>
+                      {i < historial.length - 1 && <div style={{ width: 2, height: 16, background: C.border, margin: '2px 0' }} />}
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color }}>{h.estado}</span>
+                      <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 6 }}>{fecha}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mensajes – zona scrolleable */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F3F4F6' }}>
@@ -3013,6 +3395,45 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
         </button>
       </div>
       </div>{/* fin contenedor principal */}
+
+      {/* Modal rating */}
+      {showRatingModal && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }}>
+          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>⭐</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 4 }}>¿Cómo fue el trabajo?</div>
+              <div style={{ fontSize: 13, color: C.textSec }}>Califica a <strong>{postulante?.nombre || 'el trabajador'}</strong></div>
+            </div>
+
+            {/* Estrellas */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+              {[1,2,3,4,5].map(n => (
+                <button key={n} onClick={() => setRatingStars(n)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 36, lineHeight: 1, color: n <= ratingStars ? '#F59E0B' : '#D1D5DB', transition: 'color .15s' }}>
+                  ★
+                </button>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', fontSize: 13, color: C.textSec, marginBottom: 16 }}>
+              {['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'][ratingStars]}
+            </div>
+
+            {/* Comentario */}
+            <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)}
+              placeholder="Comentario opcional..." rows={3}
+              style={{ width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 16 }} />
+
+            <Btn onClick={handleCompletar} disabled={submittingRating} style={{ width: '100%', marginBottom: 10 }}>
+              {submittingRating ? 'Guardando...' : 'Confirmar y completar'}
+            </Btn>
+            <button onClick={() => setShowRatingModal(false)}
+              style={{ width: '100%', padding: '10px 0', borderRadius: 12, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -3202,6 +3623,7 @@ export default function App() {
   const [viewedUserId, setViewedUserId] = useState(null);
   const [prevScreen, setPrevScreen] = useState('home');
   const [cachueloParaPostulantes, setCachueloParaPostulantes] = useState(null);
+  const [cachueloParaEditar, setCachueloParaEditar] = useState(null);
   const [postulantesParent, setPostulantesParent] = useState('mycachuelos');
   const [chatData, setChatData] = useState(null); // { postulacion_id, cachuelo, postulante, isOwner }
   const [user, setUser] = useState(null);
@@ -3230,7 +3652,7 @@ export default function App() {
       },
       description: c.descripcion || '',
       schedule: c.horario || '',
-      fecha_inicio: c.fecha_inicio || '',
+      fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
       userId: c.user_id,
     };
   });
@@ -3320,7 +3742,8 @@ export default function App() {
       case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
-      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} />;
+      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
+      case 'editcachuelo': return <EditCachueloScreen cachuelo={cachueloParaEditar} onBack={() => setScreen('mycachuelos')} onSaved={refreshCachuelos} onNavigate={navigate} />;
       case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;
