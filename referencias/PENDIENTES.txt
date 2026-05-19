@@ -1,27 +1,91 @@
-Cuentas:
-No existe verificación de cuentas
+╔══════════════════════════════════════════════════════════════╗
+║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
+║                     Actualizado: 2026-05-19                  ║
+╚══════════════════════════════════════════════════════════════╝
 
-Sistema Registro:
-Si creas una cuenta con un correo existente, no pasa nada
+1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
+   El sistema de reseñas está implementado (tabla `resenas` en Supabase,
+   componente ResenasSection en ProfileScreen y PublicProfileScreen), pero
+   las reseñas no aparecen. El insert falla silenciosamente, posiblemente
+   porque el trabajo fue completado antes de que existiera el código de
+   inserción. Pendiente investigar con el console.error ya agregado.
 
-Pantalla MiCachuelo:
-No se ven Cachuelos reales
+2. MEJORAR VISUALIZACIÓN DEL PERFIL DE USUARIO
+   Las pantallas ProfileScreen (perfil propio) y PublicProfileScreen (perfil
+   de otro usuario) necesitan un rediseño visual para ser más atractivas y
+   mostrar mejor la información del trabajador.
 
-Creación de Cachuelos:
-Debería aparecer la opción de fecha de inicio FLEXIBLE en lugar de poner una sola fecha
+3. HISTORIAL DE ESTADOS DEL POSTULANTE
+   Cuando un postulante pasa por distintos estados (Pendiente → Visto →
+   Aceptado / Rechazado), no hay una vista clara de ese recorrido. Se necesita
+   una línea de tiempo o historial visible en el chat o en Mis Cachuelos.
 
-Contraoferta de Cachuelos:
-Puedes pedir más dinero para realizar un trabajo como usuario, si te quieren pagar 30so por arreglar un armario, el postulante podría ofrecer otro precio
+4. CONTRAOFERTA DE PRECIO EN EL CHAT
+   En el chat entre publicador y postulante, el postulante debería poder
+   proponer un precio diferente al publicado. El publicador podría aceptar
+   o rechazar esa contraoferta formalmente desde el chat.
 
-Pantalla Mis Cachuelos:
-Con la lista de postulantes debería abrirse un chat y un botón para que confirmes que esa persona te ralizará el cachuelo
+5. FECHA DE INICIO FLEXIBLE
+   Al publicar un cachuelo, el campo de fecha de inicio debería tener la
+   opción "Flexible" además de una fecha fija, para trabajos donde el inicio
+   se coordina directamente con el trabajador.
 
-Chat de trabajo:
-El chat debe funcionar correctamente,
-Aceptar o rechazar cachuelo deben tener funcionalidad
-El punto antrior debería generar datos que almacenemos como creadores
-NOTIFICACIONES PUSH
+6. EDITAR CACHUELO YA PUBLICADO
+   El publicador no puede modificar un cachuelo después de publicarlo.
+   Se necesita un botón de edición en Mis Cachuelos → Publicados que
+   abra un formulario pre-llenado con los datos actuales.
 
-* poder cambiar status de postulante
-* historial de cambios de status
-* al aprobar un postulante, el cachuelo como tal pasa a "cerrado" o similares
+7. FLUJO POST-ACEPTACIÓN
+   Cuando se acepta a un postulante no hay un estado "En progreso". Se
+   necesita una vista que refleje que el trabajo está activo, y un flujo
+   claro para marcarlo como completado (ya existe el botón en el chat,
+   pero falta la pantalla de estado intermedio).
+
+8. VERIFICACIÓN DNI REAL
+   El botón "Verificar DNI" en el perfil no hace nada. En producción
+   conectaría con RENIEC u otro servicio. Para el MVP se podría simular
+   con un flujo de carga de foto del documento.
+
+9. PAGOS REALES (Yape / Plin / Tarjeta)
+   El wizard de publicación tiene la pantalla de pago pero no procesa
+   nada real. Pendiente integrar con una pasarela de pago peruana.
+
+10. PAGINACIÓN EN HOME
+    El feed carga todos los cachuelos activos de una sola vez. Con muchos
+    registros esto será lento. Implementar paginación o infinite scroll
+    cargando de a 10 cachuelos.
+
+11. ONBOARDING PERSONALIZADO SEGÚN ROL
+    Al registrarse, preguntar si el usuario busca trabajo o necesita
+    contratar. Esto permite personalizar el home (mostrar cachuelos afines
+    o destacar el botón de publicar) y mejorar las métricas de conversión.
+
+12. FILTROS AVANZADOS EN BÚSQUEDA
+    La pantalla de búsqueda actual solo filtra por categoría. Faltan
+    filtros por rango de precio, distrito, modalidad (presencial/remoto)
+    y duración del trabajo.
+
+13. PANTALLA "MI TRABAJO ACTIVO"
+    Cuando un postulante es aceptado, no tiene ninguna pantalla que le
+    muestre el estado de su trabajo en progreso. Se necesita una vista con
+    los detalles del acuerdo: cachuelo, empleador, fecha de inicio, pago.
+
+14. LÍMITE DE POSTULACIONES POR CACHUELO
+    El publicador debería poder definir cuántos postulantes máximo quiere
+    recibir. Al llegar a ese límite, el cachuelo cierra automáticamente
+    las nuevas postulaciones.
+
+15. REPORTE / DENUNCIA DE USUARIO O CACHUELO
+    Botón de "Reportar" en el perfil público y en el detalle del cachuelo,
+    para que los usuarios puedan denunciar contenido inapropiado, fraude
+    o comportamiento sospechoso.
+
+16. CADUCIDAD AUTOMÁTICA DE CACHUELOS
+    Si un cachuelo lleva X días publicado sin postulantes o sin actividad,
+    debería pasar automáticamente a estado "Vencido" para mantener el
+    feed limpio y relevante.
+
+17. COMPARTIR CACHUELO
+    Botón en el detalle del cachuelo para compartirlo por WhatsApp o
+    copiar el link directo, útil para que los publicadores difundan
+    sus ofertas en sus redes.

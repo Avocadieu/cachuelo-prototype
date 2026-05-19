@@ -2286,9 +2286,34 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
   );
 };
 
+// ── RESEÑAS ───────────────────────────────────────────────────────────────────
+const ResenasSection = ({ resenas, loading }) => {
+  if (loading) return <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13 }}>Cargando reseñas...</div>;
+  if (!resenas.length) return <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13, fontStyle: 'italic' }}>Aún no tiene reseñas</div>;
+  return resenas.map(r => {
+    const fecha = new Date(r.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
+    return (
+      <div key={r.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <Stars rating={r.estrellas} size={15} />
+          <span style={{ fontSize: 11, color: C.textMuted }}>{fecha}</span>
+        </div>
+        {r.cachuelo_titulo && (
+          <div style={{ fontSize: 11, color: C.textSec, marginBottom: r.comentario ? 6 : 0 }}>💼 {r.cachuelo_titulo}</div>
+        )}
+        {r.comentario && (
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, fontStyle: 'italic' }}>"{r.comentario}"</div>
+        )}
+      </div>
+    );
+  });
+};
+
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
 const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) => {
   const [profile, setProfile] = useState(null);
+  const [resenas, setResenas] = useState([]);
+  const [loadingResenas, setLoadingResenas] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -2297,6 +2322,9 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
     if (!user?.id) return;
     supabase.from('profiles').select('*').eq('id', user.id).single()
       .then(({ data }) => { if (data) setProfile(data); });
+    setLoadingResenas(true);
+    supabase.from('resenas').select('*').eq('trabajador_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setResenas(data || []); setLoadingResenas(false); });
   }, [user?.id]);
 
   const handleSelectPhoto = (e) => {
@@ -2339,7 +2367,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
   const menuItems = [
     { icon: Shield,     label: 'Verificar DNI',           desc: 'Aumenta tu confiabilidad',   color: C.primary,  action: null },
     { icon: Award,      label: 'Verificar CUL',           desc: 'Certificado único laboral',   color: C.purple,   action: null },
-    { icon: Star,       label: 'Mis calificaciones',      desc: '4.8 · 24 reseñas',           color: C.warning,  action: null },
+    { icon: Star,       label: 'Mis calificaciones',      desc: completados > 0 ? `${rating.toFixed(1)} · ${completados} reseña${completados !== 1 ? 's' : ''}` : 'Sin reseñas aún', color: C.warning,  action: null },
     ...(isAdmin ? [
       { icon: Wrench,   label: 'Herramientas Admin',      desc: 'Gestionar cachuelos',         color: '#7C3AED',  action: onAdminTools },
       { icon: BarChart2,label: 'Dashboard Admin',         desc: 'KPIs y métricas',             color: C.success,  action: onAdmin },
@@ -2374,7 +2402,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
           {isAdmin && <Badge color="#7C3AED" bg="rgba(124,58,237,0.15)">🛡️ Admin</Badge>}
           {dniVerificado && <Badge color="#fff" bg="rgba(255,255,255,0.2)">DNI Verificado</Badge>}
-          {rating > 0 && <Badge color="#fff" bg="rgba(255,255,255,0.2)">⭐ {rating.toFixed(1)}</Badge>}
+          {rating > 0 && <Badge color="#fff" bg="rgba(255,255,255,0.2)">⭐ {rating.toFixed(1)} ({completados} trabajo{completados !== 1 ? 's' : ''})</Badge>}
         </div>
       </div>
 
@@ -2414,6 +2442,15 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
             </button>
           );
         })}
+      </div>
+
+      {/* Reseñas */}
+      <div style={{ padding: '0 20px 40px' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+          Reseñas como trabajador
+          {completados > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: C.textSec, marginLeft: 8 }}>⭐ {rating.toFixed(1)} ({completados} trabajo{completados !== 1 ? 's' : ''})</span>}
+        </div>
+        <ResenasSection resenas={resenas} loading={loadingResenas} />
       </div>
 
       {/* Modal preview de foto */}
@@ -3087,7 +3124,7 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
 };
 
 // ── CHAT ──────────────────────────────────────────────────────────────────────
-const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
+const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) => {
   const { postulacion_id } = chatData || {};
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -3221,6 +3258,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
       await supabase.from('postulacion_historial').insert({ postulacion_id, estado: nuevoEstado });
       if (nuevoEstado === 'Aceptado' && cachuelo?.id) {
         await supabase.from('cachuelos').update({ estado: 'Cerrado' }).eq('id', cachuelo.id);
+        onAceptado?.();
       }
       if (nuevoEstado === 'Completado' && cachuelo?.id) {
         await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id);
@@ -3236,7 +3274,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
     await supabase.from('postulaciones').update({ estado: 'Completado', updated_at: new Date().toISOString() }).eq('id', postulacion_id);
     await supabase.from('postulacion_historial').insert({ postulacion_id, estado: 'Completado' });
     if (cachuelo?.id) await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id);
-    // 2. Actualizar rating del trabajador (promedio acumulado)
+    // 2. Actualizar rating del trabajador (promedio acumulado) + guardar reseña
     const trabajadorId = postulante?.postulante_id || postulante?.id;
     if (trabajadorId) {
       const { data: prof } = await supabase.from('profiles').select('rating, cachuelos_completados').eq('id', trabajadorId).single();
@@ -3249,6 +3287,16 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
           cachuelos_completados: completados + 1,
         }).eq('id', trabajadorId);
       }
+      const { error: resenaError } = await supabase.from('resenas').insert({
+        trabajador_id: trabajadorId,
+        publicador_id: currentUser?.id,
+        postulacion_id,
+        cachuelo_id: cachuelo?.id,
+        cachuelo_titulo: cachuelo?.title,
+        estrellas: ratingStars,
+        comentario: ratingComment.trim() || null,
+      });
+      if (resenaError) console.error('Error insertando reseña:', resenaError);
     }
     setEstado('Completado');
     setShowRatingModal(false);
@@ -3305,10 +3353,15 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
           </div>
         )}
         {estado === 'Aceptado' && isPublisher && (
-          <button onClick={() => setShowRatingModal(true)}
-            style={{ width: '100%', padding: '9px 0', borderRadius: 10, background: 'rgba(139,92,246,0.2)', border: '1.5px solid rgba(139,92,246,0.6)', color: '#C4B5FD', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <CheckCircle size={15} /> Marcar como completado
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button onClick={() => setShowRatingModal(true)}
+              style={{ width: '100%', padding: '9px 0', borderRadius: 10, background: 'rgba(139,92,246,0.2)', border: '1.5px solid rgba(139,92,246,0.6)', color: '#C4B5FD', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <CheckCircle size={15} /> Marcar como completado
+            </button>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+              🔒 Este cachuelo ya no es visible en el feed
+            </div>
+          </div>
         )}
         {estado === 'Aceptado' && !isPublisher && (
           <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 2 }}>
@@ -3442,22 +3495,25 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate }) => {
 const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => {
   const [profile, setProfile] = useState(null);
   const [cachuelos, setCachuelos] = useState([]);
+  const [resenas, setResenas] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
     const fetchData = async () => {
       setLoading(true);
-      const [profRes, cachRes] = await Promise.all([
+      const [profRes, cachRes, resenasRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('cachuelos')
           .select('*, categorias(label, emoji)')
           .eq('user_id', userId)
           .eq('estado', 'Activo')
           .order('created_at', { ascending: false }),
+        supabase.from('resenas').select('*').eq('trabajador_id', userId).order('created_at', { ascending: false }),
       ]);
       if (profRes.data) setProfile(profRes.data);
       if (!cachRes.error && cachRes.data) setCachuelos(cachRes.data);
+      setResenas(resenasRes.data || []);
       setLoading(false);
     };
     fetchData();
@@ -3489,7 +3545,7 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => 
               {rating > 0
                 ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Stars rating={rating} size={14} />
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{rating} / 5</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{rating.toFixed(1)} ({profile?.cachuelos_completados ?? 0} trabajo{(profile?.cachuelos_completados ?? 0) !== 1 ? 's' : ''})</span>
                   </div>
                 : <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Sin reseñas todavía</span>
               }
@@ -3509,7 +3565,7 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => 
           Cachuelos activos ({cachuelos.length})
         </div>
         {cachuelos.length === 0 && !loading ? (
-          <div style={{ textAlign: 'center', padding: '30px 0', color: C.textMuted, fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13 }}>
             No tiene cachuelos activos en este momento
           </div>
         ) : cachuelos.map(c => (
@@ -3535,6 +3591,15 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => 
             </div>
           </div>
         ))}
+
+        {/* Reseñas */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+            Reseñas como trabajador
+            {rating > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: C.textSec, marginLeft: 8 }}>⭐ {rating.toFixed(1)} ({profile?.cachuelos_completados ?? 0} trabajo{(profile?.cachuelos_completados ?? 0) !== 1 ? 's' : ''})</span>}
+          </div>
+          <ResenasSection resenas={resenas} loading={loading} />
+        </div>
       </div>
     </Screen>
   );
@@ -3739,7 +3804,7 @@ export default function App() {
       case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
       case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} />;
       case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(postulantesParent)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
-      case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} />;
+      case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onAceptado={refreshCachuelos} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
       case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
