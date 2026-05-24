@@ -25,10 +25,10 @@
    proponer un precio diferente al publicado. El publicador podría aceptar
    o rechazar esa contraoferta formalmente desde el chat.
 
-5. FECHA DE INICIO FLEXIBLE
-   Al publicar un cachuelo, el campo de fecha de inicio debería tener la
-   opción "Flexible" además de una fecha fija, para trabajos donde el inicio
-   se coordina directamente con el trabajador.
+5. FECHA DE INICIO FLEXIBLE ✅ COMPLETADO
+   Toggle "A coordinar" ya implementado en el wizard de publicación.
+   Bug corregido: cachuelos abiertos desde Mis Cachuelos y Perfil público
+   ahora muestran correctamente "A coordinar" en el detalle.
 
 6. EDITAR CACHUELO YA PUBLICADO
    El publicador no puede modificar un cachuelo después de publicarlo.
@@ -75,17 +75,36 @@
     recibir. Al llegar a ese límite, el cachuelo cierra automáticamente
     las nuevas postulaciones.
 
-15. REPORTE / DENUNCIA DE USUARIO O CACHUELO
-    Botón de "Reportar" en el perfil público y en el detalle del cachuelo,
-    para que los usuarios puedan denunciar contenido inapropiado, fraude
-    o comportamiento sospechoso.
+15. REPORTE / DENUNCIA DE USUARIO O CACHUELO ✅ COMPLETADO
+    Botón "Reportar" en detalle de cachuelo y perfil público. Bottom sheet
+    con 6 motivos + campo opcional. Insert en tabla `reportes` (Supabase).
+    Tab "Reportes" en admin dashboard con contador de pendientes y botón
+    "Marcar como revisado".
 
 16. CADUCIDAD AUTOMÁTICA DE CACHUELOS
     Si un cachuelo lleva X días publicado sin postulantes o sin actividad,
     debería pasar automáticamente a estado "Vencido" para mantener el
     feed limpio y relevante.
 
-17. COMPARTIR CACHUELO
-    Botón en el detalle del cachuelo para compartirlo por WhatsApp o
-    copiar el link directo, útil para que los publicadores difundan
-    sus ofertas en sus redes.
+17. COMPARTIR CACHUELO ✅ COMPLETADO
+    Botón Share2 en el header del detalle. En mobile usa navigator.share()
+    (menú nativo del sistema). En desktop abre bottom sheet con WhatsApp,
+    Telegram, X, LinkedIn y copiar enlace.
+
+18. SEGURIDAD – CIERRE DE FUGAS ANTES DE PRODUCCIÓN
+    Revisar y corregir todas las vulnerabilidades de seguridad antes
+    del lanzamiento real. Incluye:
+    · Habilitar RLS (Row Level Security) en todas las tablas de Supabase
+      y definir políticas correctas por usuario autenticado
+    · Eliminar el uso de DISABLE ROW LEVEL SECURITY que se aplicó
+      como workaround durante el desarrollo
+    · Validar entradas del usuario en el frontend (precio, texto, DNI)
+      para evitar datos maliciosos
+    · Revisar que ningún campo sensible de profiles sea accesible
+      públicamente sin autenticación
+    · Confirmar que las claves de Supabase en .env no estén expuestas
+      en el repositorio (revisar .gitignore)
+    NOTA: Este ítem debe hacerse AL FINAL, justo antes del despliegue
+    a producción, cuando el modelo de datos ya esté estable. Hacerlo
+    antes puede bloquear el desarrollo porque RLS mal configurado
+    rompe queries silenciosamente.

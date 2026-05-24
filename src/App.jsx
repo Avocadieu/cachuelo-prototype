@@ -7,7 +7,7 @@ import {
   Phone, Mail, CreditCard, Zap, Camera, Truck, Wrench, BookOpen,
   Leaf, Monitor, Calendar, MessageCircle, Filter, Heart, Share2,
   LogOut, Eye, CheckCircle, AlertCircle, Package, Send, Hash,
-  DollarSign, Trash2, Pencil
+  DollarSign, Trash2, Pencil, Flag
 } from 'lucide-react';
 
 // ─── PALETA ────────────────────────────────────────────────────────────────
@@ -1298,12 +1298,108 @@ const CachuCard = ({ c, onPress }) => (
   </div>
 );
 
+// ── REPORTE MODAL ─────────────────────────────────────────────────────────────
+const MOTIVOS_REPORTE = [
+  'Fraude o estafa',
+  'Contenido inapropiado',
+  'Spam o publicidad falsa',
+  'Información falsa',
+  'Comportamiento sospechoso',
+  'Otro',
+];
+
+const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
+  const [motivo, setMotivo] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async () => {
+    setErrorMsg('');
+    if (!motivo) { setErrorMsg('Selecciona un motivo.'); return; }
+    if (!reporterId) { setErrorMsg('Debes iniciar sesión para reportar.'); return; }
+    setSubmitting(true);
+    const payload = {
+      reporter_id: reporterId,
+      tipo,
+      motivo,
+      descripcion: descripcion.trim() || null,
+      estado: 'pendiente',
+      ...(tipo === 'cachuelo' ? { reported_cachuelo_id: targetId } : { reported_user_id: targetId }),
+    };
+    const { error } = await supabase.from('reportes').insert(payload);
+    setSubmitting(false);
+    if (!error) {
+      setDone(true);
+    } else {
+      console.error('Error al reportar:', error);
+      setErrorMsg(`Error: ${error.message} (código: ${error.code})`);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 300 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
+        {done ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Reporte enviado</div>
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 24 }}>Gracias. Nuestro equipo revisará tu reporte en breve.</div>
+            <Btn onClick={onClose} style={{ width: '100%' }}>Cerrar</Btn>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <Flag size={18} color={C.danger} />
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+                Reportar {tipo === 'cachuelo' ? 'cachuelo' : 'usuario'}
+              </div>
+            </div>
+            {targetTitle && <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20 }}>{targetTitle}</div>}
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 10 }}>¿Cuál es el motivo?</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {MOTIVOS_REPORTE.map(m => (
+                <button key={m} onClick={() => setMotivo(m)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                  borderRadius: 10, border: `2px solid ${motivo === m ? C.danger : C.border}`,
+                  background: motivo === m ? '#FEF2F2' : '#fff', cursor: 'pointer', textAlign: 'left',
+                }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 8, border: `2px solid ${motivo === m ? C.danger : C.border}`, background: motivo === m ? C.danger : '#fff', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: C.text, fontWeight: motivo === m ? 600 : 400 }}>{m}</span>
+                </button>
+              ))}
+            </div>
+            <Textarea label="Detalles adicionales (opcional)" placeholder="Describe qué ocurrió..." value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={3} />
+            {errorMsg && (
+              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}40`, borderRadius: 10, padding: '10px 14px', marginBottom: 8, fontSize: 12, color: C.danger }}>
+                {errorMsg}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <Btn variant="ghost" onClick={onClose} style={{ flex: 1 }}>Cancelar</Btn>
+              <Btn onClick={handleSubmit} disabled={!motivo || submitting}
+                style={{ flex: 2, background: C.danger, borderColor: C.danger }}>
+                {submitting ? 'Enviando...' : <><Flag size={14} /> Enviar reporte</>}
+              </Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // 5. DETALLE DE CACHUELO ──────────────────────────────────────────────────────
 const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onViewPublisher, onVerPostulantes }) => {
   const [message, setMessage] = useState('');
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applicantCount, setApplicantCount] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showReporte, setShowReporte] = useState(false);
 
   const isOwner = user?.id && cachuelo?.userId && user.id === cachuelo.userId;
 
@@ -1325,6 +1421,25 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
   }, [user?.id, cachuelo?.id, isOwner]);
 
   if (!cachuelo) return null;
+
+  const shareText = `🛠 ${cachuelo.title}\n📍 ${cachuelo.location} | ⏱ ${cachuelo.duration} | 💰 S/${cachuelo.price}\n\nPostúlate en Cachuelo 👇`;
+  const shareUrl  = 'https://cachuelo.pe';
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: cachuelo.title, text: shareText, url: shareUrl }); }
+      catch (_) {}
+    } else {
+      setShowShareModal(true);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const pubName    = cachuelo.publisher?.name    || 'Usuario';
   const pubRating  = cachuelo.publisher?.rating  ?? 0;
@@ -1374,7 +1489,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             Detalle del Cachuelo
           </div>
-          <button style={{
+          <button onClick={handleShare} style={{
             width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)',
             border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -1510,7 +1625,67 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
             )}
           </div>
         )}
+
+        {user && !isOwner && (
+          <button onClick={() => setShowReporte(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
+            cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '12px 0', margin: '0 auto',
+          }}>
+            <Flag size={12} /> Reportar este cachuelo
+          </button>
+        )}
       </div>
+
+      {showReporte && (
+        <ReporteModal
+          tipo="cachuelo"
+          targetId={cachuelo.id}
+          targetTitle={cachuelo.title}
+          reporterId={user?.id}
+          onClose={() => setShowReporte(false)}
+        />
+      )}
+
+      {/* Share bottom sheet */}
+      {showShareModal && (
+        <div
+          onClick={() => setShowShareModal(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
+            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>Compartir cachuelo</div>
+            <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20, lineHeight: 1.4 }}>
+              {cachuelo.title}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { emoji: '💬', label: 'WhatsApp', color: '#25D366', href: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}` },
+                { emoji: '✈️', label: 'Telegram',  color: '#0088CC', href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}` },
+                { emoji: '🐦', label: 'X (Twitter)', color: '#000', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}` },
+                { emoji: '💼', label: 'LinkedIn', color: '#0077B5', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` },
+              ].map(({ emoji, label, color, href }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setShowShareModal(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: '#F9FAFB', textDecoration: 'none', border: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 22 }}>{emoji}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
+                </a>
+              ))}
+              <button onClick={handleCopyLink} style={{
+                display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
+                borderRadius: 12, background: copied ? '#F0FDF4' : '#F9FAFB',
+                border: `1px solid ${copied ? C.success : C.border}`, cursor: 'pointer', width: '100%',
+              }}>
+                <span style={{ fontSize: 22 }}>{copied ? '✅' : '🔗'}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: copied ? C.success : C.text }}>
+                  {copied ? '¡Copiado!' : 'Copiar enlace'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Screen>
   );
 };
@@ -2119,7 +2294,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           // campos para onViewCachuelo
           category: c.categorias?.label || '', location: c.distrito || 'Lima',
           type: c.tipo, featured: c.destacado, remote: c.tipo === 'Remoto',
-          description: c.descripcion || '', fecha_inicio: c.fecha_inicio || '',
+          description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
           userId: c.user_id, publisher: { name: user.nombre || 'Yo', rating: 0, verified: false, avatar: (user.nombre?.[0] || 'Y').toUpperCase() },
         })));
       }
@@ -2482,8 +2657,25 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
 // 10. DASHBOARD ADMIN ──────────────────────────────────────────────────────────
 const AdminDashboard = ({ onBack }) => {
-  const [adminTab, setAdminTab] = useState('kpis'); // kpis | users
+  const [adminTab, setAdminTab] = useState('kpis');
   const registeredUsers = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
+  const [reportes, setReportes] = useState([]);
+  const [reporteCount, setReporteCount] = useState(0);
+
+  useEffect(() => {
+    supabase.from('reportes').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => {
+        const d = data || [];
+        setReportes(d);
+        setReporteCount(d.filter(r => r.estado === 'pendiente').length);
+      });
+  }, []);
+
+  const markRevisado = async (id) => {
+    await supabase.from('reportes').update({ estado: 'revisado' }).eq('id', id);
+    setReportes(prev => prev.map(r => r.id === id ? { ...r, estado: 'revisado' } : r));
+    setReporteCount(prev => Math.max(0, prev - 1));
+  };
 
   const kpis = [
     { label: 'Publicados',     value: '156',  icon: Package,    color: C.primary,  unit: '',   change: '+12%' },
@@ -2518,7 +2710,11 @@ const AdminDashboard = ({ onBack }) => {
         </div>
         {/* Admin tabs */}
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 3 }}>
-          {[{ id: 'kpis', label: 'KPIs' }, { id: 'users', label: `Usuarios (${registeredUsers.length})` }].map(t => (
+          {[
+          { id: 'kpis', label: 'KPIs' },
+          { id: 'users', label: `Usuarios (${registeredUsers.length})` },
+          { id: 'reportes', label: reporteCount > 0 ? `Reportes (${reporteCount})` : 'Reportes' },
+        ].map(t => (
             <button key={t.id} onClick={() => setAdminTab(t.id)} style={{
               flex: 1, padding: '8px 0', borderRadius: 8, border: 'none',
               fontWeight: 600, fontSize: 13, cursor: 'pointer',
@@ -2634,7 +2830,7 @@ const AdminDashboard = ({ onBack }) => {
           {[
             { label: 'Exportar CSV', icon: Download, color: C.primary },
             { label: 'Usuarios', icon: Users, color: C.purple },
-            { label: 'Reportes', icon: BarChart2, color: C.success },
+            { label: 'Analytics', icon: BarChart2, color: C.success },
           ].map((a, i) => {
             const Icon = a.icon;
             return (
@@ -2649,6 +2845,56 @@ const AdminDashboard = ({ onBack }) => {
           })}
         </div>
         </>}
+
+        {/* ── REPORTES ── */}
+        {adminTab === 'reportes' && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Reportes recibidos</div>
+              {reporteCount > 0 && <Badge color={C.danger}>{reporteCount} pendiente{reporteCount !== 1 ? 's' : ''}</Badge>}
+            </div>
+            {reportes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>🏳️</div>
+                <div style={{ fontWeight: 600 }}>Sin reportes</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>Los reportes de usuarios aparecerán aquí</div>
+              </div>
+            ) : reportes.map(r => (
+              <div key={r.id} style={{
+                background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                border: `1px solid ${r.estado === 'pendiente' ? C.danger + '40' : C.border}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Badge color={r.tipo === 'cachuelo' ? C.primary : C.purple}>
+                    {r.tipo === 'cachuelo' ? '📋 Cachuelo' : '👤 Usuario'}
+                  </Badge>
+                  <Badge color={r.estado === 'pendiente' ? C.danger : C.textMuted}>
+                    {r.estado}
+                  </Badge>
+                  <span style={{ fontSize: 11, color: C.textMuted, marginLeft: 'auto' }}>
+                    {new Date(r.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{r.motivo}</div>
+                {r.descripcion && (
+                  <div style={{ fontSize: 12, color: C.textSec, marginBottom: 8, lineHeight: 1.5 }}>{r.descripcion}</div>
+                )}
+                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: r.estado === 'pendiente' ? 10 : 0 }}>
+                  ID denunciado: {(r.reported_cachuelo_id || r.reported_user_id || '—').slice(0, 8)}...
+                </div>
+                {r.estado === 'pendiente' && (
+                  <button onClick={() => markRevisado(r.id)} style={{
+                    width: '100%', padding: '8px 0', borderRadius: 8, border: 'none',
+                    background: C.success + '18', color: C.success, fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                  }}>
+                    ✓ Marcar como revisado
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -3492,11 +3738,12 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
 };
 
 // ── PERFIL PÚBLICO ────────────────────────────────────────────────────────────
-const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => {
+const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user }) => {
   const [profile, setProfile] = useState(null);
   const [cachuelos, setCachuelos] = useState([]);
   const [resenas, setResenas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showReporte, setShowReporte] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -3574,7 +3821,7 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => 
             category: c.categorias?.label || '', location: c.distrito || 'Lima',
             duration: c.duracion || '', price: Number(c.precio), type: c.tipo,
             featured: c.destacado, remote: c.tipo === 'Remoto',
-            description: c.descripcion || '', fecha_inicio: c.fecha_inicio || '',
+            description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
             publisher: { name: fullName, rating, verified: profile?.dni_verificado || false, avatar: initials },
           })}
             style={{ background: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
@@ -3600,7 +3847,26 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate }) => 
           </div>
           <ResenasSection resenas={resenas} loading={loading} />
         </div>
+
+        {user && user.id !== userId && (
+          <button onClick={() => setShowReporte(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
+            cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '12px 0', margin: '8px auto 0',
+          }}>
+            <Flag size={12} /> Reportar este usuario
+          </button>
+        )}
       </div>
+
+      {showReporte && (
+        <ReporteModal
+          tipo="usuario"
+          targetId={userId}
+          targetTitle={fullName}
+          reporterId={user?.id}
+          onClose={() => setShowReporte(false)}
+        />
+      )}
     </Screen>
   );
 };
@@ -3802,7 +4068,7 @@ export default function App() {
       case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
       case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} onOpenChat={(data) => { setChatData(data); setPrevScreen('notifications'); setScreen('chat'); }} />;
       case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
-      case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} />;
+      case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} user={user} />;
       case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(postulantesParent)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
       case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onAceptado={refreshCachuelos} />;
       case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
