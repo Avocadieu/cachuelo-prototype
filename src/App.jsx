@@ -1,5 +1,5 @@
 import { supabase } from './lib/supabase.js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import {
   Home, Search, PlusCircle, Briefcase, User, Star, MapPin, Clock,
   ChevronRight, ChevronLeft, X, Check, ArrowLeft, Bell, Settings,
@@ -7,27 +7,36 @@ import {
   Phone, Mail, CreditCard, Zap, Camera, Truck, Wrench, BookOpen,
   Leaf, Monitor, Calendar, MessageCircle, Filter, Heart, Share2,
   LogOut, Eye, CheckCircle, AlertCircle, Package, Send, Hash,
-  DollarSign, Trash2, Pencil, Flag
+  DollarSign, Trash2, Pencil, Flag,
+  Sparkles, Palette, ChefHat, GraduationCap, PartyPopper
 } from 'lucide-react';
 
-// ─── PALETA ────────────────────────────────────────────────────────────────
-const C = {
-  primary: '#FF6B35',
-  primaryLight: '#FF8C5A',
-  primaryDark: '#E55A25',
-  headerBg: '#2563EB',
-  headerDark: '#1D4ED8',
-  bg: '#FAFAFA',
-  card: '#FFFFFF',
-  text: '#1A1A2E',
-  textSec: '#6B7280',
-  textMuted: '#9CA3AF',
-  border: '#E5E7EB',
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  purple: '#8B5CF6',
+// ─── TEMA ────────────────────────────────────────────────────────────────────
+const LIGHT = {
+  primary: '#FF6B35', primaryLight: '#FF8C5A', primaryDark: '#E55A25',
+  headerBg: '#2563EB', headerDark: '#1D4ED8', headerLight: '#3B82F6',
+  success: '#10B981', warning: '#F59E0B', danger: '#EF4444', purple: '#8B5CF6',
+  // Themed via CSS variables (fallback = light values)
+  bg: 'var(--c-bg,#F0F4FF)', card: 'var(--c-card,#FFFFFF)',
+  cardElevated: 'var(--c-card-el,#F8FAFF)',
+  text: 'var(--c-text,#0D1B3E)', textSec: 'var(--c-tsec,#4A5780)',
+  textMuted: 'var(--c-tmut,#8A93B0)', border: 'var(--c-bord,#DDE3F5)',
 };
+const DARK = {
+  primary: '#FF7A47', primaryLight: '#FF9563', primaryDark: '#E86A35',
+  headerBg: '#1E40AF', headerDark: '#1E3A8A', headerLight: '#2563EB',
+  success: '#34D399', warning: '#FCD34D', danger: '#F87171', purple: '#C4B5FD',
+  bg: 'var(--c-bg,#0B0F1A)', card: 'var(--c-card,#1C2438)',
+  cardElevated: 'var(--c-card-el,#242E48)',
+  text: 'var(--c-text,#F0F4FF)', textSec: 'var(--c-tsec,#A8B4D8)',
+  textMuted: 'var(--c-tmut,#6874A0)', border: 'var(--c-bord,#2E3C5E)',
+};
+
+// Fallback module-level C (used in default prop values & pre-hook code)
+let C = LIGHT;
+
+const ThemeCtx = createContext({ C: LIGHT, isDark: false, toggleDark: () => {} });
+const useTheme = () => useContext(ThemeCtx);
 
 // ─── DISTRITOS DE LIMA ───────────────────────────────────────────────────────
 const DISTRITOS = [
@@ -43,19 +52,33 @@ const DISTRITOS = [
 
 // ─── DATOS MOCK ─────────────────────────────────────────────────────────────
 const CATEGORIES = [
-  { id: 1, label: 'Limpieza',     emoji: '🧹', color: '#E0F2FE' },
-  { id: 2, label: 'Mudanza',      emoji: '📦', color: '#FEF3C7' },
-  { id: 3, label: 'Redacción',    emoji: '✍️',  color: '#F0FDF4' },
-  { id: 4, label: 'Diseño',       emoji: '🎨', color: '#FDF4FF' },
-  { id: 5, label: 'Reparaciones', emoji: '🔧', color: '#FFF7ED' },
-  { id: 6, label: 'Cocina',       emoji: '👨‍🍳', color: '#FEF9C3' },
-  { id: 7, label: 'Delivery',     emoji: '🚗', color: '#ECFDF5' },
-  { id: 8, label: 'Tutorías',     emoji: '📚', color: '#EFF6FF' },
-  { id: 9, label: 'Jardinería',   emoji: '🌱', color: '#F0FDF4' },
-  { id: 10, label: 'Tecnología',  emoji: '💻', color: '#F5F3FF' },
-  { id: 11, label: 'Fotografía',  emoji: '📷', color: '#FDF2F8' },
-  { id: 12, label: 'Eventos',     emoji: '🎉', color: '#FFF1F2' },
+  { id: 1,  label: 'Limpieza',     Icon: Sparkles,      iconBgA: '#0EA5E9', iconBgB: '#38BDF8', color: '#E0F2FE' },
+  { id: 2,  label: 'Mudanza',      Icon: Package,        iconBgA: '#F97316', iconBgB: '#FDBA74', color: '#FEF3C7' },
+  { id: 3,  label: 'Redacción',    Icon: FileText,       iconBgA: '#10B981', iconBgB: '#6EE7B7', color: '#F0FDF4' },
+  { id: 4,  label: 'Diseño',       Icon: Palette,        iconBgA: '#8B5CF6', iconBgB: '#C4B5FD', color: '#FDF4FF' },
+  { id: 5,  label: 'Reparaciones', Icon: Wrench,         iconBgA: '#F59E0B', iconBgB: '#FDE68A', color: '#FFF7ED' },
+  { id: 6,  label: 'Cocina',       Icon: ChefHat,        iconBgA: '#F43F5E', iconBgB: '#FDA4AF', color: '#FEF9C3' },
+  { id: 7,  label: 'Delivery',     Icon: Truck,          iconBgA: '#14B8A6', iconBgB: '#5EEAD4', color: '#ECFDF5' },
+  { id: 8,  label: 'Tutorías',     Icon: GraduationCap,  iconBgA: '#3B82F6', iconBgB: '#93C5FD', color: '#EFF6FF' },
+  { id: 9,  label: 'Jardinería',   Icon: Leaf,           iconBgA: '#22C55E', iconBgB: '#86EFAC', color: '#F0FDF4' },
+  { id: 10, label: 'Tecnología',   Icon: Monitor,        iconBgA: '#6366F1', iconBgB: '#A5B4FC', color: '#F5F3FF' },
+  { id: 11, label: 'Fotografía',   Icon: Camera,         iconBgA: '#EC4899', iconBgB: '#F9A8D4', color: '#FDF2F8' },
+  { id: 12, label: 'Eventos',      Icon: PartyPopper,    iconBgA: '#EF4444', iconBgB: '#FCA5A5', color: '#FFF1F2' },
 ];
+
+const CategoryIcon = ({ label, size = 44, iconSize = 22, radius = 12 }) => {
+  const cat = CATEGORIES.find(c => c.label === label) || { Icon: Briefcase, iconBgA: '#6B7280', iconBgB: '#9CA3AF' };
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: radius, flexShrink: 0,
+      background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: `0 4px 12px ${cat.iconBgA}50`,
+    }}>
+      <cat.Icon size={iconSize} color="#fff" strokeWidth={2} />
+    </div>
+  );
+};
 
 const CACHUELOS = [
   {
@@ -140,94 +163,136 @@ const Badge = ({ children, color = C.primary, bg }) => (
 );
 
 const Btn = ({ children, onClick, style = {}, variant = 'primary', disabled }) => {
+  const { C } = useTheme();
   const base = {
-    border: 'none', borderRadius: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: 14, transition: 'all .15s', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 6, padding: '12px 20px',
-    opacity: disabled ? 0.6 : 1,
+    border: 'none', borderRadius: 14, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
+    fontSize: 14, transition: 'all .2s', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', gap: 6, padding: '13px 22px',
+    opacity: disabled ? 0.55 : 1, letterSpacing: 0.1,
   };
   const variants = {
-    primary: { background: C.primary, color: '#fff' },
-    outline: { background: 'transparent', color: C.primary, border: `1.5px solid ${C.primary}` },
-    ghost: { background: '#F3F4F6', color: C.text },
-    danger: { background: C.danger, color: '#fff' },
+    primary: {
+      background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
+      color: '#fff', boxShadow: `0 4px 16px ${C.primary}45`,
+    },
+    outline: { background: 'transparent', color: C.primary, border: `2px solid ${C.primary}` },
+    ghost: { background: C.cardElevated, color: C.text },
+    danger: {
+      background: `linear-gradient(135deg, ${C.danger} 0%, #DC2626 100%)`,
+      color: '#fff', boxShadow: '0 4px 12px rgba(239,68,68,0.35)',
+    },
   };
   return (
-    <button onClick={disabled ? undefined : onClick} style={{ ...base, ...variants[variant], ...style }}>
+    <button onClick={disabled ? undefined : onClick}
+      onMouseDown={e => { if (!disabled) e.currentTarget.style.transform = 'scale(0.97)'; }}
+      onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+      style={{ ...base, ...variants[variant], ...style }}>
       {children}
     </button>
   );
 };
 
-const Input = ({ label, placeholder, type = 'text', value, onChange, icon }) => (
-  <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>{label}</label>}
-    <div style={{ position: 'relative' }}>
-      {icon && <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }}>{icon}</span>}
-      <input
-        type={type} placeholder={placeholder} value={value} onChange={onChange}
+const Input = ({ label, placeholder, type = 'text', value, onChange, icon }) => {
+  const { C } = useTheme();
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {label && <label style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 6, display: 'block', letterSpacing: 0.2 }}>{label}</label>}
+      <div style={{ position: 'relative' }}>
+        {icon && <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }}>{icon}</span>}
+        <input
+          type={type} placeholder={placeholder} value={value} onChange={onChange}
+          style={{
+            width: '100%', padding: icon ? '12px 14px 12px 40px' : '12px 14px',
+            border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 14,
+            color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const Textarea = ({ label, placeholder, value, onChange, rows = 4 }) => {
+  const { C } = useTheme();
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {label && <label style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 6, display: 'block', letterSpacing: 0.2 }}>{label}</label>}
+      <textarea
+        placeholder={placeholder} value={value} onChange={onChange} rows={rows}
         style={{
-          width: '100%', padding: icon ? '11px 12px 11px 38px' : '11px 14px',
-          border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14,
-          color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit',
+          width: '100%', padding: '12px 14px', border: `1.5px solid ${C.border}`,
+          borderRadius: 12, fontSize: 14, color: C.text, background: C.card,
+          outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box',
         }}
       />
     </div>
-  </div>
-);
-
-const Textarea = ({ label, placeholder, value, onChange, rows = 4 }) => (
-  <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>{label}</label>}
-    <textarea
-      placeholder={placeholder} value={value} onChange={onChange} rows={rows}
-      style={{
-        width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
-        borderRadius: 10, fontSize: 14, color: C.text, background: '#fff',
-        outline: 'none', fontFamily: 'inherit', resize: 'none',
-      }}
-    />
-  </div>
-);
+  );
+};
 
 // ─── PHONE FRAME ─────────────────────────────────────────────────────────────
-const PhoneFrame = ({ children }) => (
+const THEME_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  * { box-sizing: border-box; }
+  body { font-family: 'Nunito', system-ui, -apple-system, sans-serif; }
+  .light-mode {
+    --c-bg:#F0F4FF; --c-card:#FFFFFF; --c-card-el:#F5F7FF;
+    --c-text:#0D1B3E; --c-tsec:#4A5780; --c-tmut:#8A93B0; --c-bord:#DDE3F5;
+  }
+  .dark-mode {
+    --c-bg:#0B0F1A; --c-card:#1C2438; --c-card-el:#242E48;
+    --c-text:#F0F4FF; --c-tsec:#A8B4D8; --c-tmut:#6874A0; --c-bord:#2E3C5E;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { animation: spin 1s linear infinite; }
+`;
+
+const PhoneFrame = ({ children, isDark, onToggleDark }) => (
   <div style={{
     display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 40px',
-    minHeight: '100vh', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    minHeight: '100vh',
+    background: isDark
+      ? 'linear-gradient(160deg, #050710 0%, #0a0e1f 50%, #0d1530 100%)'
+      : 'linear-gradient(160deg, #1a237e 0%, #1565c0 50%, #0d47a1 100%)',
+    transition: 'background 0.4s ease',
   }}>
+    <style>{THEME_CSS}</style>
+
     {/* Brand label */}
     <div style={{ marginBottom: 20, textAlign: 'center' }}>
-      <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>
-        💼 Cachuelo
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{ boxShadow: '0 4px 14px rgba(255,107,53,0.55)', borderRadius: 10 }}>
+          <CachueloMark size={32} />
+        </div>
+        <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>Cachuelo</div>
       </div>
-      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 2 }}>
-        Prototipo Interactivo v0.1 • Lima, Perú
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+        Prototipo v0.11 · Lima, Perú 🇵🇪
       </div>
     </div>
 
     {/* Phone shell */}
     <div style={{
       width: 375, background: '#000', borderRadius: 52,
-      boxShadow: '0 0 0 2px #333, 0 0 0 4px #111, 0 40px 80px rgba(0,0,0,0.7), inset 0 0 0 1px #444',
-      padding: '14px 8px 8px',
-      position: 'relative',
+      boxShadow: isDark
+        ? '0 0 0 2px #222, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.9), inset 0 0 0 1px #333'
+        : '0 0 0 2px #333, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.7), inset 0 0 0 1px #444',
+      padding: '14px 8px 8px', position: 'relative',
     }}>
       {/* Notch */}
       <div style={{
         position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
         width: 120, height: 30, background: '#000', borderRadius: 20,
-        zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 6,
+        zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #333' }} />
         <div style={{ width: 60, height: 6, borderRadius: 3, background: '#111' }} />
       </div>
 
       {/* Screen */}
-      <div style={{
+      <div className={isDark ? 'dark-mode' : 'light-mode'} style={{
         width: '100%', height: 780, borderRadius: 44, overflow: 'hidden',
-        background: C.bg, position: 'relative',
+        background: isDark ? '#0D1018' : '#F0F4FF', position: 'relative',
       }}>
         {/* Status bar */}
         <div style={{
@@ -235,14 +300,14 @@ const PhoneFrame = ({ children }) => (
           alignItems: 'center', padding: '12px 20px 0', position: 'absolute',
           top: 0, left: 0, right: 0, zIndex: 20, pointerEvents: 'none',
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>9:41</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: isDark ? '#EDF0FA' : '#0D1B3E' }}>9:41</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-              {[3,5,7,9].map(h => <div key={h} style={{ width: 3, height: h, background: C.text, borderRadius: 1 }} />)}
+              {[3,5,7,9].map(h => <div key={h} style={{ width: 3, height: h, background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />)}
             </div>
-            <div style={{ width: 14, height: 8, border: `1.5px solid ${C.text}`, borderRadius: 2, position: 'relative' }}>
-              <div style={{ position: 'absolute', right: -3, top: '50%', transform: 'translateY(-50%)', width: 2, height: 4, background: C.text, borderRadius: 1 }} />
-              <div style={{ width: '70%', height: '100%', background: C.text, borderRadius: 1 }} />
+            <div style={{ width: 14, height: 8, border: `1.5px solid ${isDark ? '#EDF0FA' : '#0D1B3E'}`, borderRadius: 2, position: 'relative' }}>
+              <div style={{ position: 'absolute', right: -3, top: '50%', transform: 'translateY(-50%)', width: 2, height: 4, background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />
+              <div style={{ width: '70%', height: '100%', background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />
             </div>
           </div>
         </div>
@@ -259,16 +324,22 @@ const PhoneFrame = ({ children }) => (
       </div>
     </div>
 
-    {/* Tech stack */}
+    {/* Bottom: dark mode toggle + stack */}
     <div style={{ marginTop: 24, textAlign: 'center' }}>
-      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
-        Stack Tecnológico
-      </div>
+      <button onClick={onToggleDark} style={{
+        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)',
+        border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20,
+        color: '#fff', fontSize: 12, fontWeight: 700, padding: '7px 18px',
+        cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center',
+        gap: 6, margin: '0 auto 16px',
+      }}>
+        {isDark ? '☀️ Modo claro' : '🌙 Modo oscuro'}
+      </button>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {['React Native', 'Expo', 'Supabase', 'PostgreSQL', 'Yape API'].map(t => (
+        {['React', 'Vite', 'Supabase', 'PostgreSQL'].map(t => (
           <span key={t} style={{
-            background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
-            fontSize: 11, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)',
+            fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
           }}>{t}</span>
         ))}
       </div>
@@ -278,6 +349,7 @@ const PhoneFrame = ({ children }) => (
 
 // ─── TAB BAR ─────────────────────────────────────────────────────────────────
 const TabBar = ({ active, onNavigate }) => {
+  const { C } = useTheme();
   const tabs = [
     { id: 'home',        icon: Home,       label: 'Inicio'       },
     { id: 'search',      icon: Search,     label: 'Buscar'       },
@@ -288,9 +360,9 @@ const TabBar = ({ active, onNavigate }) => {
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100,
-      background: '#fff', borderTop: `1px solid ${C.border}`,
+      background: C.card, borderTop: `1px solid ${C.border}`,
       display: 'flex', alignItems: 'flex-end', paddingBottom: 8,
-      boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+      boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
     }}>
       {tabs.map(tab => {
         const Icon = tab.icon;
@@ -300,26 +372,28 @@ const TabBar = ({ active, onNavigate }) => {
           <button key={tab.id} onClick={() => onNavigate(tab.id)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 3, border: 'none', background: 'transparent', cursor: 'pointer',
-              padding: isPublish ? '0 0 4px' : '8px 0 4px',
-              position: 'relative',
+              gap: 2, border: 'none', background: 'transparent', cursor: 'pointer',
+              padding: isPublish ? '0 0 4px' : '8px 0 4px', position: 'relative',
             }}
           >
             {isPublish ? (
               <div style={{
-                width: 52, height: 52, borderRadius: 26,
-                background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
+                width: 54, height: 54, borderRadius: 27,
+                background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 4px 14px ${C.primary}55`,
-                marginTop: -22, border: '3px solid #fff',
+                boxShadow: `0 6px 20px ${C.primary}55`,
+                marginTop: -24, border: `3px solid ${C.card}`,
               }}>
                 <Icon size={24} color="#fff" />
               </div>
             ) : (
-              <Icon size={20} color={isActive ? C.primary : C.textMuted} strokeWidth={isActive ? 2.5 : 1.8} />
+              <div style={{ position: 'relative', padding: '4px 12px', borderRadius: 12,
+                background: isActive ? `${C.primary}15` : 'transparent', transition: 'all .2s' }}>
+                <Icon size={20} color={isActive ? C.primary : C.textMuted} strokeWidth={isActive ? 2.5 : 1.8} />
+              </div>
             )}
             <span style={{
-              fontSize: 9, fontWeight: isActive || isPublish ? 700 : 500,
+              fontSize: 9, fontWeight: isActive || isPublish ? 800 : 500,
               color: isPublish ? C.primary : isActive ? C.primary : C.textMuted,
             }}>{tab.label}</span>
           </button>
@@ -339,6 +413,32 @@ const Screen = ({ children, withTabs, activeTab, onNavigate, style = {} }) => (
   </div>
 );
 
+// ─── LOGO MARK ───────────────────────────────────────────────────────────────
+const CachueloMark = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="14" fill="#FF6B35" />
+    <rect width="48" height="48" rx="14" fill="url(#cmg)" />
+    <defs>
+      <linearGradient id="cmg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#FF8C5A" />
+        <stop offset="1" stopColor="#E55A25" />
+      </linearGradient>
+    </defs>
+    {/* Briefcase body */}
+    <rect x="9" y="22" width="30" height="19" rx="4" fill="white" opacity="0.95" />
+    {/* Briefcase handle */}
+    <path d="M18 22v-4a6 6 0 0 1 12 0v4" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
+    {/* Center clasp */}
+    <rect x="21" y="29" width="6" height="5" rx="2" fill="#FF6B35" opacity="0.85" />
+    {/* Sparkle top-right */}
+    <circle cx="38" cy="11" r="2.5" fill="white" opacity="0.7" />
+    <line x1="38" y1="7" x2="38" y2="9" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+    <line x1="38" y1="13" x2="38" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+    <line x1="34" y1="11" x2="36" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+    <line x1="40" y1="11" x2="42" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+  </svg>
+);
+
 // ════════════════════════════════════════════════════════════════════════════
 //  PANTALLAS
 // ════════════════════════════════════════════════════════════════════════════
@@ -354,9 +454,10 @@ const SplashScreen = () => {
       <div style={{
         width: 100, height: 100, background: 'rgba(255,255,255,0.15)',
         borderRadius: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 52, marginBottom: 24,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-      }}>💼</div>
+        marginBottom: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+      }}>
+        <CachueloMark size={64} />
+      </div>
       <div style={{ fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: -1 }}>Cachuelo</div>
       <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6, marginBottom: 48 }}>
         Trabajos puntuales en Perú
@@ -488,127 +589,184 @@ const CIUDADES_PERU = {
 };
 
 // ─── WELCOME SCREEN ──────────────────────────────────────────────────────────
-const TeacherSVG = () => (
+// Slide 1: Person sitting outdoors, browsing phone for gigs
+const BrowseSVG = () => (
   <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#DBEAFE" />
-    {/* Blackboard */}
-    <rect x="168" y="82" width="78" height="58" rx="6" fill="#064E3B" />
-    <rect x="172" y="86" width="70" height="50" rx="4" fill="#065F46" />
-    <line x1="180" y1="102" x2="234" y2="102" stroke="white" strokeWidth="2" opacity="0.8" />
-    <line x1="180" y1="114" x2="222" y2="114" stroke="white" strokeWidth="2" opacity="0.7" />
-    <line x1="180" y1="126" x2="230" y2="126" stroke="white" strokeWidth="2" opacity="0.5" />
-    {/* Body */}
-    <rect x="108" y="148" width="46" height="58" rx="10" fill="#2563EB" />
+    {/* Background panel – dusty blue */}
+    <rect x="14" y="6" width="252" height="220" rx="28" fill="#B6CAD8" />
+    {/* Ground strip */}
+    <rect x="14" y="182" width="252" height="44" rx="28" fill="#94AEBE" />
+    <rect x="14" y="182" width="252" height="20" fill="#94AEBE" />
+    {/* Bench seat */}
+    <rect x="52" y="170" width="176" height="14" rx="7" fill="#C8A870" />
+    {/* Bench legs */}
+    <rect x="72" y="184" width="10" height="32" rx="4" fill="#A88048" />
+    <rect x="198" y="184" width="10" height="32" rx="4" fill="#A88048" />
+    {/* Person shadow */}
+    <ellipse cx="138" cy="225" rx="54" ry="7" fill="#7090A4" opacity="0.35" />
+    {/* Lower legs – dangling */}
+    <path d="M118 170 Q116 194 110 212" stroke="#2C4460" strokeWidth="20" strokeLinecap="round" fill="none" />
+    <path d="M158 170 Q162 194 168 212" stroke="#2C4460" strokeWidth="20" strokeLinecap="round" fill="none" />
+    {/* Shoes */}
+    <rect x="94" y="208" width="32" height="12" rx="6" fill="#16100C" />
+    <rect x="154" y="208" width="32" height="12" rx="6" fill="#16100C" />
+    {/* Upper legs – seated horizontal */}
+    <rect x="104" y="152" width="72" height="22" rx="11" fill="#2C4460" />
+    {/* Torso */}
+    <rect x="96" y="96" width="88" height="62" rx="18" fill="#C25838" />
+    {/* Left arm – relaxed at side */}
+    <path d="M98 110 Q82 136 84 162" stroke="#C07850" strokeWidth="17" strokeLinecap="round" fill="none" />
+    {/* Right arm – holding phone */}
+    <path d="M182 110 Q196 130 190 152" stroke="#C07850" strokeWidth="17" strokeLinecap="round" fill="none" />
+    {/* Phone in right hand */}
+    <rect x="180" y="142" width="24" height="40" rx="6" fill="#16100C" />
+    <rect x="183" y="146" width="18" height="32" rx="4" fill="#5888B0" />
+    <rect x="186" y="151" width="12" height="3" rx="1.5" fill="white" opacity="0.75" />
+    <rect x="186" y="157" width="9" height="2.5" rx="1.2" fill="white" opacity="0.45" />
+    <rect x="186" y="163" width="11" height="2.5" rx="1.2" fill="white" opacity="0.45" />
+    <rect x="186" y="168" width="6" height="3" rx="1.5" fill="#FF6B35" opacity="0.85" />
+    {/* Neck */}
+    <rect x="126" y="90" width="28" height="12" rx="6" fill="#C07850" />
     {/* Head */}
-    <circle cx="131" cy="126" r="22" fill="#FBBF8A" />
-    {/* Hair */}
-    <path d="M109 120 Q111 98 131 96 Q151 98 153 120 Q144 112 131 113 Q118 112 109 120 Z" fill="#3B2A1A" />
-    {/* Eyes */}
-    <circle cx="124" cy="124" r="2.5" fill="#3B2A1A" />
-    <circle cx="138" cy="124" r="2.5" fill="#3B2A1A" />
-    {/* Smile */}
-    <path d="M125 133 Q131 139 137 133" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    {/* Right arm pointing at board */}
-    <path d="M152 156 Q162 144 170 133" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
-    {/* Left arm with book */}
-    <path d="M110 156 Q98 164 90 172" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
-    <rect x="80" y="169" width="20" height="15" rx="3" fill="#EF4444" />
-    {/* Legs */}
-    <rect x="114" y="204" width="14" height="32" rx="7" fill="#1E3A8A" />
-    <rect x="134" y="204" width="14" height="32" rx="7" fill="#1E3A8A" />
-    <ellipse cx="121" cy="236" rx="12" ry="5" fill="#374151" />
-    <ellipse cx="141" cy="236" rx="12" ry="5" fill="#374151" />
-    {/* Floor books */}
-    <rect x="48" y="208" width="46" height="8" rx="3" fill="#F59E0B" />
-    <rect x="52" y="200" width="38" height="9" rx="3" fill="#6366F1" />
-    <rect x="55" y="192" width="32" height="9" rx="3" fill="#EC4899" />
+    <circle cx="140" cy="76" r="26" fill="#C07850" />
+    {/* Hair – natural short */}
+    <path d="M114 70 Q116 46 140 44 Q164 46 166 70 Q157 58 140 60 Q123 58 114 70 Z" fill="#1A100A" />
+    {/* Job listing card – top left */}
+    <rect x="30" y="30" width="86" height="54" rx="10" fill="white" opacity="0.88" />
+    <rect x="42" y="42" width="28" height="28" rx="6" fill="#B6CAD8" />
+    <rect x="76" y="44" width="30" height="5" rx="2.5" fill="#2C4460" />
+    <rect x="76" y="53" width="22" height="4" rx="2" fill="#94AEBE" />
+    <rect x="42" y="74" width="20" height="5" rx="2.5" fill="#C25838" />
+    <rect x="66" y="74" width="46" height="5" rx="2.5" fill="#B6CAD8" />
+    {/* Location pin – top right */}
+    <path d="M222 38 C222 28 238 28 238 38 C238 48 230 56 230 56 C230 56 222 48 222 38 Z" fill="#FF6B35" />
+    <circle cx="230" cy="38" r="5" fill="white" />
   </svg>
 );
 
-const WorkerSVG = () => (
+// Slide 2: Person seated at desk with laptop, publishing a gig
+const PublishSVG = () => (
   <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#FEF3C7" />
-    {/* Hard hat */}
-    <ellipse cx="133" cy="98" rx="30" ry="8" fill="#F59E0B" />
-    <path d="M103 98 Q103 78 133 76 Q163 78 163 98 Z" fill="#F59E0B" />
+    {/* Background panel – warm sand */}
+    <rect x="14" y="6" width="252" height="220" rx="28" fill="#D4C09A" />
+    {/* Floor strip */}
+    <rect x="14" y="188" width="252" height="38" rx="28" fill="#BAA47A" />
+    <rect x="14" y="188" width="252" height="18" fill="#BAA47A" />
+    {/* Desk */}
+    <rect x="30" y="162" width="220" height="14" rx="7" fill="#B89A6A" />
+    {/* Desk legs */}
+    <rect x="48" y="176" width="10" height="38" rx="4" fill="#9A7A48" />
+    <rect x="222" y="176" width="10" height="38" rx="4" fill="#9A7A48" />
+    {/* Laptop screen */}
+    <rect x="82" y="114" width="116" height="52" rx="5" fill="#222830" />
+    <rect x="86" y="118" width="108" height="44" rx="3" fill="#3A5070" />
+    {/* Screen content – form fields */}
+    <rect x="94" y="124" width="52" height="5" rx="2.5" fill="white" opacity="0.7" />
+    <rect x="94" y="133" width="42" height="4" rx="2" fill="white" opacity="0.4" />
+    <rect x="94" y="141" width="46" height="4" rx="2" fill="white" opacity="0.4" />
+    {/* Publish button */}
+    <rect x="148" y="132" width="38" height="16" rx="8" fill="#FF6B35" />
+    <rect x="156" y="136" width="22" height="5" rx="2.5" fill="white" opacity="0.9" />
+    {/* Laptop base */}
+    <rect x="78" y="166" width="124" height="8" rx="2" fill="#1A2028" />
+    {/* Laptop trackpad */}
+    <rect x="126" y="168" width="28" height="4" rx="2" fill="#283040" />
+    {/* Person shadow */}
+    <ellipse cx="140" cy="225" rx="52" ry="7" fill="#9A8060" opacity="0.35" />
+    {/* Legs under desk */}
+    <rect x="110" y="155" width="22" height="32" rx="10" fill="#384850" />
+    <rect x="148" y="155" width="22" height="32" rx="10" fill="#384850" />
+    {/* Torso – leaning slightly forward */}
+    <rect x="92" y="88" width="96" height="72" rx="20" fill="#C86838" />
+    {/* Left arm on desk, left of laptop */}
+    <path d="M94 102 Q68 130 72 158" stroke="#C07850" strokeWidth="18" strokeLinecap="round" fill="none" />
+    {/* Right arm on desk, right of laptop */}
+    <path d="M186 102 Q210 130 206 158" stroke="#C07850" strokeWidth="18" strokeLinecap="round" fill="none" />
+    {/* Neck */}
+    <rect x="128" y="82" width="24" height="12" rx="6" fill="#C07850" />
     {/* Head */}
-    <circle cx="133" cy="116" r="22" fill="#FBBF8A" />
-    {/* Eyes & smile */}
-    <circle cx="126" cy="114" r="2.5" fill="#3B2A1A" />
-    <circle cx="140" cy="114" r="2.5" fill="#3B2A1A" />
-    <path d="M127 123 Q133 129 139 123" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    {/* Orange vest */}
-    <rect x="108" y="136" width="50" height="58" rx="10" fill="#EA580C" />
-    {/* Vest stripes */}
-    <rect x="110" y="148" width="46" height="5" rx="2" fill="#FCD34D" opacity="0.75" />
-    <rect x="110" y="162" width="46" height="5" rx="2" fill="#FCD34D" opacity="0.75" />
-    {/* Right arm + wrench */}
-    <path d="M156 145 Q173 150 182 162" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
-    <rect x="179" y="158" width="9" height="24" rx="4" fill="#9CA3AF" transform="rotate(25 183 170)" />
-    <ellipse cx="181" cy="159" rx="7" ry="6" fill="#6B7280" transform="rotate(25 183 170)" />
-    {/* Left arm */}
-    <path d="M110 145 Q95 153 86 162" stroke="#FBBF8A" strokeWidth="9" strokeLinecap="round" fill="none" />
-    {/* Legs */}
-    <rect x="113" y="192" width="15" height="36" rx="7" fill="#374151" />
-    <rect x="133" y="192" width="15" height="36" rx="7" fill="#374151" />
-    <ellipse cx="120" cy="228" rx="13" ry="6" fill="#1F2937" />
-    <ellipse cx="140" cy="228" rx="13" ry="6" fill="#1F2937" />
-    {/* Bricks */}
-    <rect x="188" y="160" width="52" height="14" rx="3" fill="#D97706" opacity="0.45" />
-    <rect x="192" y="177" width="48" height="14" rx="3" fill="#D97706" opacity="0.45" />
-    <rect x="188" y="194" width="52" height="14" rx="3" fill="#D97706" opacity="0.45" />
+    <circle cx="140" cy="66" r="26" fill="#C07850" />
+    {/* Hair – pulled back / bun */}
+    <path d="M114 60 Q116 36 140 34 Q164 36 166 60 Q158 48 140 50 Q122 48 114 60 Z" fill="#1A100A" />
+    <circle cx="164" cy="42" r="11" fill="#1A100A" />
+    {/* Plant on desk corner */}
+    <rect x="34" y="148" width="14" height="16" rx="4" fill="#C8A058" />
+    <ellipse cx="41" cy="140" rx="16" ry="14" fill="#7AAC5A" />
+    <ellipse cx="33" cy="145" rx="10" ry="11" fill="#608840" />
+    <ellipse cx="50" cy="144" rx="10" ry="11" fill="#608840" />
+    {/* Coffee mug */}
+    <rect x="222" y="148" width="20" height="18" rx="4" fill="#E8E0D4" />
+    <path d="M242 153 Q250 153 250 158 Q250 163 242 163" stroke="#C8B89A" strokeWidth="3" fill="none" strokeLinecap="round" />
+    {/* Checkmark badge – top right */}
+    <circle cx="228" cy="46" r="20" fill="#6AA870" />
+    <path d="M218 46 L225 54 L240 38" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 );
 
-const DogWalkerSVG = () => (
+// Slide 3: Person lounging on sofa, reviewing ratings
+const GrowSVG = () => (
   <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    <ellipse cx="140" cy="145" rx="118" ry="98" fill="#DCFCE7" />
-    {/* Sun */}
-    <circle cx="226" cy="88" r="18" fill="#FCD34D" opacity="0.65" />
-    {/* Tree */}
-    <rect x="218" y="162" width="10" height="48" rx="3" fill="#92400E" />
-    <ellipse cx="223" cy="148" rx="26" ry="28" fill="#16A34A" />
-    {/* Ground */}
-    <ellipse cx="140" cy="234" rx="112" ry="12" fill="#86EFAC" opacity="0.45" />
-    {/* Person - head */}
-    <circle cx="105" cy="114" r="22" fill="#FBBF8A" />
-    {/* Hair */}
-    <path d="M83 110 Q85 90 105 88 Q125 90 127 110 Q118 103 105 104 Q92 103 83 110 Z" fill="#1F2937" />
-    {/* Eyes & smile */}
-    <circle cx="98" cy="113" r="2.5" fill="#3B2A1A" />
-    <circle cx="112" cy="113" r="2.5" fill="#3B2A1A" />
-    <path d="M99 121 Q105 127 111 121" stroke="#3B2A1A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-    {/* Body */}
-    <rect x="83" y="134" width="44" height="58" rx="10" fill="#EC4899" />
-    {/* Leash arm */}
-    <path d="M125 142 Q142 140 155 143" stroke="#FBBF8A" strokeWidth="8" strokeLinecap="round" fill="none" />
-    {/* Leash rope */}
-    <path d="M155 141 Q168 148 178 158" stroke="#6B7280" strokeWidth="2" fill="none" strokeDasharray="5 3" />
-    {/* Other arm */}
-    <path d="M85 142 Q73 152 67 160" stroke="#FBBF8A" strokeWidth="8" strokeLinecap="round" fill="none" />
-    {/* Legs */}
-    <rect x="88" y="190" width="14" height="36" rx="7" fill="#1D4ED8" />
-    <rect x="107" y="190" width="14" height="36" rx="7" fill="#1D4ED8" />
-    <ellipse cx="95" cy="226" rx="12" ry="5" fill="#374151" />
-    <ellipse cx="114" cy="226" rx="12" ry="5" fill="#374151" />
-    {/* Dog body */}
-    <ellipse cx="192" cy="200" rx="24" ry="15" fill="#A16207" />
-    {/* Dog head */}
-    <circle cx="213" cy="188" r="15" fill="#B45309" />
-    {/* Dog ears */}
-    <ellipse cx="221" cy="180" rx="7" ry="10" fill="#A16207" />
-    <ellipse cx="206" cy="180" rx="6" ry="9" fill="#A16207" />
-    {/* Dog face */}
-    <ellipse cx="219" cy="192" rx="4" ry="3" fill="#1F2937" />
-    <circle cx="214" cy="185" r="2.5" fill="#1F2937" />
-    <circle cx="215" cy="184" r="1" fill="#fff" />
-    {/* Dog legs */}
-    <rect x="172" y="211" width="9" height="18" rx="4" fill="#A16207" />
-    <rect x="184" y="212" width="9" height="17" rx="4" fill="#A16207" />
-    <rect x="197" y="212" width="9" height="17" rx="4" fill="#A16207" />
-    <rect x="208" y="211" width="9" height="18" rx="4" fill="#A16207" />
-    {/* Dog tail */}
-    <path d="M169 196 Q156 184 161 172" stroke="#A16207" strokeWidth="7" strokeLinecap="round" fill="none" />
+    {/* Background panel – sage green */}
+    <rect x="14" y="6" width="252" height="220" rx="28" fill="#B0C49A" />
+    {/* Floor strip */}
+    <rect x="14" y="188" width="252" height="38" rx="28" fill="#94AA7E" />
+    <rect x="14" y="188" width="252" height="18" fill="#94AA7E" />
+    {/* Tree / plant – top right, like LinkedIn ref2 */}
+    <rect x="228" y="148" width="16" height="58" rx="6" fill="#7A6040" />
+    <ellipse cx="236" cy="130" rx="32" ry="36" fill="#8AAA68" />
+    <ellipse cx="220" cy="140" rx="20" ry="24" fill="#708852" />
+    <ellipse cx="248" cy="138" rx="18" ry="22" fill="#708852" />
+    {/* Sofa body */}
+    <rect x="24" y="158" width="196" height="22" rx="11" fill="#8A9270" />
+    {/* Sofa backrest */}
+    <rect x="24" y="138" width="196" height="26" rx="11" fill="#9AA080" />
+    {/* Sofa left arm */}
+    <rect x="24" y="138" width="22" height="46" rx="10" fill="#8A9270" />
+    {/* Sofa right arm */}
+    <rect x="198" y="138" width="22" height="46" rx="10" fill="#8A9270" />
+    {/* Sofa legs */}
+    <rect x="38" y="180" width="10" height="34" rx="4" fill="#6A7050" />
+    <rect x="192" y="180" width="10" height="34" rx="4" fill="#6A7050" />
+    {/* Person – lounging, head right, feet left */}
+    {/* Feet / shoes */}
+    <rect x="26" y="152" width="30" height="14" rx="7" fill="#16100C" />
+    {/* Legs – horizontal */}
+    <path d="M56 158 Q100 158 130 155" stroke="#2E3848" strokeWidth="22" strokeLinecap="round" fill="none" />
+    {/* Hip / lower torso */}
+    <rect x="126" y="144" width="56" height="26" rx="12" fill="#2E3848" />
+    {/* Torso – angled on sofa back */}
+    <rect x="138" y="112" width="54" height="42" rx="14" fill="#4A78A8" />
+    {/* Right arm – raised, holding phone */}
+    <path d="M186 120 Q196 98 192 76" stroke="#C07850" strokeWidth="16" strokeLinecap="round" fill="none" />
+    {/* Phone */}
+    <rect x="180" y="54" width="24" height="42" rx="6" fill="#16100C" />
+    <rect x="183" y="58" width="18" height="34" rx="4" fill="#5888B0" />
+    {/* Stars on phone screen */}
+    <rect x="185" y="63" width="14" height="3.5" rx="1.75" fill="#F59E0B" opacity="0.9" />
+    <rect x="185" y="70" width="10" height="3" rx="1.5" fill="white" opacity="0.5" />
+    <rect x="185" y="76" width="12" height="3" rx="1.5" fill="white" opacity="0.5" />
+    {/* Left arm – resting on sofa */}
+    <path d="M140 120 Q128 138 122 152" stroke="#C07850" strokeWidth="16" strokeLinecap="round" fill="none" />
+    {/* Neck */}
+    <rect x="168" y="106" width="18" height="12" rx="6" fill="#C07850" />
+    {/* Head */}
+    <circle cx="188" cy="92" r="26" fill="#C07850" />
+    {/* Hair – dark bun pulled back */}
+    <path d="M162 86 Q164 62 188 60 Q212 62 214 86 Q206 74 188 76 Q170 74 162 86 Z" fill="#1A100A" />
+    <circle cx="213" cy="65" r="12" fill="#1A100A" />
+    {/* Rating card – top left floating */}
+    <rect x="28" y="30" width="118" height="58" rx="12" fill="white" opacity="0.9" />
+    {/* Avatar circle */}
+    <circle cx="50" cy="52" r="14" fill="#B0C49A" />
+    {/* Name + rating */}
+    <rect x="70" y="40" width="62" height="5" rx="2.5" fill="#2E3848" />
+    <rect x="70" y="50" width="40" height="4" rx="2" fill="#94AA7E" />
+    {/* 5 stars – drawn as simple shapes */}
+    <path d="M70 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
+    <path d="M83 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
+    <path d="M96 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
+    <path d="M109 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
+    <path d="M122 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#E5E7EB" />
   </svg>
 );
 
@@ -621,18 +779,18 @@ const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
   }, []);
 
   const slides = [
-    { title: 'Enseña y comparte tu conocimiento', sub: 'Conecta con quien necesita aprender cerca de ti', illustration: <TeacherSVG /> },
-    { title: 'Trabaja en lo que mejor sabes hacer', sub: 'Cachuelos de construcción, reparaciones y más', illustration: <WorkerSVG /> },
-    { title: 'Cuida mascotas cerca de tu hogar', sub: 'Encuentra trabajo flexible en tu barrio hoy mismo', illustration: <DogWalkerSVG /> },
+    { title: 'Encuentra trabajo cerca de ti', sub: 'Explora cientos de cachuelos disponibles hoy mismo. Filtra por categoría, precio y zona.', illustration: <BrowseSVG /> },
+    { title: 'Publica lo que necesitas', sub: 'Crea tu cachuelo en minutos y recibe postulantes calificados al instante.', illustration: <PublishSVG /> },
+    { title: 'Cobra y construye tu reputación', sub: 'Sistema de calificaciones que protege a ambas partes y te abre más puertas.', illustration: <GrowSVG /> },
   ];
 
   const { title, sub, illustration } = slides[slide];
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', inset: 0, background: C.card, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Logo */}
-      <div style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 22 }}>💼</span>
+      <div style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <CachueloMark size={34} />
         <span style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Cachuelo</span>
       </div>
 
@@ -663,14 +821,20 @@ const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
         </Btn>
         <button onClick={onGoogleLogin} style={{
           width: '100%', borderRadius: 50, fontSize: 14, padding: '14px 0',
-          border: `1.5px solid ${C.border}`, background: '#fff', cursor: 'pointer',
+          border: `1.5px solid ${C.border}`, background: C.card, cursor: 'pointer',
           fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.text,
         }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#4285F4', fontFamily: 'Arial' }}>G</span> Continuar con Google
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continuar con Google
         </button>
         <button onClick={onPhoneLogin} style={{
           width: '100%', borderRadius: 50, fontSize: 14, padding: '14px 0',
-          border: `1.5px solid ${C.border}`, background: '#fff', cursor: 'pointer',
+          border: `1.5px solid ${C.border}`, background: C.card, cursor: 'pointer',
           fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.text,
         }}>
           <Phone size={16} color={C.textSec} /> Continuar con Teléfono
@@ -681,6 +845,7 @@ const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
 };
 
 const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
+  const { C } = useTheme();
   const [mode, setMode] = useState('login'); // login | register | phone
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
@@ -772,12 +937,12 @@ const handleRegister = async () => {
 
   const selectStyle = {
     width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
-    borderRadius: 10, fontSize: 14, color: C.text, background: '#fff',
+    borderRadius: 10, fontSize: 14, color: C.text, background: C.card,
     outline: 'none', fontFamily: 'inherit',
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#fff', overflowY: 'auto' }}>
+    <div style={{ position: 'absolute', inset: 0, background: C.card, overflowY: 'auto' }}>
       {/* Header */}
       <div style={{
         background: `linear-gradient(160deg, ${C.headerBg}, ${C.headerDark})`,
@@ -800,7 +965,7 @@ const handleRegister = async () => {
 
       <div style={{ padding: '28px 24px' }}>
         {/* Tabs */}
-        <div style={{ display: 'flex', background: '#F3F4F6', borderRadius: 10, padding: 3, marginBottom: 24 }}>
+        <div style={{ display: 'flex', background: C.cardElevated, borderRadius: 10, padding: 3, marginBottom: 24, border: `1px solid ${C.border}` }}>
           {['login','register'].map(m => (
             <button key={m} onClick={() => setMode(m)} style={{
               flex: 1, padding: '9px 0', borderRadius: 8, border: 'none',
@@ -856,7 +1021,7 @@ const handleRegister = async () => {
                     />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                       <button onClick={() => setForgotMode(false)}
-                        style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', color: C.textSec, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                        style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `1px solid ${C.border}`, background: C.card, color: C.textSec, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
                         Cancelar
                       </button>
                       <button onClick={handleForgotPassword} disabled={!forgotEmail || loading}
@@ -933,10 +1098,10 @@ const handleRegister = async () => {
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
                 Número de teléfono *
               </label>
-              <div style={{ display: 'flex', border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+              <div style={{ display: 'flex', border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', background: C.card }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px',
-                  background: '#F3F4F6', borderRight: `1.5px solid ${C.border}`,
+                  background: C.cardElevated, borderRight: `1.5px solid ${C.border}`,
                   fontSize: 13, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', flexShrink: 0,
                 }}>
                   🇵🇪 +51
@@ -986,7 +1151,7 @@ const handleRegister = async () => {
                   width: '100%', padding: '11px 14px',
                   border: `1.5px solid ${reg.pass && !passValid ? C.danger : C.border}`,
                   borderRadius: 10, fontSize: 14, color: C.text,
-                  background: '#fff', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                  background: C.card, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
               {reg.pass && (
@@ -1087,6 +1252,7 @@ const handleRegister = async () => {
 
 // 4. HOME ─────────────────────────────────────────────────────────────────────
 const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotifications }) => {
+  const { C, isDark } = useTheme();
   const [filter, setFilter] = useState('Todos');
   const [selectedCat, setSelectedCat] = useState(null);
   const [notifCount, setNotifCount] = useState(0);
@@ -1162,13 +1328,13 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
 
         {/* Search bar */}
         <div style={{
-          background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center',
-          padding: '0 14px', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center',
+          padding: '0 14px', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
         }}>
-          <Search size={16} color={C.textMuted} />
+          <Search size={16} color="#9BA3BC" />
           <input placeholder="Buscar cachuelos..." style={{
             flex: 1, border: 'none', outline: 'none', fontSize: 14,
-            color: C.text, padding: '12px 0', fontFamily: 'inherit', background: 'transparent',
+            color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent',
           }} onClick={() => onNavigate('search')} readOnly />
           <button onClick={() => onNavigate('search')} style={{
             background: C.primary, border: 'none', borderRadius: 8,
@@ -1185,21 +1351,34 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Categorías</div>
         </div>
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
-          {CATEGORIES.map(cat => (
-            <button key={cat.id} onClick={() => setSelectedCat(selectedCat === cat.label ? null : cat.label)}
-              style={{
-                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 5, background: selectedCat === cat.label ? C.primary : cat.color,
-                border: `1.5px solid ${selectedCat === cat.label ? C.primary : 'transparent'}`,
-                borderRadius: 12, padding: '10px 14px', cursor: 'pointer', minWidth: 72,
-                transition: 'all .2s',
-              }}>
-              <span style={{ fontSize: 22 }}>{cat.emoji}</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: selectedCat === cat.label ? '#fff' : C.text, whiteSpace: 'nowrap' }}>
-                {cat.label}
-              </span>
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const isSelected = selectedCat === cat.label;
+            const catBg = isSelected ? C.primary
+              : isDark ? 'rgba(255,255,255,0.07)' : cat.color;
+            const catBorder = isSelected ? C.primary
+              : isDark ? 'rgba(255,255,255,0.12)' : 'transparent';
+            return (
+              <button key={cat.id} onClick={() => setSelectedCat(isSelected ? null : cat.label)}
+                style={{
+                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 6, background: catBg, border: `1.5px solid ${catBorder}`,
+                  borderRadius: 16, padding: '10px 12px', cursor: 'pointer', minWidth: 68,
+                  transition: 'all .2s',
+                }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: isSelected ? 'rgba(255,255,255,0.25)' : `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: isSelected ? 'none' : `0 3px 8px ${cat.iconBgA}50`,
+                }}>
+                  <cat.Icon size={18} color="#fff" strokeWidth={2} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: isSelected ? '#fff' : C.text, whiteSpace: 'nowrap' }}>
+                  {cat.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filters */}
@@ -1209,8 +1388,9 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
               style={{
                 flexShrink: 0, padding: '7px 14px', borderRadius: 20, border: 'none',
                 fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                background: filter === f ? C.primary : '#F3F4F6',
-                color: filter === f ? '#fff' : C.textSec,
+                background: filter === f ? C.primary : C.cardElevated,
+                color: filter === f ? '#fff' : C.text,
+                border: filter === f ? 'none' : `1px solid ${C.border}`,
                 transition: 'all .2s',
               }}>{f}</button>
           ))}
@@ -1242,22 +1422,25 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
 };
 
 // Card de cachuelo
-const CachuCard = ({ c, onPress }) => (
+const CachuCard = ({ c, onPress }) => {
+  const { C, isDark } = useTheme();
+  return (
   <div onClick={onPress} style={{
-    background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
-    boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer',
-    border: `1px solid ${C.border}`, transition: 'transform .1s',
+    background: C.card, borderRadius: 18, padding: 16, marginBottom: 12,
+    boxShadow: '0 2px 16px rgba(13,27,62,0.07)', cursor: 'pointer',
+    border: `1px solid ${C.border}`, transition: 'transform .15s, box-shadow .15s',
+    overflow: 'hidden', position: 'relative',
   }}
-    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.975)'; e.currentTarget.style.boxShadow = '0 1px 8px rgba(13,27,62,0.05)'; }}
+    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 16px rgba(13,27,62,0.07)'; }}
   >
+    {c.featured && (
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+        background: `linear-gradient(90deg, ${C.warning}, ${C.primary})` }} />
+    )}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flex: 1 }}>
-        <div style={{
-          width: 42, height: 42, borderRadius: 12,
-          background: CATEGORIES.find(cat => cat.label === c.category)?.color || '#f3f4f6',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0,
-        }}>{c.emoji}</div>
+        <CategoryIcon label={c.category} size={44} iconSize={22} radius={12} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1.3, marginBottom: 4 }}>{c.title}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1296,7 +1479,8 @@ const CachuCard = ({ c, onPress }) => (
       <ChevronRight size={16} color={C.textMuted} />
     </div>
   </div>
-);
+  );
+};
 
 // ── REPORTE MODAL ─────────────────────────────────────────────────────────────
 const MOTIVOS_REPORTE = [
@@ -1340,7 +1524,7 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 300 }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
         {done ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -1393,6 +1577,7 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
 
 // 5. DETALLE DE CACHUELO ──────────────────────────────────────────────────────
 const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onViewPublisher, onVerPostulantes }) => {
+  const { C, isDark } = useTheme();
   const [message, setMessage] = useState('');
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -1500,13 +1685,9 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
 
       <div style={{ padding: '20px 20px 100px' }}>
         {/* Title card */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: C.card, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16 }}>
-            <div style={{
-              width: 54, height: 54, borderRadius: 16,
-              background: CATEGORIES.find(c => c.label === cachuelo.category)?.color || '#f3f4f6',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0,
-            }}>{cachuelo.emoji}</div>
+            <CategoryIcon label={cachuelo.category} size={54} iconSize={26} radius={16} />
             <div>
               <div style={{ fontWeight: 800, fontSize: 16, color: C.text, lineHeight: 1.3, marginBottom: 6 }}>{cachuelo.title}</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1540,7 +1721,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
         </div>
 
         {/* Description */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>Descripción</div>
           <p style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7 }}>{cachuelo.description}</p>
           {fechaDisplay ? (
@@ -1556,7 +1737,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
 
         {/* Publisher */}
         <div onClick={() => cachuelo.userId && onViewPublisher?.(cachuelo.userId)}
-          style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: cachuelo.userId ? 'pointer' : 'default' }}>
+          style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: cachuelo.userId ? 'pointer' : 'default' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Publicado por</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Avatar initials={pubAvatar} size={48} bg={C.primaryLight} fontSize={16} />
@@ -1581,7 +1762,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
 
         {/* Message + Apply / Owner panel */}
         {isOwner ? (
-          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Tu publicación</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#F0F9FF', borderRadius: 12, padding: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 24, background: C.primary + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1603,7 +1784,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
             )}
           </div>
         ) : (
-          <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <Textarea
               label="Tu mensaje (opcional)"
               placeholder="Cuéntale por qué eres el candidato ideal para este cachuelo..."
@@ -1652,7 +1833,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
           onClick={() => setShowShareModal(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}
         >
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
             <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>Compartir cachuelo</div>
             <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20, lineHeight: 1.4 }}>
@@ -1803,12 +1984,16 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                 {CATEGORIES.map(cat => (
                   <button key={cat.id} onClick={() => upd('category', cat.label)}
                     style={{
-                      padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`,
-                      background: form.category === cat.label ? C.primary + '18' : '#fff',
+                      padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`,
+                      background: form.category === cat.label ? C.primary + '18' : C.card,
                       color: form.category === cat.label ? C.primary : C.text,
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6,
                     }}>
-                    {cat.emoji} {cat.label}
+                    <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <cat.Icon size={11} color="#fff" strokeWidth={2.5} />
+                    </div>
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -1831,7 +2016,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Tipo de pago</label>
                 <select value={form.payType} onChange={e => upd('payType', e.target.value)} style={{
                   width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
-                  borderRadius: 10, fontSize: 14, color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit',
+                  borderRadius: 10, fontSize: 14, color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit',
                 }}>
                   {['Fijo', 'Por hora', 'Por entrega', 'A convenir'].map(o => <option key={o}>{o}</option>)}
                 </select>
@@ -1866,7 +2051,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                     width: '100%', padding: '11px 14px 11px 34px',
                     border: `1.5px solid ${form.district ? C.primary : C.border}`,
                     borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted,
-                    background: '#fff', outline: 'none', fontFamily: 'inherit',
+                    background: C.card, outline: 'none', fontFamily: 'inherit',
                     appearance: 'none', cursor: 'pointer',
                   }}
                 >
@@ -1889,7 +2074,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
               {form.startDate !== 'flexible' && (
                 <input type="date" value={form.startDate} min={new Date().toISOString().split('T')[0]}
                   onChange={e => upd('startDate', e.target.value)}
-                  style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
+                  style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: C.card, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
               )}
               {form.startDate === 'flexible' && (
                 <div style={{ padding: '10px 14px', background: C.primary + '12', borderRadius: 10, fontSize: 13, color: C.primary, fontWeight: 500 }}>
@@ -1935,7 +2120,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                   style={{
                     flex: 1, padding: '8px 10px', border: `1.5px solid ${C.border}`,
                     borderRadius: 10, fontSize: 13, color: C.text,
-                    background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                    background: C.card, outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
                   }}
                 >
                   <option value="día(s)">día(s)</option>
@@ -1955,7 +2140,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
         {/* STEP 3 */}
         {step === 3 && (
           <>
-            <div style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 16, border: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Resumen de costos</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: 13, color: C.textSec }}>Publicación estándar</span>
@@ -2118,8 +2303,11 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {CATEGORIES.map(cat => (
               <button key={cat.id} onClick={() => upd('category', cat.label)}
-                style={{ padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`, background: form.category === cat.label ? C.primary + '18' : '#fff', color: form.category === cat.label ? C.primary : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                {cat.emoji} {cat.label}
+                style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`, background: form.category === cat.label ? C.primary + '18' : C.card, color: form.category === cat.label ? C.primary : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <cat.Icon size={11} color="#fff" strokeWidth={2.5} />
+                </div>
+                {cat.label}
               </button>
             ))}
           </div>
@@ -2134,7 +2322,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Tipo de pago</label>
-            <select value={form.payType} onChange={e => upd('payType', e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit' }}>
+            <select value={form.payType} onChange={e => upd('payType', e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit' }}>
               {['Fijo', 'Por hora', 'Por entrega', 'A convenir'].map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
@@ -2153,7 +2341,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
           <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Distrito *</label>
           <div style={{ position: 'relative' }}>
             <MapPin size={15} color={C.textMuted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <select value={form.district} onChange={e => upd('district', e.target.value)} style={{ width: '100%', padding: '11px 14px 11px 34px', border: `1.5px solid ${form.district ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}>
+            <select value={form.district} onChange={e => upd('district', e.target.value)} style={{ width: '100%', padding: '11px 14px 11px 34px', border: `1.5px solid ${form.district ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted, background: C.card, outline: 'none', fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}>
               <option value="">Selecciona un distrito...</option>
               {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -2171,7 +2359,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
             </button>
           </div>
           {form.startDate !== 'flexible' && (
-            <input type="date" value={form.startDate} onChange={e => upd('startDate', e.target.value)} style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: '#fff', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
+            <input type="date" value={form.startDate} onChange={e => upd('startDate', e.target.value)} style={{ width: '100%', padding: '11px 14px', boxSizing: 'border-box', border: `1.5px solid ${form.startDate ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.startDate ? C.text : C.textMuted, background: C.card, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }} />
           )}
           {form.startDate === 'flexible' && (
             <div style={{ padding: '10px 14px', background: C.primary + '12', borderRadius: 10, fontSize: 13, color: C.primary, fontWeight: 500 }}>
@@ -2199,6 +2387,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
 
 // 8. BUSCAR ────────────────────────────────────────────────────────────────────
 const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
+  const { C, isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [selectedCat, setSelectedCat] = useState(null);
 
@@ -2211,12 +2400,12 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
     <Screen withTabs activeTab="search" onNavigate={onNavigate}>
       <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Buscar</div>
-        <div style={{ background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-          <Search size={16} color={C.textMuted} />
+        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+          <Search size={16} color="#8A93B0" />
           <input
             value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Buscar cachuelos, categorías..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: C.text, padding: '12px 0', fontFamily: 'inherit', background: 'transparent' }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent' }}
             autoFocus
           />
           {query && <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color={C.textMuted} /></button>}
@@ -2231,12 +2420,21 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
               {CATEGORIES.map(cat => (
                 <button key={cat.id} onClick={() => setSelectedCat(selectedCat === cat.label ? null : cat.label)}
                   style={{
-                    padding: '14px 8px', borderRadius: 14, border: `1.5px solid ${selectedCat === cat.label ? C.primary : 'transparent'}`,
-                    background: selectedCat === cat.label ? C.primary + '15' : cat.color,
+                    padding: '14px 8px', borderRadius: 16,
+                    border: `1.5px solid ${selectedCat === cat.label ? C.primary : (isDark ? 'rgba(255,255,255,0.10)' : 'transparent')}`,
+                    background: selectedCat === cat.label ? C.primary + '12' : (isDark ? 'rgba(255,255,255,0.06)' : cat.color),
                     cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                   }}>
-                  <div style={{ fontSize: 26, marginBottom: 4 }}>{cat.emoji}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: selectedCat === cat.label ? C.primary : C.text }}>{cat.label}</div>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: 14,
+                    background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: `0 4px 10px ${cat.iconBgA}50`,
+                  }}>
+                    <cat.Icon size={22} color="#fff" strokeWidth={2} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: selectedCat === cat.label ? C.primary : C.text, lineHeight: 1.2 }}>{cat.label}</div>
                 </button>
               ))}
             </div>
@@ -2267,6 +2465,7 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
 
 // 8. MIS CACHUELOS ────────────────────────────────────────────────────────────
 const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIniciarChat, onEditar }) => {
+  const { C } = useTheme();
   const [tab, setTab] = useState('publicados');
   const [publicados, setPublicados] = useState([]);
   const [postulados, setPostulados] = useState([]);
@@ -2301,7 +2500,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
       if (!postRes.error && postRes.data) {
         setPostulados(postRes.data.map(p => ({
           id: p.cachuelos?.id, postulacionId: p.id,
-          title: p.cachuelos?.titulo, emoji: p.cachuelos?.categorias?.emoji || '💼',
+          title: p.cachuelos?.titulo, category: p.cachuelos?.categorias?.label || '',
           price: Number(p.cachuelos?.precio), location: p.cachuelos?.distrito || 'Lima',
           duration: p.cachuelos?.duracion || '', status: p.estado,
           cachueloEstado: p.cachuelos?.estado,
@@ -2341,9 +2540,9 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           const pubRealizados = publicados.filter(c => c.status === 'Cerrado' || c.status === 'Completado');
           const CardPub = ({ c }) => (
             <div key={c.id} onClick={() => onViewCachuelo(c)}
-              style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
+              style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.1)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
-                <div style={{ fontSize: 28 }}>{c.emoji}</div>
+                <CategoryIcon label={c.category || c.title} size={44} iconSize={20} radius={12} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -2408,9 +2607,9 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           const postRealizados = postulados.filter(c => c.cachueloEstado === 'Cerrado' || c.cachueloEstado === 'Completado');
           const CardPost = ({ c }) => (
             <div key={c.postulacionId}
-              style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+              style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.1)', border: `1px solid ${C.border}` }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-                <div style={{ fontSize: 28 }}>{c.emoji}</div>
+                <CategoryIcon label={c.category || c.title} size={44} iconSize={20} radius={12} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
                   <div style={{ fontSize: 12, color: C.textSec }}>{c.duration}</div>
@@ -2468,7 +2667,7 @@ const ResenasSection = ({ resenas, loading }) => {
   return resenas.map(r => {
     const fecha = new Date(r.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
     return (
-      <div key={r.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+      <div key={r.id} style={{ background: C.card, borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <Stars rating={r.estrellas} size={15} />
           <span style={{ fontSize: 11, color: C.textMuted }}>{fecha}</span>
@@ -2486,6 +2685,7 @@ const ResenasSection = ({ resenas, loading }) => {
 
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
 const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) => {
+  const { C } = useTheme();
   const [profile, setProfile] = useState(null);
   const [resenas, setResenas] = useState([]);
   const [loadingResenas, setLoadingResenas] = useState(true);
@@ -2554,98 +2754,167 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
   return (
     <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
-      {/* Header */}
+
+      {/* ── HEADER GRADIENT ── */}
       <div style={{
-        background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
-        padding: '44px 20px 32px', textAlign: 'center',
+        background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 60%, #1A3A8F 100%)`,
+        padding: '44px 20px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
-          <Avatar initials={initials} src={profile?.avatar_url} size={80} bg="rgba(255,255,255,0.25)" fontSize={28} />
-          {/* Botón subir foto */}
-          <label style={{ position: 'absolute', bottom: 0, left: 0, width: 26, height: 26, borderRadius: 13, background: C.primary, border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Camera size={13} color="#fff" />
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
-          </label>
-          {dniVerificado && (
-            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, background: C.success, border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle size={14} color="#fff" />
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ position: 'absolute', bottom: 20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+
+        <div style={{ position: 'relative' }}>
+          {/* Avatar con ring */}
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
+            <div style={{
+              width: 92, height: 92, borderRadius: 46, padding: 3,
+              background: `linear-gradient(135deg, ${C.primary}, ${C.warning})`,
+              display: 'inline-block',
+            }}>
+              <div style={{ width: 86, height: 86, borderRadius: 43, overflow: 'hidden', background: C.headerDark }}>
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, color: '#fff' }}>{initials}</div>
+                }
+              </div>
             </div>
-          )}
-        </div>
-        <div style={{ color: '#fff', fontSize: 20, fontWeight: 800 }}>{fullName}</div>
-        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 }}>{email}</div>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
-          {isAdmin && <Badge color="#7C3AED" bg="rgba(124,58,237,0.15)">🛡️ Admin</Badge>}
-          {dniVerificado && <Badge color="#fff" bg="rgba(255,255,255,0.2)">DNI Verificado</Badge>}
-          {rating > 0 && <Badge color="#fff" bg="rgba(255,255,255,0.2)">⭐ {rating.toFixed(1)} ({completados} trabajo{completados !== 1 ? 's' : ''})</Badge>}
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'flex', background: '#fff', padding: '16px 0', borderBottom: `1px solid ${C.border}` }}>
-        {[
-          { label: 'Rating', value: rating > 0 ? rating.toFixed(1) : '—', icon: '⭐' },
-          { label: 'Completados', value: completados, icon: '✅' },
-          { label: 'Publicados', value: publicados, icon: '📢' },
-        ].map((s, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
-            <div style={{ fontSize: 22 }}>{s.icon}</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{s.value}</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{s.label}</div>
+            {/* Botón subir foto */}
+            <label style={{
+              position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: 14,
+              background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+              border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}>
+              <Camera size={13} color="#fff" />
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
+            </label>
+            {dniVerificado && (
+              <div style={{
+                position: 'absolute', bottom: 2, left: 2, width: 28, height: 28, borderRadius: 14,
+                background: C.success, border: '2px solid rgba(255,255,255,0.9)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <CheckCircle size={14} color="#fff" />
+              </div>
+            )}
           </div>
-        ))}
+
+          <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: -0.3 }}>{fullName}</div>
+          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 3 }}>{email}</div>
+
+          {/* Chips */}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+            {isAdmin && (
+              <span style={{ background: 'rgba(139,92,246,0.25)', color: '#C4B5FD', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.4)' }}>
+                🛡️ Admin
+              </span>
+            )}
+            {dniVerificado && (
+              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#6EE7B7', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)' }}>
+                ✓ DNI Verificado
+              </span>
+            )}
+            {rating > 0 && (
+              <span style={{ background: 'rgba(245,158,11,0.2)', color: '#FCD34D', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(245,158,11,0.3)' }}>
+                ⭐ {rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Menu */}
-      <div style={{ padding: '12px 20px' }}>
+      {/* ── STATS CARDS (flotan sobre el header) ── */}
+      <div style={{ padding: '0 16px', marginTop: -44, position: 'relative', zIndex: 2 }}>
+        <div style={{
+          background: C.card, borderRadius: 20, padding: '16px 0',
+          boxShadow: '0 8px 32px rgba(13,27,62,0.12)', border: `1px solid ${C.border}`,
+          display: 'flex',
+        }}>
+          {[
+            { label: 'Rating', value: rating > 0 ? rating.toFixed(1) : '—', sub: completados > 0 ? `${completados} trabajos` : 'Sin trabajos', color: C.warning, icon: '⭐' },
+            { label: 'Completados', value: completados, sub: 'cachuelos', color: C.success, icon: '✅' },
+            { label: 'Publicados', value: publicados, sub: 'ofertas', color: C.primary, icon: '📢' },
+          ].map((s, i) => (
+            <div key={i} style={{
+              flex: 1, textAlign: 'center', padding: '4px 8px',
+              borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
+            }}>
+              <div style={{ fontSize: 10, marginBottom: 2 }}>{s.icon}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 9, color: C.textMuted }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── MENÚ ── */}
+      <div style={{ padding: '20px 16px 8px' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+          Mi cuenta
+        </div>
         {menuItems.map((item, i) => {
           const Icon = item.icon;
+          const isDanger = item.color === C.danger;
           return (
             <button key={i} onClick={item.action || (() => {})} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-              padding: '13px 14px', background: '#fff', border: `1px solid ${C.border}`,
-              borderRadius: 12, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
-            }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: item.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={18} color={item.color} />
+              padding: '13px 16px', background: C.card, border: `1px solid ${C.border}`,
+              borderRadius: 16, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
+              transition: 'all .15s',
+            }}
+              onMouseDown={e => { e.currentTarget.style.background = C.cardElevated; }}
+              onMouseUp={e => { e.currentTarget.style.background = C.card; }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isDanger ? 'rgba(239,68,68,0.1)' : item.color + '18',
+              }}>
+                <Icon size={19} color={item.color} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: item.color === C.danger ? C.danger : C.text }}>{item.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: isDanger ? C.danger : C.text }}>{item.label}</div>
                 {item.desc && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{item.desc}</div>}
               </div>
-              {item.color !== C.danger && <ChevronRight size={16} color={C.textMuted} />}
+              {!isDanger && <ChevronRight size={16} color={C.textMuted} />}
             </button>
           );
         })}
       </div>
 
-      {/* Reseñas */}
-      <div style={{ padding: '0 20px 40px' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-          Reseñas como trabajador
-          {completados > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: C.textSec, marginLeft: 8 }}>⭐ {rating.toFixed(1)} ({completados} trabajo{completados !== 1 ? 's' : ''})</span>}
+      {/* ── RESEÑAS ── */}
+      <div style={{ padding: '4px 16px 40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Reseñas como trabajador</div>
+          {completados > 0 && (
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>⭐ {rating.toFixed(1)}</span>
+          )}
         </div>
         <ResenasSection resenas={resenas} loading={loadingResenas} />
       </div>
 
-      {/* Modal preview de foto */}
+      {/* ── MODAL PREVIEW FOTO ── */}
       {previewUrl && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
-          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 4 }}>Vista previa</div>
-              <div style={{ fontSize: 12, color: C.textSec }}>¿Te gusta cómo se ve?</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
+          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '28px 20px 36px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Vista previa</div>
+              <div style={{ fontSize: 13, color: C.textSec }}>¿Te gusta cómo se ve?</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <div style={{ width: 120, height: 120, borderRadius: 60, overflow: 'hidden', border: `3px solid ${C.primary}` }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{
+                width: 110, height: 110, borderRadius: 55, overflow: 'hidden',
+                border: `3px solid ${C.primary}`, boxShadow: `0 8px 24px ${C.primary}40`,
+              }}>
                 <img src={previewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             </div>
-            <Btn onClick={handleConfirmPhoto} disabled={uploadingPhoto} style={{ width: '100%', marginBottom: 10 }}>
-              {uploadingPhoto ? 'Subiendo...' : '✅ Usar esta foto'}
+            <Btn onClick={handleConfirmPhoto} disabled={uploadingPhoto} style={{ width: '100%', marginBottom: 12 }}>
+              {uploadingPhoto ? 'Subiendo...' : 'Usar esta foto'}
             </Btn>
             <button onClick={() => { setPreviewFile(null); setPreviewUrl(null); }}
-              style={{ width: '100%', padding: '10px 0', borderRadius: 12, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: '12px 0', borderRadius: 14, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -2744,7 +3013,7 @@ const AdminDashboard = ({ onBack }) => {
             ) : (
               registeredUsers.map((u, i) => (
                 <div key={u.id} style={{
-                  background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                  background: C.card, borderRadius: 14, padding: '14px 16px', marginBottom: 10,
                   boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -2785,7 +3054,7 @@ const AdminDashboard = ({ onBack }) => {
           {kpis.map((k, i) => {
             const Icon = k.icon;
             return (
-              <div key={i} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+              <div key={i} style={{ background: C.card, borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ width: 34, height: 34, borderRadius: 10, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={17} color={k.color} />
@@ -2803,7 +3072,7 @@ const AdminDashboard = ({ onBack }) => {
         </div>
 
         {/* Conversion funnel */}
-        <div style={{ background: '#fff', borderRadius: 16, padding: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+        <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Embudo de Conversión</div>
           {funnel.map((f, i) => (
             <div key={i} style={{ marginBottom: i < funnel.length - 1 ? 14 : 0 }}>
@@ -2835,7 +3104,7 @@ const AdminDashboard = ({ onBack }) => {
             const Icon = a.icon;
             return (
               <button key={i} style={{
-                background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12,
+                background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
                 padding: '12px 8px', cursor: 'pointer', textAlign: 'center',
               }}>
                 <Icon size={20} color={a.color} style={{ marginBottom: 4 }} />
@@ -2861,7 +3130,7 @@ const AdminDashboard = ({ onBack }) => {
               </div>
             ) : reportes.map(r => (
               <div key={r.id} style={{
-                background: '#fff', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                background: C.card, borderRadius: 14, padding: '14px 16px', marginBottom: 10,
                 boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
                 border: `1px solid ${r.estado === 'pendiente' ? C.danger + '40' : C.border}`,
               }}>
@@ -2980,7 +3249,7 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
           <>
             <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>{cachuelos.length} cachuelo{cachuelos.length !== 1 ? 's' : ''} en total</div>
             {cachuelos.map(c => (
-              <div key={c.id} style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+              <div key={c.id} style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
                 {editingId === c.id ? (
                   /* ── MODO EDICIÓN ── */
                   <div>
@@ -2993,7 +3262,7 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Estado</label>
                         <select value={editForm.estado} onChange={e => setEditForm(f => ({ ...f, estado: e.target.value }))}
-                          style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: '#fff', outline: 'none', fontFamily: 'inherit' }}>
+                          style={{ width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit' }}>
                           {['Activo','Pausado','Cerrado','Completado'].map(s => <option key={s}>{s}</option>)}
                         </select>
                       </div>
@@ -3008,7 +3277,7 @@ const AdminToolsScreen = ({ onBack, onRefresh }) => {
                   /* ── MODO VISTA ── */
                   <>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-                      <div style={{ fontSize: 28, lineHeight: 1 }}>{c.categorias?.emoji || '💼'}</div>
+                      <CategoryIcon label={c.categorias?.label || ''} size={40} iconSize={18} radius={10} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
                         <div style={{ fontSize: 12, color: C.textMuted }}>por {publisherName(c)}</div>
@@ -3308,7 +3577,7 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
               {postulantes.length} postulante{postulantes.length !== 1 ? 's' : ''}
             </div>
             {postulantes.map(p => (
-              <div key={p.id} style={{ background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
+              <div key={p.id} style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${C.border}` }}>
                 {/* Header postulante */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
                   <button onClick={() => onViewProfile?.(p.postulante_id)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
@@ -3371,6 +3640,7 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
 
 // ── CHAT ──────────────────────────────────────────────────────────────────────
 const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) => {
+  const { C } = useTheme();
   const { postulacion_id } = chatData || {};
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -3628,7 +3898,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
 
       {/* Historial de estados */}
       {historial.length > 0 && (
-        <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <button onClick={() => setShowHistorial(h => !h)}
             style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: C.textSec }}>📋 Historial de postulación</span>
@@ -3659,7 +3929,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       )}
 
       {/* Mensajes – zona scrolleable */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: '#F3F4F6' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column', gap: 10, background: C.bg }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>Cargando...</div>
         ) : messages.length === 0 ? (
@@ -3683,7 +3953,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       </div>
 
       {/* Input – fijo arriba del TabBar */}
-      <div style={{ padding: '10px 16px 16px', background: '#fff', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
+      <div style={{ padding: '10px 16px 16px', background: C.card, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
         <textarea value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           placeholder="Escribe un mensaje..." rows={1}
@@ -3698,7 +3968,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       {/* Modal rating */}
       {showRatingModal && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }}>
-          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
+          <div style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⭐</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 4 }}>¿Cómo fue el trabajo?</div>
@@ -3824,9 +4094,9 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
             description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
             publisher: { name: fullName, rating, verified: profile?.dni_verificado || false, avatar: initials },
           })}
-            style={{ background: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
+            style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ fontSize: 26 }}>{c.categorias?.emoji || '💼'}</div>
+              <CategoryIcon label={c.categorias?.label || ''} size={40} iconSize={18} radius={11} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
                 <div style={{ display: 'flex', gap: 10, fontSize: 11, color: C.textSec }}>
@@ -3894,7 +4164,7 @@ const ResetPasswordScreen = ({ onDone }) => {
   };
 
   return (
-    <PhoneFrame>
+    <div style={{ position: 'absolute', inset: 0, background: C.bg, overflowY: 'auto' }}>
       <div style={{ padding: '60px 28px 40px', display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>🔐</div>
         <div style={{ fontSize: 22, fontWeight: 800, color: C.text, textAlign: 'center', marginBottom: 8 }}>
@@ -3941,13 +4211,17 @@ const ResetPasswordScreen = ({ onDone }) => {
           </>
         )}
       </div>
-    </PhoneFrame>
+    </div>
   );
 };
 
 //  APP ROOT
 // ════════════════════════════════════════════════════════════════════════════
 export default function App() {
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('cachuelo_dark') === '1');
+  const toggleDark = () => setIsDark(v => { const n = !v; localStorage.setItem('cachuelo_dark', n ? '1' : '0'); C = n ? DARK : LIGHT; return n; });
+  C = isDark ? DARK : LIGHT;
+
   const [screen, setScreen] = useState('splash');
   const [activeTab, setActiveTab] = useState('home');
   const [selectedCachuelo, setSelectedCachuelo] = useState(null);
@@ -4082,9 +4356,13 @@ export default function App() {
     }
   };
 
+  const theme = isDark ? DARK : LIGHT;
+
   return (
-    <PhoneFrame>
-      {renderScreen()}
-    </PhoneFrame>
+    <ThemeCtx.Provider value={{ C: theme, isDark, toggleDark }}>
+      <PhoneFrame isDark={isDark} onToggleDark={toggleDark}>
+        {renderScreen()}
+      </PhoneFrame>
+    </ThemeCtx.Provider>
   );
 }

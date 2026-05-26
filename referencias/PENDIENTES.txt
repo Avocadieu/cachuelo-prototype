@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
-║                     Actualizado: 2026-05-19                  ║
+║                     Actualizado: 2026-05-26                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
 1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
@@ -90,6 +90,21 @@
     Botón Share2 en el header del detalle. En mobile usa navigator.share()
     (menú nativo del sistema). En desktop abre bottom sheet con WhatsApp,
     Telegram, X, LinkedIn y copiar enlace.
+
+19. ILUSTRACIONES DE ONBOARDING CON UNDRAW
+    Las ilustraciones SVG actuales de la WelcomeScreen (BrowseSVG, PublishSVG,
+    GrowSVG) fueron construidas a mano y no tienen la calidad visual de apps
+    como LinkedIn o Yape. Reemplazarlas con ilustraciones profesionales de
+    unDraw.co (gratis, personalizables con el color primario de la marca).
+    Pasos:
+    · Ir a undraw.co y buscar ilustraciones para los 3 slides:
+      - Slide 1 "Encuentra trabajo": buscar "search", "browsing" o "work"
+      - Slide 2 "Publica tu cachuelo": buscar "posting", "upload" o "setup"
+      - Slide 3 "Califica y crece": buscar "rating", "reviews" o "growth"
+    · Ajustar el color principal a #FF6B35 (naranja Cachuelo) en el picker
+    · Descargar los 3 archivos SVG y guardarlos en src/assets/
+    · Reemplazar los componentes BrowseSVG, PublishSVG y GrowSVG en App.jsx
+      por <img src={ilustracion} /> o importando el SVG como componente React
 
 18. SEGURIDAD – CIERRE DE FUGAS ANTES DE PRODUCCIÓN
     Revisar y corregir todas las vulnerabilidades de seguridad antes

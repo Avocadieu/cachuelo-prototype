@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npm run:*)",
-      "Bash(find \"C:/Users/Sergio/Desktop/cachuelo-prototype\" -name \"*dist*\" -o -name \"*reg*\" -o -name \"*referencia*\" 2>/dev/null | head -20)"
+      "Bash(find \"C:/Users/Sergio/Desktop/cachuelo-prototype\" -name \"*dist*\" -o -name \"*reg*\" -o -name \"*referencia*\" 2>/dev/null | head -20)",
+      "Read(//c/Users/Sergio/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/**)",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"casual gig jobs fintech vibrant youthful mobile peru\" --design-system -p \"Cachuelo\" -f markdown)",
+      "Bash(npx vite *)"
     ]
   }
 }
