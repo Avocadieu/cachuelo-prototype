@@ -1,4 +1,7 @@
 import { supabase } from './lib/supabase.js';
+import undraw1 from './assets/undraw1.svg';
+import undraw2 from './assets/undraw2.svg';
+import undraw3 from './assets/undraw3.svg';
 import { useState, useEffect, createContext, useContext } from 'react';
 import {
   Home, Search, PlusCircle, Briefcase, User, Star, MapPin, Clock,
@@ -591,183 +594,15 @@ const CIUDADES_PERU = {
 // ─── WELCOME SCREEN ──────────────────────────────────────────────────────────
 // Slide 1: Person sitting outdoors, browsing phone for gigs
 const BrowseSVG = () => (
-  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    {/* Background panel – dusty blue */}
-    <rect x="14" y="6" width="252" height="220" rx="28" fill="#B6CAD8" />
-    {/* Ground strip */}
-    <rect x="14" y="182" width="252" height="44" rx="28" fill="#94AEBE" />
-    <rect x="14" y="182" width="252" height="20" fill="#94AEBE" />
-    {/* Bench seat */}
-    <rect x="52" y="170" width="176" height="14" rx="7" fill="#C8A870" />
-    {/* Bench legs */}
-    <rect x="72" y="184" width="10" height="32" rx="4" fill="#A88048" />
-    <rect x="198" y="184" width="10" height="32" rx="4" fill="#A88048" />
-    {/* Person shadow */}
-    <ellipse cx="138" cy="225" rx="54" ry="7" fill="#7090A4" opacity="0.35" />
-    {/* Lower legs – dangling */}
-    <path d="M118 170 Q116 194 110 212" stroke="#2C4460" strokeWidth="20" strokeLinecap="round" fill="none" />
-    <path d="M158 170 Q162 194 168 212" stroke="#2C4460" strokeWidth="20" strokeLinecap="round" fill="none" />
-    {/* Shoes */}
-    <rect x="94" y="208" width="32" height="12" rx="6" fill="#16100C" />
-    <rect x="154" y="208" width="32" height="12" rx="6" fill="#16100C" />
-    {/* Upper legs – seated horizontal */}
-    <rect x="104" y="152" width="72" height="22" rx="11" fill="#2C4460" />
-    {/* Torso */}
-    <rect x="96" y="96" width="88" height="62" rx="18" fill="#C25838" />
-    {/* Left arm – relaxed at side */}
-    <path d="M98 110 Q82 136 84 162" stroke="#C07850" strokeWidth="17" strokeLinecap="round" fill="none" />
-    {/* Right arm – holding phone */}
-    <path d="M182 110 Q196 130 190 152" stroke="#C07850" strokeWidth="17" strokeLinecap="round" fill="none" />
-    {/* Phone in right hand */}
-    <rect x="180" y="142" width="24" height="40" rx="6" fill="#16100C" />
-    <rect x="183" y="146" width="18" height="32" rx="4" fill="#5888B0" />
-    <rect x="186" y="151" width="12" height="3" rx="1.5" fill="white" opacity="0.75" />
-    <rect x="186" y="157" width="9" height="2.5" rx="1.2" fill="white" opacity="0.45" />
-    <rect x="186" y="163" width="11" height="2.5" rx="1.2" fill="white" opacity="0.45" />
-    <rect x="186" y="168" width="6" height="3" rx="1.5" fill="#FF6B35" opacity="0.85" />
-    {/* Neck */}
-    <rect x="126" y="90" width="28" height="12" rx="6" fill="#C07850" />
-    {/* Head */}
-    <circle cx="140" cy="76" r="26" fill="#C07850" />
-    {/* Hair – natural short */}
-    <path d="M114 70 Q116 46 140 44 Q164 46 166 70 Q157 58 140 60 Q123 58 114 70 Z" fill="#1A100A" />
-    {/* Job listing card – top left */}
-    <rect x="30" y="30" width="86" height="54" rx="10" fill="white" opacity="0.88" />
-    <rect x="42" y="42" width="28" height="28" rx="6" fill="#B6CAD8" />
-    <rect x="76" y="44" width="30" height="5" rx="2.5" fill="#2C4460" />
-    <rect x="76" y="53" width="22" height="4" rx="2" fill="#94AEBE" />
-    <rect x="42" y="74" width="20" height="5" rx="2.5" fill="#C25838" />
-    <rect x="66" y="74" width="46" height="5" rx="2.5" fill="#B6CAD8" />
-    {/* Location pin – top right */}
-    <path d="M222 38 C222 28 238 28 238 38 C238 48 230 56 230 56 C230 56 222 48 222 38 Z" fill="#FF6B35" />
-    <circle cx="230" cy="38" r="5" fill="white" />
-  </svg>
+  <img src={undraw1} alt="Encuentra trabajo" style={{ width: '100%', maxWidth: 300, maxHeight: 260, objectFit: 'contain' }} />
 );
 
-// Slide 2: Person seated at desk with laptop, publishing a gig
 const PublishSVG = () => (
-  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    {/* Background panel – warm sand */}
-    <rect x="14" y="6" width="252" height="220" rx="28" fill="#D4C09A" />
-    {/* Floor strip */}
-    <rect x="14" y="188" width="252" height="38" rx="28" fill="#BAA47A" />
-    <rect x="14" y="188" width="252" height="18" fill="#BAA47A" />
-    {/* Desk */}
-    <rect x="30" y="162" width="220" height="14" rx="7" fill="#B89A6A" />
-    {/* Desk legs */}
-    <rect x="48" y="176" width="10" height="38" rx="4" fill="#9A7A48" />
-    <rect x="222" y="176" width="10" height="38" rx="4" fill="#9A7A48" />
-    {/* Laptop screen */}
-    <rect x="82" y="114" width="116" height="52" rx="5" fill="#222830" />
-    <rect x="86" y="118" width="108" height="44" rx="3" fill="#3A5070" />
-    {/* Screen content – form fields */}
-    <rect x="94" y="124" width="52" height="5" rx="2.5" fill="white" opacity="0.7" />
-    <rect x="94" y="133" width="42" height="4" rx="2" fill="white" opacity="0.4" />
-    <rect x="94" y="141" width="46" height="4" rx="2" fill="white" opacity="0.4" />
-    {/* Publish button */}
-    <rect x="148" y="132" width="38" height="16" rx="8" fill="#FF6B35" />
-    <rect x="156" y="136" width="22" height="5" rx="2.5" fill="white" opacity="0.9" />
-    {/* Laptop base */}
-    <rect x="78" y="166" width="124" height="8" rx="2" fill="#1A2028" />
-    {/* Laptop trackpad */}
-    <rect x="126" y="168" width="28" height="4" rx="2" fill="#283040" />
-    {/* Person shadow */}
-    <ellipse cx="140" cy="225" rx="52" ry="7" fill="#9A8060" opacity="0.35" />
-    {/* Legs under desk */}
-    <rect x="110" y="155" width="22" height="32" rx="10" fill="#384850" />
-    <rect x="148" y="155" width="22" height="32" rx="10" fill="#384850" />
-    {/* Torso – leaning slightly forward */}
-    <rect x="92" y="88" width="96" height="72" rx="20" fill="#C86838" />
-    {/* Left arm on desk, left of laptop */}
-    <path d="M94 102 Q68 130 72 158" stroke="#C07850" strokeWidth="18" strokeLinecap="round" fill="none" />
-    {/* Right arm on desk, right of laptop */}
-    <path d="M186 102 Q210 130 206 158" stroke="#C07850" strokeWidth="18" strokeLinecap="round" fill="none" />
-    {/* Neck */}
-    <rect x="128" y="82" width="24" height="12" rx="6" fill="#C07850" />
-    {/* Head */}
-    <circle cx="140" cy="66" r="26" fill="#C07850" />
-    {/* Hair – pulled back / bun */}
-    <path d="M114 60 Q116 36 140 34 Q164 36 166 60 Q158 48 140 50 Q122 48 114 60 Z" fill="#1A100A" />
-    <circle cx="164" cy="42" r="11" fill="#1A100A" />
-    {/* Plant on desk corner */}
-    <rect x="34" y="148" width="14" height="16" rx="4" fill="#C8A058" />
-    <ellipse cx="41" cy="140" rx="16" ry="14" fill="#7AAC5A" />
-    <ellipse cx="33" cy="145" rx="10" ry="11" fill="#608840" />
-    <ellipse cx="50" cy="144" rx="10" ry="11" fill="#608840" />
-    {/* Coffee mug */}
-    <rect x="222" y="148" width="20" height="18" rx="4" fill="#E8E0D4" />
-    <path d="M242 153 Q250 153 250 158 Q250 163 242 163" stroke="#C8B89A" strokeWidth="3" fill="none" strokeLinecap="round" />
-    {/* Checkmark badge – top right */}
-    <circle cx="228" cy="46" r="20" fill="#6AA870" />
-    <path d="M218 46 L225 54 L240 38" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-  </svg>
+  <img src={undraw2} alt="Publica tu cachuelo" style={{ width: '100%', maxWidth: 300, maxHeight: 260, objectFit: 'contain' }} />
 );
 
-// Slide 3: Person lounging on sofa, reviewing ratings
 const GrowSVG = () => (
-  <svg viewBox="0 0 280 240" width="100%" style={{ maxWidth: 280 }}>
-    {/* Background panel – sage green */}
-    <rect x="14" y="6" width="252" height="220" rx="28" fill="#B0C49A" />
-    {/* Floor strip */}
-    <rect x="14" y="188" width="252" height="38" rx="28" fill="#94AA7E" />
-    <rect x="14" y="188" width="252" height="18" fill="#94AA7E" />
-    {/* Tree / plant – top right, like LinkedIn ref2 */}
-    <rect x="228" y="148" width="16" height="58" rx="6" fill="#7A6040" />
-    <ellipse cx="236" cy="130" rx="32" ry="36" fill="#8AAA68" />
-    <ellipse cx="220" cy="140" rx="20" ry="24" fill="#708852" />
-    <ellipse cx="248" cy="138" rx="18" ry="22" fill="#708852" />
-    {/* Sofa body */}
-    <rect x="24" y="158" width="196" height="22" rx="11" fill="#8A9270" />
-    {/* Sofa backrest */}
-    <rect x="24" y="138" width="196" height="26" rx="11" fill="#9AA080" />
-    {/* Sofa left arm */}
-    <rect x="24" y="138" width="22" height="46" rx="10" fill="#8A9270" />
-    {/* Sofa right arm */}
-    <rect x="198" y="138" width="22" height="46" rx="10" fill="#8A9270" />
-    {/* Sofa legs */}
-    <rect x="38" y="180" width="10" height="34" rx="4" fill="#6A7050" />
-    <rect x="192" y="180" width="10" height="34" rx="4" fill="#6A7050" />
-    {/* Person – lounging, head right, feet left */}
-    {/* Feet / shoes */}
-    <rect x="26" y="152" width="30" height="14" rx="7" fill="#16100C" />
-    {/* Legs – horizontal */}
-    <path d="M56 158 Q100 158 130 155" stroke="#2E3848" strokeWidth="22" strokeLinecap="round" fill="none" />
-    {/* Hip / lower torso */}
-    <rect x="126" y="144" width="56" height="26" rx="12" fill="#2E3848" />
-    {/* Torso – angled on sofa back */}
-    <rect x="138" y="112" width="54" height="42" rx="14" fill="#4A78A8" />
-    {/* Right arm – raised, holding phone */}
-    <path d="M186 120 Q196 98 192 76" stroke="#C07850" strokeWidth="16" strokeLinecap="round" fill="none" />
-    {/* Phone */}
-    <rect x="180" y="54" width="24" height="42" rx="6" fill="#16100C" />
-    <rect x="183" y="58" width="18" height="34" rx="4" fill="#5888B0" />
-    {/* Stars on phone screen */}
-    <rect x="185" y="63" width="14" height="3.5" rx="1.75" fill="#F59E0B" opacity="0.9" />
-    <rect x="185" y="70" width="10" height="3" rx="1.5" fill="white" opacity="0.5" />
-    <rect x="185" y="76" width="12" height="3" rx="1.5" fill="white" opacity="0.5" />
-    {/* Left arm – resting on sofa */}
-    <path d="M140 120 Q128 138 122 152" stroke="#C07850" strokeWidth="16" strokeLinecap="round" fill="none" />
-    {/* Neck */}
-    <rect x="168" y="106" width="18" height="12" rx="6" fill="#C07850" />
-    {/* Head */}
-    <circle cx="188" cy="92" r="26" fill="#C07850" />
-    {/* Hair – dark bun pulled back */}
-    <path d="M162 86 Q164 62 188 60 Q212 62 214 86 Q206 74 188 76 Q170 74 162 86 Z" fill="#1A100A" />
-    <circle cx="213" cy="65" r="12" fill="#1A100A" />
-    {/* Rating card – top left floating */}
-    <rect x="28" y="30" width="118" height="58" rx="12" fill="white" opacity="0.9" />
-    {/* Avatar circle */}
-    <circle cx="50" cy="52" r="14" fill="#B0C49A" />
-    {/* Name + rating */}
-    <rect x="70" y="40" width="62" height="5" rx="2.5" fill="#2E3848" />
-    <rect x="70" y="50" width="40" height="4" rx="2" fill="#94AA7E" />
-    {/* 5 stars – drawn as simple shapes */}
-    <path d="M70 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
-    <path d="M83 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
-    <path d="M96 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
-    <path d="M109 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#F59E0B" />
-    <path d="M122 67 l2-5 2 5 5 0 -4 3 2 5 -5-3 -5 3 2-5 -4-3z" fill="#E5E7EB" />
-  </svg>
+  <img src={undraw3} alt="Cobra y crece" style={{ width: '100%', maxWidth: 300, maxHeight: 260, objectFit: 'contain' }} />
 );
 
 const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
@@ -1699,7 +1534,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
           </div>
 
           {/* Stats row */}
-          <div style={{ display: 'flex', gap: 0, background: '#F9FAFB', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: 0, background: C.cardElevated, borderRadius: 12, overflow: 'hidden' }}>
             {[
               { icon: DollarSign, label: 'Pago', value: `S/${cachuelo.price}`, color: C.primary },
               { icon: MapPin, label: 'Lugar', value: cachuelo.location, color: C.success },
@@ -1727,9 +1562,9 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
           {fechaDisplay ? (
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Fecha de inicio</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: '#F0FDF4', borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: C.success + '20', borderRadius: 10 }}>
                 <Calendar size={14} color={C.success} />
-                <span style={{ fontSize: 12, color: '#166534', fontWeight: 500 }}>{fechaDisplay}</span>
+                <span style={{ fontSize: 12, color: C.success, fontWeight: 500 }}>{fechaDisplay}</span>
               </div>
             </div>
           ) : null}
@@ -1764,7 +1599,7 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
         {isOwner ? (
           <div style={{ background: C.card, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 16 }}>Tu publicación</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#F0F9FF', borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: C.cardElevated, borderRadius: 12, padding: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 24, background: C.primary + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={22} color={C.primary} />
               </div>
@@ -2029,7 +1864,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                   <button key={t} onClick={() => upd('tipo', t)} style={{
                     flex: 1, padding: '9px 0', borderRadius: 10,
                     border: `1.5px solid ${form.tipo === t ? C.primary : C.border}`,
-                    background: form.tipo === t ? C.primary + '12' : '#fff',
+                    background: form.tipo === t ? C.primary + '12' : C.card,
                     color: form.tipo === t ? C.primary : C.text,
                     fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   }}>
@@ -2228,7 +2063,17 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
 };
 
 // 7. EDITAR CACHUELO ──────────────────────────────────────────────────────────
+const EDIT_DURATION_PRESETS = ['1 día','2 días','1 semana','2 semanas','3 semanas','1 mes'];
+
+const parseCustomDur = (dur) => {
+  if (!dur || EDIT_DURATION_PRESETS.includes(dur)) return { durNum: '', durUnit: 'día(s)' };
+  const m = dur.match(/^(\d+)\s+(\S+)/);
+  if (!m) return { durNum: '', durUnit: 'día(s)' };
+  return { durNum: m[1], durUnit: m[2].startsWith('semana') ? 'semana(s)' : 'día(s)' };
+};
+
 const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
+  const parsed = parseCustomDur(cachuelo?.duration);
   const [form, setForm] = useState({
     title:       cachuelo?.title        || '',
     category:    cachuelo?.category     || '',
@@ -2237,6 +2082,8 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
     payType:     cachuelo?.payType      || 'Fijo',
     district:    cachuelo?.location     || '',
     duration:    cachuelo?.duration     || '',
+    durNum:      parsed.durNum,
+    durUnit:     parsed.durUnit,
     startDate:   cachuelo?.fecha_inicio || '',
     tipo:        cachuelo?.type         || 'Presencial',
   });
@@ -2251,13 +2098,14 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
     setError(null);
     const cat = CATEGORIES.find(c => c.label === form.category);
     const { error: err } = await supabase.from('cachuelos').update({
-      titulo:      form.title,
-      descripcion: form.description,
+      titulo:       form.title,
+      descripcion:  form.description,
       categoria_id: cat?.id || null,
-      precio:      Number(form.price),
-      distrito:    form.district,
-      duracion:    form.duration,
-      tipo:        form.tipo,
+      precio:       Number(form.price),
+      tipo_pago:    form.payType,
+      distrito:     form.district,
+      duracion:     form.duration,
+      tipo:         form.tipo,
       fecha_inicio: form.startDate === 'flexible' ? null : (form.startDate || null),
       fecha_flexible: form.startDate === 'flexible',
     }).eq('id', cachuelo.id);
@@ -2331,7 +2179,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
           <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Modalidad</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {['Presencial', 'Remoto'].map(t => (
-              <button key={t} onClick={() => upd('tipo', t)} style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${form.tipo === t ? C.primary : C.border}`, background: form.tipo === t ? C.primary + '12' : '#fff', color: form.tipo === t ? C.primary : C.text, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button key={t} onClick={() => upd('tipo', t)} style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${form.tipo === t ? C.primary : C.border}`, background: form.tipo === t ? C.primary + '12' : C.card, color: form.tipo === t ? C.primary : C.text, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 {t === 'Presencial' ? '📍' : '🌐'} {t}
               </button>
             ))}
@@ -2369,10 +2217,23 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: 'block' }}>Duración *</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['1 día','2 días','1 semana','2 semanas','3 semanas','1 mes'].map(d => (
-              <button key={d} onClick={() => upd('duration', d)} style={{ padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.duration === d ? C.primary : C.border}`, background: form.duration === d ? C.primary : '#fff', color: form.duration === d ? '#fff' : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            {EDIT_DURATION_PRESETS.map(d => (
+              <button key={d} onClick={() => { upd('duration', d); upd('durNum', ''); upd('durUnit', 'día(s)'); }}
+                style={{ padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.duration === d ? C.primary : C.border}`, background: form.duration === d ? C.primary : C.card, color: form.duration === d ? '#fff' : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{d}</button>
             ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.textSec, whiteSpace: 'nowrap' }}>Otro:</span>
+            <input type="number" min="1" max="30" placeholder="Nº" value={form.durNum}
+              onChange={e => { const n = e.target.value; upd('durNum', n); if (n) upd('duration', `${n} ${form.durUnit}`); else upd('duration', ''); }}
+              style={{ width: 64, padding: '8px 10px', textAlign: 'center', border: `1.5px solid ${form.durNum ? C.primary : C.border}`, borderRadius: 10, fontSize: 13, color: C.text, outline: 'none', fontFamily: 'inherit', background: C.card }} />
+            <select value={form.durUnit}
+              onChange={e => { upd('durUnit', e.target.value); if (form.durNum) upd('duration', `${form.durNum} ${e.target.value}`); }}
+              style={{ flex: 1, padding: '8px 10px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+              <option value="día(s)">día(s)</option>
+              <option value="semana(s)">semana(s)</option>
+            </select>
           </div>
         </div>
 
@@ -2386,43 +2247,140 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
 };
 
 // 8. BUSCAR ────────────────────────────────────────────────────────────────────
+const PRECIO_OPTS = [
+  { label: 'Hasta S/100', min: 0, max: 100 },
+  { label: 'S/100–S/300', min: 100, max: 300 },
+  { label: 'S/300–S/600', min: 300, max: 600 },
+  { label: 'S/600+',      min: 600, max: Infinity },
+];
+const DURACION_OPTS = ['Horas', 'Días', 'Semanas', 'Meses/+'];
+
+const matchDuracion = (c, dur) => {
+  const d = (c.duration || '').toLowerCase();
+  if (dur === 'Horas')   return d.includes('hora');
+  if (dur === 'Días')    return d.includes('día');
+  if (dur === 'Semanas') return d.includes('semana');
+  if (dur === 'Meses/+') return d.includes('mes') || d.includes('indefinido') || d.includes('año');
+  return true;
+};
+
+const FilterChip = ({ label, active, onPress }) => {
+  const { C } = useTheme();
+  return (
+    <button onClick={onPress} style={{
+      padding: '7px 14px', borderRadius: 20,
+      border: `1.5px solid ${active ? C.primary : C.border}`,
+      background: active ? C.primary + '18' : C.card,
+      color: active ? C.primary : C.textSec,
+      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+      whiteSpace: 'nowrap', transition: 'all .15s', fontFamily: 'inherit',
+    }}>{label}</button>
+  );
+};
+
 const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   const { C, isDark } = useTheme();
-  const [query, setQuery] = useState('');
+  const [query, setQuery]           = useState('');
   const [selectedCat, setSelectedCat] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ modalidad: null, precioRange: null, distrito: null, duracion: null });
 
-  const results = cachuelos.filter(c =>
-    (!query || c.title.toLowerCase().includes(query.toLowerCase()) || c.category.toLowerCase().includes(query.toLowerCase())) &&
-    (!selectedCat || c.category === selectedCat)
-  );
+  const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: f[key] === val ? null : val }));
+
+  const clearAll = () => { setFilters({ modalidad: null, precioRange: null, distrito: null, duracion: null }); setSelectedCat(null); setQuery(''); };
+
+  const results = cachuelos.filter(c => {
+    if (query && !c.title.toLowerCase().includes(query.toLowerCase()) && !c.category.toLowerCase().includes(query.toLowerCase())) return false;
+    if (selectedCat && c.category !== selectedCat) return false;
+    if (filters.modalidad && c.type !== filters.modalidad) return false;
+    if (filters.precioRange) {
+      const r = PRECIO_OPTS.find(o => o.label === filters.precioRange);
+      if (r && (c.price < r.min || c.price > r.max)) return false;
+    }
+    if (filters.distrito && !c.location.includes(filters.distrito)) return false;
+    if (filters.duracion && !matchDuracion(c, filters.duracion)) return false;
+    return true;
+  });
+
+  const activeCount = (selectedCat ? 1 : 0) + Object.values(filters).filter(Boolean).length;
+  const hasActive   = query || activeCount > 0;
+
+  const activeChips = [
+    selectedCat        && { key: 'cat',    label: selectedCat,        onRemove: () => setSelectedCat(null) },
+    filters.modalidad  && { key: 'mod',    label: filters.modalidad,  onRemove: () => setFilter('modalidad', filters.modalidad) },
+    filters.precioRange && { key: 'precio', label: filters.precioRange, onRemove: () => setFilter('precioRange', filters.precioRange) },
+    filters.distrito   && { key: 'dist',   label: filters.distrito,   onRemove: () => setFilter('distrito', filters.distrito) },
+    filters.duracion   && { key: 'dur',    label: filters.duracion,   onRemove: () => setFilter('duracion', filters.duracion) },
+  ].filter(Boolean);
 
   return (
     <Screen withTabs activeTab="search" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      {/* ── Header ── */}
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 16px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Buscar</div>
-        <div style={{ background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-          <Search size={16} color="#8A93B0" />
-          <input
-            value={query} onChange={e => setQuery(e.target.value)}
-            placeholder="Buscar cachuelos, categorías..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent' }}
-            autoFocus
-          />
-          {query && <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color={C.textMuted} /></button>}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+            <Search size={16} color="#8A93B0" />
+            <input
+              value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Buscar cachuelos, categorías..."
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent' }}
+              autoFocus
+            />
+            {query && <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#8A93B0" /></button>}
+          </div>
+          {/* Botón filtros */}
+          <button onClick={() => setShowFilters(true)} style={{
+            position: 'relative', width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+            background: activeCount > 0 ? '#fff' : 'rgba(255,255,255,0.2)',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Filter size={18} color={activeCount > 0 ? C.primary : '#fff'} />
+            {activeCount > 0 && (
+              <div style={{
+                position: 'absolute', top: -4, right: -4, width: 17, height: 17, borderRadius: 9,
+                background: C.primary, color: '#fff', fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{activeCount}</div>
+            )}
+          </button>
         </div>
+
+        {/* Chips de filtros activos */}
+        {activeChips.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 10, paddingBottom: 2, scrollbarWidth: 'none' }}>
+            {activeChips.map(chip => (
+              <div key={chip.key} style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                background: 'rgba(255,255,255,0.25)', borderRadius: 20, padding: '4px 8px 4px 12px',
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{chip.label}</span>
+                <button onClick={chip.onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
+                  <X size={11} color="rgba(255,255,255,0.85)" />
+                </button>
+              </div>
+            ))}
+            <button onClick={clearAll} style={{
+              flexShrink: 0, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 20, padding: '4px 12px', fontSize: 12, color: 'rgba(255,255,255,0.9)',
+              cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+            }}>Limpiar</button>
+          </div>
+        )}
       </div>
 
+      {/* ── Contenido ── */}
       <div style={{ padding: '16px 20px' }}>
-        {!query && (
+        {!hasActive ? (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Explorar categorías</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
               {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCat(selectedCat === cat.label ? null : cat.label)}
+                <button key={cat.id} onClick={() => setSelectedCat(cat.label)}
                   style={{
                     padding: '14px 8px', borderRadius: 16,
-                    border: `1.5px solid ${selectedCat === cat.label ? C.primary : (isDark ? 'rgba(255,255,255,0.10)' : 'transparent')}`,
-                    background: selectedCat === cat.label ? C.primary + '12' : (isDark ? 'rgba(255,255,255,0.06)' : cat.color),
+                    border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'transparent'}`,
+                    background: isDark ? 'rgba(255,255,255,0.06)' : cat.color,
                     cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                   }}>
@@ -2434,14 +2392,12 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
                   }}>
                     <cat.Icon size={22} color="#fff" strokeWidth={2} />
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: selectedCat === cat.label ? C.primary : C.text, lineHeight: 1.2 }}>{cat.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>{cat.label}</div>
                 </button>
               ))}
             </div>
           </>
-        )}
-
-        {(query || selectedCat) && (
+        ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>
               {results.length} resultado{results.length !== 1 ? 's' : ''}
@@ -2451,7 +2407,7 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>😔</div>
                 <div style={{ fontWeight: 600 }}>Sin resultados</div>
-                <div style={{ fontSize: 12, marginTop: 4 }}>Intenta con otra búsqueda</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>Intenta con otra búsqueda o ajusta los filtros</div>
               </div>
             ) : (
               results.map(c => <CachuCard key={c.id} c={c} onPress={() => onViewCachuelo(c)} />)
@@ -2459,6 +2415,74 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
           </>
         )}
       </div>
+
+      {/* ── Panel de filtros (bottom sheet) ── */}
+      {showFilters && (
+        <div onClick={() => setShowFilters(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '82vh', overflowY: 'auto' }}>
+            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Filtros</div>
+              {activeCount > 0 && (
+                <button onClick={clearAll} style={{ background: 'none', border: 'none', color: C.primary, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Limpiar todo
+                </button>
+              )}
+            </div>
+
+            {/* Modalidad */}
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>Modalidad</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['Presencial', 'Remoto'].map(m => (
+                  <FilterChip key={m} label={m} active={filters.modalidad === m} onPress={() => setFilter('modalidad', m)} />
+                ))}
+              </div>
+            </div>
+
+            {/* Precio */}
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>Rango de precio</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PRECIO_OPTS.map(o => (
+                  <FilterChip key={o.label} label={o.label} active={filters.precioRange === o.label} onPress={() => setFilter('precioRange', o.label)} />
+                ))}
+              </div>
+            </div>
+
+            {/* Distrito */}
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>Distrito</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
+                {DISTRITOS.map(d => (
+                  <FilterChip key={d} label={d} active={filters.distrito === d} onPress={() => setFilter('distrito', d)} />
+                ))}
+              </div>
+            </div>
+
+            {/* Duración */}
+            <div style={{ marginBottom: 26 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>Duración</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {DURACION_OPTS.map(d => (
+                  <FilterChip key={d} label={d} active={filters.duracion === d} onPress={() => setFilter('duracion', d)} />
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setShowFilters(false)} style={{
+              width: '100%', padding: '14px 0', borderRadius: 14,
+              background: C.primary, border: 'none', color: '#fff',
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Ver {results.length} resultado{results.length !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      )}
     </Screen>
   );
 };
@@ -2494,6 +2518,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           category: c.categorias?.label || '', location: c.distrito || 'Lima',
           type: c.tipo, featured: c.destacado, remote: c.tipo === 'Remoto',
           description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
+          payType: c.tipo_pago || 'Fijo',
           userId: c.user_id, publisher: { name: user.nombre || 'Yo', rating: 0, verified: false, avatar: (user.nombre?.[0] || 'Y').toUpperCase() },
         })));
       }
@@ -2684,11 +2709,101 @@ const ResenasSection = ({ resenas, loading }) => {
 };
 
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
+const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, user }) => {
+  const { C } = useTheme();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('*').eq('id', user.id).single()
+      .then(({ data }) => { if (data) setProfile(data); });
+  }, [user?.id]);
+
+  const rating      = profile?.rating ?? 0;
+  const completados = profile?.cachuelos_completados ?? 0;
+  const isAdmin     = profile?.rol === 'admin';
+
+  const menuItems = [
+    { icon: Shield,    label: 'Verificar DNI',          desc: 'Aumenta tu confiabilidad',    color: C.primary,  action: null },
+    { icon: Award,     label: 'Verificar CUL',          desc: 'Certificado único laboral',   color: C.purple,   action: null },
+    { icon: Star,      label: 'Mis calificaciones',     desc: completados > 0 ? `${rating.toFixed(1)} · ${completados} reseña${completados !== 1 ? 's' : ''}` : 'Sin reseñas aún', color: C.warning, action: null },
+    ...(isAdmin ? [
+      { icon: Wrench,    label: 'Herramientas Admin',   desc: 'Gestionar cachuelos',         color: '#7C3AED',  action: onAdminTools },
+      { icon: BarChart2, label: 'Dashboard Admin',      desc: 'KPIs y métricas',             color: C.success,  action: onAdmin },
+    ] : []),
+    { icon: FileText,  label: 'Términos y condiciones', desc: 'Aviso legal completo',        color: C.textSec,  action: null },
+    { icon: Settings,  label: 'Configuración',          desc: 'Notificaciones y privacidad', color: C.textSec,  action: null },
+    { icon: LogOut,    label: 'Cerrar sesión',          desc: '',                            color: C.danger,   action: onLogout },
+  ];
+
+  return (
+    <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
+      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeft size={18} color="#fff" />
+          </button>
+          <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>Mi cuenta</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 16px 40px' }}>
+        {menuItems.map((item, i) => {
+          const Icon = item.icon;
+          const isDanger = item.color === C.danger;
+          return (
+            <button key={i} onClick={item.action || (() => {})} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              padding: '13px 16px', background: C.card, border: `1px solid ${C.border}`,
+              borderRadius: 16, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isDanger ? 'rgba(239,68,68,0.1)' : item.color + '18',
+              }}>
+                <Icon size={19} color={item.color} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: isDanger ? C.danger : C.text }}>{item.label}</div>
+                {item.desc && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{item.desc}</div>}
+              </div>
+              {!isDanger && <ChevronRight size={16} color={C.textMuted} />}
+            </button>
+          );
+        })}
+      </div>
+    </Screen>
+  );
+};
+
+const AVATAR_PALETTES = [
+  { bg: 'linear-gradient(135deg,#DBEAFE,#93C5FD)', color: '#1E40AF' },
+  { bg: 'linear-gradient(135deg,#D1FAE5,#6EE7B7)', color: '#065F46' },
+  { bg: 'linear-gradient(135deg,#FEF3C7,#FDE68A)', color: '#92400E' },
+  { bg: 'linear-gradient(135deg,#FCE7F3,#F9A8D4)', color: '#9D174D' },
+  { bg: 'linear-gradient(135deg,#EDE9FE,#C4B5FD)', color: '#5B21B6' },
+];
+const getAvatarPalette = (seed) => AVATAR_PALETTES[(seed || 0) % AVATAR_PALETTES.length];
+const timeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const d = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  if (d === 0) return 'hoy';
+  if (d === 1) return 'ayer';
+  if (d < 7) return `hace ${d} días`;
+  if (d < 30) return `hace ${Math.floor(d / 7)} sem.`;
+  if (d < 365) return `hace ${Math.floor(d / 30)} mes${Math.floor(d / 30) > 1 ? 'es' : ''}`;
+  return `hace ${Math.floor(d / 365)} año${Math.floor(d / 365) > 1 ? 's' : ''}`;
+};
+
 const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) => {
   const { C } = useTheme();
   const [profile, setProfile] = useState(null);
   const [resenas, setResenas] = useState([]);
-  const [loadingResenas, setLoadingResenas] = useState(true);
+  const [trabajos, setTrabajos] = useState([]);
+  const [activeTab, setActiveTab] = useState('info');
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioText, setBioText] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -2696,10 +2811,14 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
   useEffect(() => {
     if (!user?.id) return;
     supabase.from('profiles').select('*').eq('id', user.id).single()
-      .then(({ data }) => { if (data) setProfile(data); });
-    setLoadingResenas(true);
+      .then(({ data }) => { if (data) { setProfile(data); setBioText(data.bio || ''); } });
     supabase.from('resenas').select('*').eq('trabajador_id', user.id).order('created_at', { ascending: false })
-      .then(({ data }) => { setResenas(data || []); setLoadingResenas(false); });
+      .then(({ data }) => setResenas(data || []));
+    supabase.from('postulaciones')
+      .select('*, cachuelos(titulo, distrito, precio, duracion, categorias(label, emoji))')
+      .eq('postulante_id', user.id).eq('estado', 'Aceptado')
+      .order('created_at', { ascending: false }).limit(20)
+      .then(({ data }) => setTrabajos(data || []));
   }, [user?.id]);
 
   const handleSelectPhoto = (e) => {
@@ -2715,9 +2834,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
     setUploadingPhoto(true);
     const ext = previewFile.name.split('.').pop();
     const path = `${user.id}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(path, previewFile, { upsert: true });
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, previewFile, { upsert: true });
     if (!uploadError) {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
@@ -2728,170 +2845,238 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
     setPreviewUrl(null);
   };
 
-  const nombre   = profile?.nombre   || user?.nombre   || '';
-  const apellido = profile?.apellido || user?.apellido || '';
-  const email    = profile?.email    || user?.email    || '';
-  const fullName = [nombre, apellido].filter(Boolean).join(' ') || email.split('@')[0];
-  const initials = `${nombre[0] || ''}${apellido[0] || ''}`.toUpperCase() || '??';
-  const rating   = profile?.rating ?? 0;
+  const handleSaveBio = async () => {
+    await supabase.from('profiles').update({ bio: bioText }).eq('id', user.id);
+    setProfile(p => ({ ...p, bio: bioText }));
+    setEditingBio(false);
+  };
+
+  const handleToggleDisponible = async () => {
+    const next = !(profile?.disponible ?? false);
+    await supabase.from('profiles').update({ disponible: next }).eq('id', user.id);
+    setProfile(p => ({ ...p, disponible: next }));
+  };
+
+  const nombre      = profile?.nombre   || user?.nombre   || '';
+  const apellido    = profile?.apellido || user?.apellido || '';
+  const email       = profile?.email    || user?.email    || '';
+  const fullName    = [nombre, apellido].filter(Boolean).join(' ') || email.split('@')[0];
+  const initials    = `${nombre[0] || ''}${apellido[0] || ''}`.toUpperCase() || '??';
+  const rating      = profile?.rating ?? 0;
   const completados = profile?.cachuelos_completados ?? 0;
-  const publicados  = profile?.cachuelos_publicados  ?? 0;
   const dniVerificado = profile?.dni_verificado ?? false;
-  const isAdmin = profile?.rol === 'admin';
+  const isAdmin     = profile?.rol === 'admin';
+  const disponible  = profile?.disponible ?? false;
+  const bio         = profile?.bio || '';
+  const especialidades = profile?.especialidades || [];
+  const zonas       = profile?.zonas || [];
+  const starDist    = [5,4,3,2,1].map(s => ({ s, n: resenas.filter(r => Math.round(r.estrellas || 0) === s).length }));
+  const maxStar     = Math.max(...starDist.map(x => x.n), 1);
 
-  const menuItems = [
-    { icon: Shield,     label: 'Verificar DNI',           desc: 'Aumenta tu confiabilidad',   color: C.primary,  action: null },
-    { icon: Award,      label: 'Verificar CUL',           desc: 'Certificado único laboral',   color: C.purple,   action: null },
-    { icon: Star,       label: 'Mis calificaciones',      desc: completados > 0 ? `${rating.toFixed(1)} · ${completados} reseña${completados !== 1 ? 's' : ''}` : 'Sin reseñas aún', color: C.warning,  action: null },
-    ...(isAdmin ? [
-      { icon: Wrench,   label: 'Herramientas Admin',      desc: 'Gestionar cachuelos',         color: '#7C3AED',  action: onAdminTools },
-      { icon: BarChart2,label: 'Dashboard Admin',         desc: 'KPIs y métricas',             color: C.success,  action: onAdmin },
-    ] : []),
-    { icon: FileText,   label: 'Términos y condiciones',  desc: 'Aviso legal completo',        color: C.textSec,  action: null },
-    { icon: Settings,   label: 'Configuración',           desc: 'Notificaciones y privacidad', color: C.textSec,  action: null },
-    { icon: LogOut,     label: 'Cerrar sesión',           desc: '',                            color: C.danger,   action: onLogout },
-  ];
-
-  return (
-    <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
-
-      {/* ── HEADER GRADIENT ── */}
-      <div style={{
-        background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 60%, #1A3A8F 100%)`,
-        padding: '44px 20px 80px', textAlign: 'center', position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Decorative circles */}
-        <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-        <div style={{ position: 'absolute', bottom: 20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-
-        <div style={{ position: 'relative' }}>
-          {/* Avatar con ring */}
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-            <div style={{
-              width: 92, height: 92, borderRadius: 46, padding: 3,
-              background: `linear-gradient(135deg, ${C.primary}, ${C.warning})`,
-              display: 'inline-block',
-            }}>
-              <div style={{ width: 86, height: 86, borderRadius: 43, overflow: 'hidden', background: C.headerDark }}>
-                {profile?.avatar_url
-                  ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, color: '#fff' }}>{initials}</div>
-                }
-              </div>
+  const ReviewCard = ({ r, i }) => {
+    const pal = getAvatarPalette(i);
+    const ini = (r.cachuelo_titulo || '?').slice(0, 2).toUpperCase();
+    return (
+      <div style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 18, background: pal.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: pal.color, flexShrink: 0 }}>{ini}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.cachuelo_titulo || 'Cachuelo'}</div>
+            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>
+              {timeAgo(r.created_at)} · <span style={{ color: C.warning }}>{'★'.repeat(Math.round(r.estrellas || 0))}{'☆'.repeat(5 - Math.round(r.estrellas || 0))}</span>
             </div>
-            {/* Botón subir foto */}
-            <label style={{
-              position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: 14,
-              background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
-              border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            }}>
-              <Camera size={13} color="#fff" />
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
-            </label>
-            {dniVerificado && (
-              <div style={{
-                position: 'absolute', bottom: 2, left: 2, width: 28, height: 28, borderRadius: 14,
-                background: C.success, border: '2px solid rgba(255,255,255,0.9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <CheckCircle size={14} color="#fff" />
-              </div>
-            )}
-          </div>
-
-          <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: -0.3 }}>{fullName}</div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 3 }}>{email}</div>
-
-          {/* Chips */}
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-            {isAdmin && (
-              <span style={{ background: 'rgba(139,92,246,0.25)', color: '#C4B5FD', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.4)' }}>
-                🛡️ Admin
-              </span>
-            )}
-            {dniVerificado && (
-              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#6EE7B7', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)' }}>
-                ✓ DNI Verificado
-              </span>
-            )}
-            {rating > 0 && (
-              <span style={{ background: 'rgba(245,158,11,0.2)', color: '#FCD34D', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(245,158,11,0.3)' }}>
-                ⭐ {rating.toFixed(1)}
-              </span>
-            )}
           </div>
         </div>
+        {r.comentario && <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5, fontStyle: 'italic' }}>"{r.comentario}"</div>}
       </div>
+    );
+  };
 
-      {/* ── STATS CARDS (flotan sobre el header) ── */}
-      <div style={{ padding: '0 16px', marginTop: -44, position: 'relative', zIndex: 2 }}>
-        <div style={{
-          background: C.card, borderRadius: 20, padding: '16px 0',
-          boxShadow: '0 8px 32px rgba(13,27,62,0.12)', border: `1px solid ${C.border}`,
-          display: 'flex',
-        }}>
-          {[
-            { label: 'Rating', value: rating > 0 ? rating.toFixed(1) : '—', sub: completados > 0 ? `${completados} trabajos` : 'Sin trabajos', color: C.warning, icon: '⭐' },
-            { label: 'Completados', value: completados, sub: 'cachuelos', color: C.success, icon: '✅' },
-            { label: 'Publicados', value: publicados, sub: 'ofertas', color: C.primary, icon: '📢' },
-          ].map((s, i) => (
-            <div key={i} style={{
-              flex: 1, textAlign: 'center', padding: '4px 8px',
-              borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
-            }}>
-              <div style={{ fontSize: 10, marginBottom: 2 }}>{s.icon}</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, marginTop: 2 }}>{s.label}</div>
-              <div style={{ fontSize: 9, color: C.textMuted }}>{s.sub}</div>
+  const StarChart = () => (
+    <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ textAlign: 'center', minWidth: 60 }}>
+          <div style={{ fontSize: 38, fontWeight: 900, color: C.text, lineHeight: 1 }}>{rating.toFixed(1)}</div>
+          <div style={{ color: C.warning, fontSize: 13, margin: '4px 0' }}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}</div>
+          <div style={{ fontSize: 11, color: C.textMuted }}>{resenas.length} reseña{resenas.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          {starDist.map(({ s, n }) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: C.textSec, width: 10 }}>{s}</span>
+              <div style={{ flex: 1, height: 7, background: C.border, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${(n / maxStar) * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.warning}, #FCD34D)`, borderRadius: 4 }} />
+              </div>
+              <span style={{ fontSize: 10, color: C.textMuted, width: 14 }}>{n}</span>
             </div>
           ))}
         </div>
       </div>
+    </div>
+  );
 
-      {/* ── MENÚ ── */}
-      <div style={{ padding: '20px 16px 8px' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
-          Mi cuenta
+  return (
+    <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
+
+      {/* ── HEADER COMPACTO ── */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '8px 20px 20px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Avatar */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 80, height: 80, borderRadius: 40, padding: 3, background: `linear-gradient(135deg, ${C.primary}, ${C.warning})` }}>
+                <div style={{ width: 74, height: 74, borderRadius: 37, overflow: 'hidden', background: C.headerDark }}>
+                  {profile?.avatar_url
+                    ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff' }}>{initials}</div>}
+                </div>
+              </div>
+              <label style={{ position: 'absolute', bottom: 2, right: 2, width: 26, height: 26, borderRadius: 13, background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <Camera size={12} color="#fff" />
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
+              </label>
+              {dniVerificado && (
+                <div style={{ position: 'absolute', bottom: 2, left: 2, width: 26, height: 26, borderRadius: 13, background: C.success, border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle size={13} color="#fff" />
+                </div>
+              )}
+            </div>
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0, paddingRight: 44 }}>
+              <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: -0.2 }}>{fullName}</div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 3, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                {bio || <span style={{ fontStyle: 'italic' }}>Sin descripción — agrégala en Información</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
+                {isAdmin && <span style={{ background: 'rgba(139,92,246,0.25)', color: '#C4B5FD', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(139,92,246,0.4)' }}>🛡️ Admin</span>}
+                {dniVerificado && <span style={{ background: 'rgba(16,185,129,0.2)', color: '#6EE7B7', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)' }}>✓ DNI</span>}
+                {rating > 0 && <span style={{ background: 'rgba(245,158,11,0.2)', color: '#FCD34D', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(245,158,11,0.3)' }}>⭐ {rating.toFixed(1)}</span>}
+              </div>
+              {/* Disponibilidad */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8 }}>
+                <button onClick={handleToggleDisponible} style={{ display: 'flex', alignItems: 'center', gap: 5, background: disponible ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.15)', border: `1px solid ${disponible ? 'rgba(16,185,129,0.35)' : 'rgba(148,163,184,0.25)'}`, borderRadius: 20, padding: '4px 8px 4px 6px', cursor: 'pointer' }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: disponible ? '#10B981' : '#94A3B8', boxShadow: disponible ? '0 0 5px #10B981' : 'none', flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: disponible ? '#6EE7B7' : 'rgba(255,255,255,0.4)' }}>{disponible ? 'Disponible' : 'No disponible'}</span>
+                  <div style={{ marginLeft: 2, width: 24, height: 13, borderRadius: 7, background: disponible ? '#10B981' : 'rgba(148,163,184,0.4)', position: 'relative', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: disponible ? 'auto' : 2, right: disponible ? 2 : 'auto', width: 9, height: 9, borderRadius: '50%', background: '#fff', transition: 'all 0.2s' }} />
+                  </div>
+                </button>
+                {profile?.tiempo_respuesta && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>⚡ {profile.tiempo_respuesta}</span>}
+              </div>
+            </div>
+          </div>
         </div>
-        {menuItems.map((item, i) => {
-          const Icon = item.icon;
-          const isDanger = item.color === C.danger;
-          return (
-            <button key={i} onClick={item.action || (() => {})} style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-              padding: '13px 16px', background: C.card, border: `1px solid ${C.border}`,
-              borderRadius: 16, marginBottom: 8, cursor: 'pointer', textAlign: 'left',
-              transition: 'all .15s',
-            }}
-              onMouseDown={e => { e.currentTarget.style.background = C.cardElevated; }}
-              onMouseUp={e => { e.currentTarget.style.background = C.card; }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: isDanger ? 'rgba(239,68,68,0.1)' : item.color + '18',
-              }}>
-                <Icon size={19} color={item.color} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: isDanger ? C.danger : C.text }}>{item.label}</div>
-                {item.desc && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{item.desc}</div>}
-              </div>
-              {!isDanger && <ChevronRight size={16} color={C.textMuted} />}
-            </button>
-          );
-        })}
+        {/* Gear button */}
+        <button onClick={() => onNavigate('config')} style={{ position: 'absolute', top: 16, right: 20, width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+          <Settings size={17} color="#fff" />
+        </button>
       </div>
 
-      {/* ── RESEÑAS ── */}
-      <div style={{ padding: '4px 16px 40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Reseñas como trabajador</div>
-          {completados > 0 && (
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>⭐ {rating.toFixed(1)}</span>
-          )}
-        </div>
-        <ResenasSection resenas={resenas} loading={loadingResenas} />
+      {/* ── TABS ── */}
+      <div style={{ display: 'flex', background: C.card, borderBottom: `2px solid ${C.border}` }}>
+        {[['info', 'Información'], ['trabajos', `Trabajos (${completados})`], ['resenas', `Reseñas (${resenas.length})`]].map(([id, label]) => (
+          <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: '12px 4px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: activeTab === id ? C.primary : C.textMuted, background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === id ? C.primary : 'transparent'}`, cursor: 'pointer', marginBottom: -2 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── CONTENIDO TABS ── */}
+      <div style={{ padding: '16px 16px 80px', background: C.cardElevated }}>
+
+        {/* TAB: INFORMACIÓN */}
+        {activeTab === 'info' && (<>
+          {/* Bio */}
+          <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Sobre mí</span>
+              {!editingBio && <button onClick={() => setEditingBio(true)} style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>}
+            </div>
+            {editingBio ? (<>
+              <textarea value={bioText} onChange={e => setBioText(e.target.value.slice(0, 200))} placeholder="Cuéntale a los empleadores sobre ti…" style={{ width: '100%', border: `1.5px solid ${C.primary}`, borderRadius: 10, padding: '10px 12px', fontSize: 13, color: C.text, resize: 'none', height: 80, background: C.cardElevated, outline: 'none', fontFamily: 'inherit' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                <span style={{ fontSize: 11, color: C.textMuted }}>{bioText.length}/200</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => { setEditingBio(false); setBioText(profile?.bio || ''); }} style={{ fontSize: 12, color: C.textSec, background: 'none', border: 'none', cursor: 'pointer' }}>Cancelar</button>
+                  <button onClick={handleSaveBio} style={{ fontSize: 12, color: '#fff', background: C.primary, border: 'none', borderRadius: 8, padding: '5px 14px', fontWeight: 700, cursor: 'pointer' }}>Guardar</button>
+                </div>
+              </div>
+            </>) : (
+              bio ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{bio}</div>
+                 : <div style={{ fontSize: 13, color: C.textMuted, fontStyle: 'italic' }}>Agrega una descripción para que los empleadores te conozcan mejor.</div>
+            )}
+          </div>
+
+          {/* Especialidades */}
+          <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Especialidades</span>
+              <button style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
+            </div>
+            {especialidades.length > 0
+              ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{especialidades.map((e, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: C.primary + '18', color: C.primary, border: `1px solid ${C.primary}30` }}>{e}</span>)}</div>
+              : <div style={{ fontSize: 13, color: C.textMuted, fontStyle: 'italic' }}>Agrega tus especialidades para destacar en búsquedas.</div>}
+          </div>
+
+          {/* Zonas */}
+          <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Zonas de trabajo</span>
+              <button style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
+            </div>
+            {zonas.length > 0
+              ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{zonas.map((z, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: '#EDE9FE', color: '#5B21B6', border: '1px solid #DDD6FE' }}>📍 {z}</span>)}</div>
+              : <div style={{ fontSize: 13, color: C.textMuted, fontStyle: 'italic' }}>Indica los distritos donde puedes trabajar.</div>}
+          </div>
+
+          {/* Resumen de reseñas */}
+          {resenas.length > 0 && <StarChart />}
+          {resenas.slice(0, 2).map((r, i) => <ReviewCard key={r.id || i} r={r} i={i} />)}
+        </>)}
+
+        {/* TAB: TRABAJOS */}
+        {activeTab === 'trabajos' && (<>
+          <div style={{ background: C.card, borderRadius: 14, padding: '14px 16px', border: `1px solid ${C.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 20, background: C.success + '25', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>✅</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{completados} trabajo{completados !== 1 ? 's' : ''} completado{completados !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Historial como trabajador{rating > 0 ? ` · ⭐ ${rating.toFixed(1)} promedio` : ''}</div>
+            </div>
+          </div>
+          {trabajos.length === 0
+            ? <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}><div style={{ fontSize: 32, marginBottom: 8 }}>💼</div>Aún no tienes trabajos completados</div>
+            : trabajos.map((t, i) => {
+                const c = t.cachuelos;
+                if (!c) return null;
+                return (
+                  <div key={t.id || i} style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <CategoryIcon label={c.categorias?.label || ''} size={42} iconSize={18} radius={11} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                        <div style={{ display: 'flex', gap: 10, fontSize: 11, color: C.textSec, marginBottom: 6 }}>
+                          <span>📍 {c.distrito || 'Lima'}</span>
+                          <span>🗓 {timeAgo(t.created_at)}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, color: C.warning }}>✅ Completado</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: C.success }}>S/{c.precio}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+        </>)}
+
+        {/* TAB: RESEÑAS */}
+        {activeTab === 'resenas' && (<>
+          {resenas.length > 0 && <StarChart />}
+          {resenas.length === 0
+            ? <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}><div style={{ fontSize: 32, marginBottom: 8 }}>⭐</div>Aún no tienes reseñas</div>
+            : resenas.map((r, i) => <ReviewCard key={r.id || i} r={r} i={i} />)}
+        </>)}
       </div>
 
       {/* ── MODAL PREVIEW FOTO ── */}
@@ -2903,18 +3088,14 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
               <div style={{ fontSize: 13, color: C.textSec }}>¿Te gusta cómo se ve?</div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-              <div style={{
-                width: 110, height: 110, borderRadius: 55, overflow: 'hidden',
-                border: `3px solid ${C.primary}`, boxShadow: `0 8px 24px ${C.primary}40`,
-              }}>
+              <div style={{ width: 110, height: 110, borderRadius: 55, overflow: 'hidden', border: `3px solid ${C.primary}`, boxShadow: `0 8px 24px ${C.primary}40` }}>
                 <img src={previewUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             </div>
             <Btn onClick={handleConfirmPhoto} disabled={uploadingPhoto} style={{ width: '100%', marginBottom: 12 }}>
               {uploadingPhoto ? 'Subiendo...' : 'Usar esta foto'}
             </Btn>
-            <button onClick={() => { setPreviewFile(null); setPreviewUrl(null); }}
-              style={{ width: '100%', padding: '12px 0', borderRadius: 14, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={() => { setPreviewFile(null); setPreviewUrl(null); }} style={{ width: '100%', padding: '12px 0', borderRadius: 14, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -4009,122 +4190,265 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
 
 // ── PERFIL PÚBLICO ────────────────────────────────────────────────────────────
 const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user }) => {
+  const { C } = useTheme();
   const [profile, setProfile] = useState(null);
-  const [cachuelos, setCachuelos] = useState([]);
   const [resenas, setResenas] = useState([]);
+  const [trabajos, setTrabajos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('info');
   const [showReporte, setShowReporte] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      const [profRes, cachRes, resenasRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
-        supabase.from('cachuelos')
-          .select('*, categorias(label, emoji)')
-          .eq('user_id', userId)
-          .eq('estado', 'Activo')
-          .order('created_at', { ascending: false }),
-        supabase.from('resenas').select('*').eq('trabajador_id', userId).order('created_at', { ascending: false }),
-      ]);
+    setLoading(true);
+    Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('resenas').select('*').eq('trabajador_id', userId).order('created_at', { ascending: false }),
+      supabase.from('postulaciones')
+        .select('*, cachuelos(titulo, distrito, precio, duracion, categorias(label, emoji))')
+        .eq('postulante_id', userId).eq('estado', 'Aceptado')
+        .order('created_at', { ascending: false }).limit(20),
+    ]).then(([profRes, resenasRes, trabajosRes]) => {
       if (profRes.data) setProfile(profRes.data);
-      if (!cachRes.error && cachRes.data) setCachuelos(cachRes.data);
       setResenas(resenasRes.data || []);
+      setTrabajos(trabajosRes.data || []);
       setLoading(false);
-    };
-    fetchData();
+    });
   }, [userId]);
 
-  const nombre = profile?.nombre || '';
-  const apellido = profile?.apellido || '';
-  const fullName = [nombre, apellido].filter(Boolean).join(' ') || profile?.email?.split('@')[0] || 'Usuario';
-  const initials = (`${nombre[0] || ''}${apellido[0] || ''}`).toUpperCase() || 'U';
-  const rating = profile?.rating ?? 0;
+  const nombre      = profile?.nombre || '';
+  const apellido    = profile?.apellido || '';
+  const fullName    = [nombre, apellido].filter(Boolean).join(' ') || profile?.email?.split('@')[0] || 'Usuario';
+  const initials    = (`${nombre[0] || ''}${apellido[0] || ''}`).toUpperCase() || 'U';
+  const rating      = profile?.rating ?? 0;
+  const dniVerificado = profile?.dni_verificado ?? false;
+  const disponible  = profile?.disponible ?? false;
+  const bio         = profile?.bio || '';
+  const especialidades = profile?.especialidades || [];
+  const zonas       = profile?.zonas || [];
+  const starDist    = [5,4,3,2,1].map(s => ({ s, n: resenas.filter(r => Math.round(r.estrellas || 0) === s).length }));
+  const maxStar     = Math.max(...starDist.map(x => x.n), 1);
+
+  const shareText = `👷 ${fullName} en Cachuelo${rating > 0 ? ` · ⭐ ${rating.toFixed(1)}` : ''}`;
+  const shareUrl  = 'https://cachuelo.pe';
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: fullName, text: shareText, url: shareUrl }); }
+      catch (_) {}
+    } else {
+      setShowShareModal(true);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const ReviewCard = ({ r, i }) => {
+    const pal = getAvatarPalette(i);
+    const ini = (r.cachuelo_titulo || '?').slice(0, 2).toUpperCase();
+    return (
+      <div style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 18, background: pal.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: pal.color, flexShrink: 0 }}>{ini}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.cachuelo_titulo || 'Cachuelo'}</div>
+            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 1 }}>
+              {timeAgo(r.created_at)} · <span style={{ color: C.warning }}>{'★'.repeat(Math.round(r.estrellas || 0))}{'☆'.repeat(5 - Math.round(r.estrellas || 0))}</span>
+            </div>
+          </div>
+        </div>
+        {r.comentario && <div style={{ fontSize: 12, color: C.textSec, lineHeight: 1.5, fontStyle: 'italic' }}>"{r.comentario}"</div>}
+      </div>
+    );
+  };
+
+  const StarChart = () => (
+    <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ textAlign: 'center', minWidth: 60 }}>
+          <div style={{ fontSize: 38, fontWeight: 900, color: C.text, lineHeight: 1 }}>{rating.toFixed(1)}</div>
+          <div style={{ color: C.warning, fontSize: 13, margin: '4px 0' }}>{'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}</div>
+          <div style={{ fontSize: 11, color: C.textMuted }}>{resenas.length} reseña{resenas.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          {starDist.map(({ s, n }) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: C.textSec, width: 10 }}>{s}</span>
+              <div style={{ flex: 1, height: 7, background: C.border, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${(n / maxStar) * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.warning}, #FCD34D)`, borderRadius: 4 }} />
+              </div>
+              <span style={{ fontSize: 10, color: C.textMuted, width: 14 }}>{n}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Screen withTabs activeTab="home" onNavigate={onNavigate}>
-      {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ArrowLeft size={18} color="#fff" />
-          </button>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Perfil del publicador</div>
-        </div>
-        {loading ? (
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Cargando...</div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Avatar initials={initials} size={64} bg="rgba(255,255,255,0.2)" fontSize={22} color="#fff" />
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{fullName}</div>
-              {rating > 0
-                ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Stars rating={rating} size={14} />
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{rating.toFixed(1)} ({profile?.cachuelos_completados ?? 0} trabajo{(profile?.cachuelos_completados ?? 0) !== 1 ? 's' : ''})</span>
-                  </div>
-                : <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Sin reseñas todavía</span>
-              }
-              {profile?.dni_verificado && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.2)', padding: '3px 8px', borderRadius: 10, marginTop: 6 }}>
-                  <Shield size={11} color="#fff" />
-                  <span style={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>Verificado</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div style={{ padding: '20px 20px 40px' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-          Cachuelos activos ({cachuelos.length})
-        </div>
-        {cachuelos.length === 0 && !loading ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13 }}>
-            No tiene cachuelos activos en este momento
-          </div>
-        ) : cachuelos.map(c => (
-          <div key={c.id} onClick={() => onViewCachuelo?.({
-            id: c.id, userId: c.user_id, title: c.titulo, emoji: c.categorias?.emoji || '💼',
-            category: c.categorias?.label || '', location: c.distrito || 'Lima',
-            duration: c.duracion || '', price: Number(c.precio), type: c.tipo,
-            featured: c.destacado, remote: c.tipo === 'Remoto',
-            description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
-            publisher: { name: fullName, rating, verified: profile?.dni_verificado || false, avatar: initials },
-          })}
-            style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', border: `1px solid ${C.border}` }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <CategoryIcon label={c.categorias?.label || ''} size={40} iconSize={18} radius={11} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
-                <div style={{ display: 'flex', gap: 10, fontSize: 11, color: C.textSec }}>
-                  <span>📍 {c.distrito || 'Lima'}</span>
-                  <span>⏱ {c.duracion}</span>
+      {/* ── HEADER COMPACTO ── */}
+      <div style={{ position: 'relative' }}>
+        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '48px 20px 20px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+          {loading ? (
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Cargando...</div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {/* Avatar (solo lectura) */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: 80, height: 80, borderRadius: 40, padding: 3, background: `linear-gradient(135deg, ${C.primary}, ${C.warning})` }}>
+                  <div style={{ width: 74, height: 74, borderRadius: 37, overflow: 'hidden', background: C.headerDark }}>
+                    {profile?.avatar_url
+                      ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff' }}>{initials}</div>}
+                  </div>
+                </div>
+                {dniVerificado && (
+                  <div style={{ position: 'absolute', bottom: 2, right: 2, width: 22, height: 22, borderRadius: 11, background: C.success, border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle size={11} color="#fff" />
+                  </div>
+                )}
+              </div>
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                <div style={{ color: '#fff', fontSize: 18, fontWeight: 900, letterSpacing: -0.2 }}>{fullName}</div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 3, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {bio || <span style={{ fontStyle: 'italic' }}>Sin descripción</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
+                  {dniVerificado && <span style={{ background: 'rgba(16,185,129,0.2)', color: '#6EE7B7', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.3)' }}>✓ DNI</span>}
+                  {rating > 0 && <span style={{ background: 'rgba(245,158,11,0.2)', color: '#FCD34D', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, border: '1px solid rgba(245,158,11,0.3)' }}>⭐ {rating.toFixed(1)}</span>}
+                </div>
+                {/* Disponibilidad (solo lectura) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: disponible ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.15)', border: `1px solid ${disponible ? 'rgba(16,185,129,0.35)' : 'rgba(148,163,184,0.25)'}`, borderRadius: 20, padding: '4px 8px 4px 6px' }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: disponible ? '#10B981' : '#94A3B8', boxShadow: disponible ? '0 0 5px #10B981' : 'none', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: disponible ? '#6EE7B7' : 'rgba(255,255,255,0.4)' }}>{disponible ? 'Disponible' : 'No disponible'}</span>
+                  </div>
+                  {profile?.tiempo_respuesta && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>⚡ {profile.tiempo_respuesta}</span>}
                 </div>
               </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.primary, flexShrink: 0 }}>S/{c.precio}</div>
+            </div>
+          )}
+        </div>
+        {/* Back button */}
+        <button onClick={onBack} style={{ position: 'absolute', top: 8, left: 12, width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+          <ArrowLeft size={18} color="#fff" />
+        </button>
+        {/* Title */}
+        <div style={{ position: 'absolute', top: 14, left: 0, right: 0, textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#fff', pointerEvents: 'none', zIndex: 9 }}>
+          Perfil del publicador
+        </div>
+        {/* Share button */}
+        <button onClick={handleShare} style={{ position: 'absolute', top: 8, right: 12, width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+          <Share2 size={17} color="#fff" />
+        </button>
+      </div>
+
+      {/* ── TABS ── */}
+      <div style={{ display: 'flex', background: C.card, borderBottom: `2px solid ${C.border}` }}>
+        {[['info', 'Información'], ['trabajos', `Trabajos (${trabajos.length})`], ['resenas', `Reseñas (${resenas.length})`]].map(([id, label]) => (
+          <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: '12px 4px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: activeTab === id ? C.primary : C.textMuted, background: 'none', border: 'none', borderBottom: `2px solid ${activeTab === id ? C.primary : 'transparent'}`, cursor: 'pointer', marginBottom: -2 }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── CONTENIDO TABS ── */}
+      <div style={{ padding: '16px 16px 80px', background: C.cardElevated }}>
+
+        {/* TAB: INFORMACIÓN */}
+        {activeTab === 'info' && (<>
+          {/* Bio */}
+          <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Sobre mí</div>
+            {bio
+              ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>{bio}</div>
+              : <div style={{ fontSize: 13, color: C.textMuted, fontStyle: 'italic' }}>Este usuario aún no ha agregado una descripción.</div>}
+          </div>
+
+          {/* Especialidades */}
+          {especialidades.length > 0 && (
+            <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Especialidades</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {especialidades.map((e, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: C.primary + '18', color: C.primary, border: `1px solid ${C.primary}30` }}>{e}</span>)}
+              </div>
+            </div>
+          )}
+
+          {/* Zonas */}
+          {zonas.length > 0 && (
+            <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Zonas de trabajo</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {zonas.map((z, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: '#EDE9FE', color: '#5B21B6', border: '1px solid #DDD6FE' }}>📍 {z}</span>)}
+              </div>
+            </div>
+          )}
+
+          {resenas.length > 0 && <StarChart />}
+          {resenas.slice(0, 2).map((r, i) => <ReviewCard key={r.id || i} r={r} i={i} />)}
+        </>)}
+
+        {/* TAB: TRABAJOS */}
+        {activeTab === 'trabajos' && (<>
+          <div style={{ background: C.card, borderRadius: 14, padding: '14px 16px', border: `1px solid ${C.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 20, background: C.success + '25', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>✅</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{trabajos.length} trabajo{trabajos.length !== 1 ? 's' : ''} completado{trabajos.length !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Historial como trabajador{rating > 0 ? ` · ⭐ ${rating.toFixed(1)} promedio` : ''}</div>
             </div>
           </div>
-        ))}
+          {trabajos.length === 0
+            ? <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}><div style={{ fontSize: 32, marginBottom: 8 }}>💼</div>Sin trabajos registrados todavía</div>
+            : trabajos.map((t, i) => {
+                const c = t.cachuelos;
+                if (!c) return null;
+                return (
+                  <div key={t.id || i} style={{ background: C.card, borderRadius: 14, padding: 14, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <CategoryIcon label={c.categorias?.label || ''} size={42} iconSize={18} radius={11} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                        <div style={{ display: 'flex', gap: 10, fontSize: 11, color: C.textSec, marginBottom: 6 }}>
+                          <span>📍 {c.distrito || 'Lima'}</span>
+                          <span>🗓 {timeAgo(t.created_at)}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, color: C.warning }}>✅ Completado</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: C.success }}>S/{c.precio}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+        </>)}
 
-        {/* Reseñas */}
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-            Reseñas como trabajador
-            {rating > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: C.textSec, marginLeft: 8 }}>⭐ {rating.toFixed(1)} ({profile?.cachuelos_completados ?? 0} trabajo{(profile?.cachuelos_completados ?? 0) !== 1 ? 's' : ''})</span>}
-          </div>
-          <ResenasSection resenas={resenas} loading={loading} />
-        </div>
+        {/* TAB: RESEÑAS */}
+        {activeTab === 'resenas' && (<>
+          {resenas.length > 0 && <StarChart />}
+          {resenas.length === 0
+            ? <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 13 }}><div style={{ fontSize: 32, marginBottom: 8 }}>⭐</div>Sin reseñas todavía</div>
+            : resenas.map((r, i) => <ReviewCard key={r.id || i} r={r} i={i} />)}
+        </>)}
 
+        {/* Reportar */}
         {user && user.id !== userId && (
-          <button onClick={() => setShowReporte(true)} style={{
-            display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-            cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '12px 0', margin: '8px auto 0',
-          }}>
-            <Flag size={12} /> Reportar este usuario
-          </button>
+          <div style={{ textAlign: 'center', paddingTop: 8 }}>
+            <button onClick={() => setShowReporte(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: '12px 0' }}>
+              <Flag size={12} /> Reportar este usuario
+            </button>
+          </div>
         )}
       </div>
 
@@ -4136,6 +4460,35 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
           reporterId={user?.id}
           onClose={() => setShowReporte(false)}
         />
+      )}
+
+      {/* Share bottom sheet */}
+      {showShareModal && (
+        <div onClick={() => setShowShareModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
+            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>Compartir perfil</div>
+            <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20 }}>{fullName}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { emoji: '💬', label: 'WhatsApp',    color: '#25D366', href: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}` },
+                { emoji: '✈️', label: 'Telegram',    color: '#0088CC', href: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}` },
+                { emoji: '🐦', label: 'X (Twitter)', color: '#000',    href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}` },
+                { emoji: '💼', label: 'LinkedIn',    color: '#0077B5', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` },
+              ].map(({ emoji, label, color, href }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setShowShareModal(false)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: '#F9FAFB', textDecoration: 'none', border: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 22 }}>{emoji}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
+                </a>
+              ))}
+              <button onClick={handleCopyLink} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: copied ? '#F0FDF4' : '#F9FAFB', border: `1px solid ${copied ? C.success : C.border}`, cursor: 'pointer', width: '100%' }}>
+                <span style={{ fontSize: 22 }}>{copied ? '✅' : '🔗'}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: copied ? C.success : C.text }}>{copied ? '¡Copiado!' : 'Copiar enlace'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Screen>
   );
@@ -4320,6 +4673,7 @@ export default function App() {
     else if (tab === 'publish') setScreen('publish');
     else if (tab === 'mycachuelos') setScreen('mycachuelos');
     else if (tab === 'profile') setScreen('profile');
+    else setScreen(tab);
   };
 
   const viewCachuelo = (c) => {
@@ -4350,6 +4704,7 @@ export default function App() {
       case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
       case 'editcachuelo': return <EditCachueloScreen cachuelo={cachueloParaEditar} onBack={() => setScreen('mycachuelos')} onSaved={refreshCachuelos} onNavigate={navigate} />;
       case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
+      case 'config':      return <ConfigScreen onBack={() => setScreen('profile')} onNavigate={navigate} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;
       default:            return <SplashScreen />;

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Opción 2 – Tabs + Bio Card</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111827; display: flex; justify-content: center; align-items: flex-start; gap: 40px; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; flex-wrap: wrap; }
+  .label { color: #9CA3AF; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .phone { width: 390px; background: #F8FAFC; border-radius: 48px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 0 0 1.5px rgba(255,255,255,0.1); position: relative; }
+  .phone::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 32px; background: #111827; border-radius: 0 0 20px 20px; z-index: 99; }
+  .status-bar { height: 44px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 8px; }
+  .status-bar span { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); }
+
+  /* HEADER compacto lado a lado */
+  .header { background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 70%, #1A3A8F 100%); padding: 8px 20px 24px; position: relative; overflow: hidden; }
+  .header::before { content:''; position:absolute; top:-60px; right:-60px; width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.04); }
+  .header-row { display: flex; align-items: center; gap: 14px; }
+  .avatar-ring { width: 80px; height: 80px; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, #FF6B35, #F59E0B); display: inline-block; flex-shrink: 0; }
+  .avatar-inner { width: 74px; height: 74px; border-radius: 50%; background: #0D1B3E; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #fff; }
+  .header-info { flex: 1; }
+  .profile-name { color: #fff; font-size: 19px; font-weight: 900; }
+  .profile-sub { color: rgba(255,255,255,0.65); font-size: 12px; margin-top: 4px; line-height: 1.4; }
+  .badges { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+  .badge-green { background: rgba(16,185,129,0.2); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.3); }
+  .badge-yellow { background: rgba(245,158,11,0.2); color: #FCD34D; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-purple { background: rgba(139,92,246,0.25); color: #C4B5FD; border: 1px solid rgba(139,92,246,0.4); }
+  .gear-btn { position: absolute; top: 52px; right: 16px; width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 10; }
+  .back-btn { position: absolute; top: 52px; left: 16px; width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,0.2); border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 10; }
+  .page-title { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); font-size: 14px; font-weight: 700; color: #fff; z-index: 10; }
+
+
+  /* TABS */
+  .tabs { display: flex; background: #fff; border-bottom: 1px solid #E2E8F0; padding: 0 20px; }
+  .tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 600; color: #94A3B8; border-bottom: 2px solid transparent; cursor: pointer; }
+  .tab.active { color: #2563EB; border-bottom-color: #2563EB; }
+
+  /* BODY */
+  .body { padding: 16px 20px 48px; background: #F8FAFC; }
+
+  .bio-card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #E2E8F0; margin-bottom: 16px; }
+  .bio-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .bio-card-title { font-size: 12px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
+  .bio-edit-btn { font-size: 11px; color: #2563EB; font-weight: 600; background: none; border: none; cursor: pointer; }
+  .bio-text { font-size: 13px; color: #334155; line-height: 1.6; }
+
+  .cachuelo-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; display: flex; gap: 12px; align-items: center; }
+  .cat-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .cachuelo-info { flex: 1; min-width: 0; }
+  .cachuelo-title { font-weight: 700; font-size: 13px; color: #0F172A; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cachuelo-meta { display: flex; gap: 10px; font-size: 11px; color: #64748B; }
+  .cachuelo-price { font-size: 15px; font-weight: 800; color: #2563EB; flex-shrink: 0; }
+
+  /* DISPONIBILIDAD + RESPUESTA */
+  .disp-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .disp-badge { display: flex; align-items: center; gap: 5px; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.35); border-radius: 20px; padding: 4px 10px; }
+  .disp-dot { width: 7px; height: 7px; border-radius: 50%; background: #10B981; box-shadow: 0 0 6px #10B981; flex-shrink: 0; }
+  .disp-dot.off { background: #94A3B8; box-shadow: none; }
+  .disp-text { font-size: 11px; font-weight: 700; color: #6EE7B7; }
+  .disp-text.off { color: rgba(255,255,255,0.45); }
+  .disp-toggle { margin-left: 4px; width: 26px; height: 14px; border-radius: 7px; background: #10B981; position: relative; flex-shrink: 0; }
+  .disp-toggle::after { content:''; position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:5px; background:#fff; }
+  .resp-time { font-size: 11px; color: rgba(255,255,255,0.55); }
+
+  /* CHIPS INFO */
+  .info-card { background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; margin-bottom: 12px; }
+  .info-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .info-card-title { font-size: 12px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-edit-btn { font-size: 11px; color: #2563EB; font-weight: 600; background: none; border: none; cursor: pointer; }
+  .chips-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 20px; }
+  .chip-blue { background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .chip-purple { background: #EDE9FE; color: #5B21B6; border: 1px solid #DDD6FE; }
+
+  /* SHARE BTN (perfil público) */
+  .share-btn { position: absolute; top: 52px; right: 16px; width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 15px; z-index: 10; }
+
+  .resena-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; }
+  .resena-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .resena-avatar { width: 36px; height: 36px; border-radius: 18px; background: linear-gradient(135deg, #DBEAFE, #93C5FD); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #1E40AF; flex-shrink: 0; }
+  .resena-meta { flex: 1; }
+  .resena-autor { font-size: 13px; font-weight: 700; color: #0F172A; }
+  .resena-date { font-size: 10px; color: #94A3B8; margin-top: 2px; }
+  .stars { color: #F59E0B; font-size: 12px; }
+  .resena-text { font-size: 12px; color: #475569; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ MI PERFIL ═══════════════ -->
+<div>
+  <div class="label">Opción 2 · Mi Perfil</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <!-- Header compacto -->
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 70%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>▲ ▲ 🔋</span>
+      </div>
+      <div class="gear-btn">⚙️</div>
+      <div class="header" style="padding-top:0;">
+        <div class="header-row">
+          <div class="avatar-ring">
+            <div class="avatar-inner">SC</div>
+          </div>
+          <div class="header-info">
+            <div class="profile-name">Sergio Cotillo</div>
+            <div class="profile-sub">"Carpintero con 5 años de experiencia. Trabajos en Lima."</div>
+            <div class="badges">
+              <span class="badge badge-green">✓ DNI</span>
+              <span class="badge badge-yellow">⭐ 4.8</span>
+            </div>
+            <div class="disp-row">
+              <div class="disp-badge">
+                <div class="disp-dot"></div>
+                <span class="disp-text">Disponible</span>
+                <div class="disp-toggle"></div>
+              </div>
+              <span class="resp-time">⚡ Responde ~2h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Stats pills en el header inferior -->
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active">Información</div>
+      <div class="tab">Trabajos (12)</div>
+      <div class="tab">Reseñas (12)</div>
+    </div>
+
+    <div class="body">
+      <!-- Bio editable -->
+      <div class="bio-card">
+        <div class="bio-card-header">
+          <span class="bio-card-title">Sobre mí</span>
+          <button class="bio-edit-btn">✏️ Editar</button>
+        </div>
+        <div class="bio-text">"Carpintero con 5 años de experiencia. Trabajos de calidad en Lima y alrededores. Especializado en muebles a medida y reparaciones. Puntual y responsable."</div>
+      </div>
+
+      <!-- Especialidades -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title">Especialidades</span>
+          <button class="info-edit-btn">✏️ Editar</button>
+        </div>
+        <div class="chips-row">
+          <span class="chip chip-blue">🪵 Carpintería</span>
+          <span class="chip chip-blue">🛋 Muebles a medida</span>
+          <span class="chip chip-blue">🔨 Reparaciones</span>
+          <span class="chip chip-blue">🪞 Acabados</span>
+        </div>
+      </div>
+
+      <!-- Zonas de trabajo -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title">Zonas de trabajo</span>
+          <button class="info-edit-btn">✏️ Editar</button>
+        </div>
+        <div class="chips-row">
+          <span class="chip chip-purple">📍 Miraflores</span>
+          <span class="chip chip-purple">📍 San Isidro</span>
+          <span class="chip chip-purple">📍 Surco</span>
+          <span class="chip chip-purple">📍 Barranco</span>
+          <span class="chip chip-purple">📍 La Molina</span>
+        </div>
+      </div>
+
+      <!-- Resumen de reseñas -->
+      <div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:36px;font-weight:900;color:#0F172A;line-height:1;">4.8</div>
+            <div style="color:#F59E0B;font-size:14px;margin:4px 0;">★★★★★</div>
+            <div style="font-size:11px;color:#94A3B8;">12 reseñas</div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">5</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:75%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">4</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:20%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">3</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:5%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">1</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:0%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar">ML</div>
+          <div class="resena-meta">
+            <div class="resena-autor">María López</div>
+            <div class="resena-date">hace 2 semanas · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Excelente trabajo, muy puntual y los muebles quedaron perfectos. Lo recomiendo totalmente.</div>
+      </div>
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#D1FAE5,#6EE7B7);color:#065F46;">JP</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Juan Pérez</div>
+            <div class="resena-date">hace 1 mes · <span class="stars">★★★★☆</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Buen trabajo, cumplió con lo prometido. Llegó un poco tarde pero el resultado fue muy bueno.</div>
+      </div>
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#92400E;">RG</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Rosa García</div>
+            <div class="resena-date">hace 2 meses · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Super recomendado, entregó el trabajo antes del plazo y con excelente acabado.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PERFIL PÚBLICO ═══════════════ -->
+<div>
+  <div class="label">Opción 2 · Perfil Público</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 70%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>▲ ▲ 🔋</span>
+      </div>
+      <div class="back-btn">←</div>
+      <div class="page-title">Perfil del publicador</div>
+      <div class="share-btn">⬆</div>
+      <div class="header" style="padding-top:48px;">
+        <div class="header-row">
+          <div class="avatar-ring">
+            <div class="avatar-inner">AG</div>
+          </div>
+          <div class="header-info">
+            <div class="profile-name">Admin Gonzales</div>
+            <div class="profile-sub">"Electricista certificado. Instalaciones y mantenimiento."</div>
+            <div class="badges">
+              <span class="badge badge-green">✓ DNI</span>
+              <span class="badge badge-yellow">⭐ 4.6</span>
+            </div>
+            <div class="disp-row">
+              <div class="disp-badge">
+                <div class="disp-dot"></div>
+                <span class="disp-text">Disponible</span>
+              </div>
+              <span class="resp-time">⚡ Responde ~2h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active">Información</div>
+      <div class="tab">Trabajos (12)</div>
+      <div class="tab">Reseñas (8)</div>
+    </div>
+
+    <div class="body">
+      <div class="bio-card">
+        <div class="bio-card-header">
+          <span class="bio-card-title">Sobre mí</span>
+        </div>
+        <div class="bio-text">"Electricista certificado con 8 años de experiencia. Instalaciones, mantenimiento y emergencias en Lima Moderna. Disponible fines de semana."</div>
+      </div>
+
+      <!-- Especialidades (solo lectura) -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title">Especialidades</span>
+        </div>
+        <div class="chips-row">
+          <span class="chip chip-blue">⚡ Electricidad</span>
+          <span class="chip chip-blue">🔌 Instalaciones</span>
+          <span class="chip chip-blue">💡 Iluminación</span>
+          <span class="chip chip-blue">🛠 Mantenimiento</span>
+        </div>
+      </div>
+
+      <!-- Zonas (solo lectura) -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title">Zonas de trabajo</span>
+        </div>
+        <div class="chips-row">
+          <span class="chip chip-purple">📍 Miraflores</span>
+          <span class="chip chip-purple">📍 San Isidro</span>
+          <span class="chip chip-purple">📍 Surco</span>
+          <span class="chip chip-purple">📍 Barranco</span>
+        </div>
+      </div>
+
+      <!-- Resumen de reseñas -->
+      <div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:36px;font-weight:900;color:#0F172A;line-height:1;">4.6</div>
+            <div style="color:#F59E0B;font-size:14px;margin:4px 0;">★★★★½</div>
+            <div style="font-size:11px;color:#94A3B8;">8 reseñas</div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">5</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:60%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">4</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:30%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:#64748B;width:12px;">3</span>
+              <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;"><div style="width:10%;height:100%;background:#F59E0B;border-radius:3px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#FCE7F3,#F9A8D4);color:#9D174D;">CR</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Carlos Ruiz</div>
+            <div class="resena-date">hace 3 días · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Muy profesional, rápido y limpio. Solucionó el problema eléctrico en menos de una hora.</div>
+      </div>
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#EDE9FE,#C4B5FD);color:#5B21B6;">LT</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Lucía Torres</div>
+            <div class="resena-date">hace 1 semana · <span class="stars">★★★★☆</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Buen trabajo, cumplió con lo prometido y explicó bien todo el proceso.</div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;color:#94A3B8;font-size:12px;padding:12px 0;">
+          🚩 Reportar este usuario
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="width:100%;color:#6B7280;font-size:13px;text-align:center;padding:32px 0 8px;">
+  ── Pestañas adicionales (aplica igual a Mi Perfil y Perfil Público) ──
+</div>
+
+<!-- ═══════════════ TAB: CACHUELOS ═══════════════ -->
+<div>
+  <div class="label">Tab · Trabajos completados</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 70%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar"><span>9:41</span><span>▲ ▲ 🔋</span></div>
+      <div class="back-btn">←</div>
+      <div class="page-title">Perfil del publicador</div>
+      <div class="share-btn">⬆</div>
+      <div class="header" style="padding-top:48px;">
+        <div class="header-row">
+          <div class="avatar-ring"><div class="avatar-inner">AG</div></div>
+          <div class="header-info">
+            <div class="profile-name">Admin Gonzales</div>
+            <div class="profile-sub">"Electricista certificado. Instalaciones y mantenimiento."</div>
+            <div class="badges">
+              <span class="badge badge-green">✓ DNI</span>
+              <span class="badge badge-yellow">⭐ 4.6</span>
+            </div>
+            <div class="disp-row">
+              <div class="disp-badge">
+                <div class="disp-dot"></div>
+                <span class="disp-text">Disponible</span>
+              </div>
+              <span class="resp-time">⚡ Responde ~2h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Información</div>
+      <div class="tab active">Trabajos (8)</div>
+      <div class="tab">Reseñas (8)</div>
+    </div>
+    <div class="body">
+
+      <!-- Contador resumen -->
+      <div style="background:#fff;border-radius:14px;padding:14px 16px;border:1px solid #E2E8F0;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:20px;background:linear-gradient(135deg,#D1FAE5,#6EE7B7);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">✅</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#0F172A;">8 trabajos completados</div>
+          <div style="font-size:11px;color:#64748B;margin-top:2px;">Historial como trabajador · Rating promedio ⭐ 4.6</div>
+        </div>
+      </div>
+
+      <!-- Trabajo 1 -->
+      <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#dbeafe,#93c5fd);flex-shrink:0;">⚡</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Instalación eléctrica domiciliaria</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:#64748B;margin-bottom:6px;">
+              <span>📍 Miraflores</span><span>🗓 hace 3 días</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;color:#F59E0B;">★★★★★</span>
+              <span style="font-size:13px;font-weight:800;color:#10B981;">S/280</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trabajo 2 -->
+      <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);flex-shrink:0;">🔧</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Reparación de tablero eléctrico</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:#64748B;margin-bottom:6px;">
+              <span>📍 Surco</span><span>🗓 hace 1 semana</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;color:#F59E0B;">★★★★☆</span>
+              <span style="font-size:13px;font-weight:800;color:#10B981;">S/180</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trabajo 3 -->
+      <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#ede9fe,#c4b5fd);flex-shrink:0;">💡</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Instalación de tomacorrientes</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:#64748B;margin-bottom:6px;">
+              <span>📍 Barranco</span><span>🗓 hace 2 semanas</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;color:#F59E0B;">★★★★★</span>
+              <span style="font-size:13px;font-weight:800;color:#10B981;">S/120</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trabajo 4 -->
+      <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div class="cat-icon" style="background:linear-gradient(135deg,#d1fae5,#6ee7b7);flex-shrink:0;">🔌</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Mantenimiento preventivo oficina</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:#64748B;margin-bottom:6px;">
+              <span>📍 San Isidro</span><span>🗓 hace 1 mes</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;color:#F59E0B;">★★★★★</span>
+              <span style="font-size:13px;font-weight:800;color:#10B981;">S/350</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB: RESEÑAS ═══════════════ -->
+<div>
+  <div class="label">Tab · Reseñas</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 70%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar"><span>9:41</span><span>▲ ▲ 🔋</span></div>
+      <div class="back-btn">←</div>
+      <div class="page-title">Perfil del publicador</div>
+      <div class="share-btn">⬆</div>
+      <div class="header" style="padding-top:48px;">
+        <div class="header-row">
+          <div class="avatar-ring"><div class="avatar-inner">AG</div></div>
+          <div class="header-info">
+            <div class="profile-name">Admin Gonzales</div>
+            <div class="profile-sub">"Electricista certificado. Instalaciones y mantenimiento."</div>
+            <div class="badges">
+              <span class="badge badge-green">✓ DNI</span>
+              <span class="badge badge-yellow">⭐ 4.6</span>
+            </div>
+            <div class="disp-row">
+              <div class="disp-badge">
+                <div class="disp-dot"></div>
+                <span class="disp-text">Disponible</span>
+              </div>
+              <span class="resp-time">⚡ Responde ~2h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab">Información</div>
+      <div class="tab">Trabajos (8)</div>
+      <div class="tab active">Reseñas (8)</div>
+    </div>
+    <div class="body">
+
+      <!-- Resumen visual de estrellas -->
+      <div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #E2E8F0;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="text-align:center;min-width:64px;">
+            <div style="font-size:40px;font-weight:900;color:#0F172A;line-height:1;">4.6</div>
+            <div style="color:#F59E0B;font-size:15px;margin:4px 0;">★★★★½</div>
+            <div style="font-size:11px;color:#94A3B8;">8 reseñas</div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:11px;color:#64748B;width:10px;">5</span>
+              <div style="flex:1;height:7px;background:#F1F5F9;border-radius:4px;overflow:hidden;"><div style="width:62%;height:100%;background:linear-gradient(90deg,#F59E0B,#FCD34D);border-radius:4px;"></div></div>
+              <span style="font-size:10px;color:#94A3B8;width:14px;">5</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:11px;color:#64748B;width:10px;">4</span>
+              <div style="flex:1;height:7px;background:#F1F5F9;border-radius:4px;overflow:hidden;"><div style="width:25%;height:100%;background:linear-gradient(90deg,#F59E0B,#FCD34D);border-radius:4px;"></div></div>
+              <span style="font-size:10px;color:#94A3B8;width:14px;">2</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:11px;color:#64748B;width:10px;">3</span>
+              <div style="flex:1;height:7px;background:#F1F5F9;border-radius:4px;overflow:hidden;"><div style="width:12%;height:100%;background:linear-gradient(90deg,#F59E0B,#FCD34D);border-radius:4px;"></div></div>
+              <span style="font-size:10px;color:#94A3B8;width:14px;">1</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <span style="font-size:11px;color:#64748B;width:10px;">2</span>
+              <div style="flex:1;height:7px;background:#F1F5F9;border-radius:4px;overflow:hidden;"><div style="width:0%;height:100%;background:linear-gradient(90deg,#F59E0B,#FCD34D);border-radius:4px;"></div></div>
+              <span style="font-size:10px;color:#94A3B8;width:14px;">0</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:#64748B;width:10px;">1</span>
+              <div style="flex:1;height:7px;background:#F1F5F9;border-radius:4px;overflow:hidden;"><div style="width:0%;height:100%;background:linear-gradient(90deg,#F59E0B,#FCD34D);border-radius:4px;"></div></div>
+              <span style="font-size:10px;color:#94A3B8;width:14px;">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de reseñas -->
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#FCE7F3,#F9A8D4);color:#9D174D;">CR</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Carlos Ruiz</div>
+            <div class="resena-date">hace 3 días · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Muy profesional, rápido y limpio. Solucionó el problema eléctrico en menos de una hora.</div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#EDE9FE,#C4B5FD);color:#5B21B6;">LT</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Lucía Torres</div>
+            <div class="resena-date">hace 1 semana · <span class="stars">★★★★☆</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Buen trabajo, cumplió con lo prometido y explicó bien todo el proceso.</div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#DBEAFE,#93C5FD);color:#1E40AF;">MV</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Miguel Vargas</div>
+            <div class="resena-date">hace 2 semanas · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Excelente atención, puntual y el trabajo quedó impecable. 100% recomendado.</div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#D1FAE5,#6EE7B7);color:#065F46;">AP</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Ana Paredes</div>
+            <div class="resena-date">hace 1 mes · <span class="stars">★★★☆☆</span></div>
+          </div>
+        </div>
+        <div class="resena-text">El trabajo quedó bien pero tardó más de lo acordado. Igual lo recomendaría.</div>
+      </div>
+
+      <div class="resena-card">
+        <div class="resena-top">
+          <div class="resena-avatar" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#92400E;">RG</div>
+          <div class="resena-meta">
+            <div class="resena-autor">Rosa García</div>
+            <div class="resena-date">hace 2 meses · <span class="stars">★★★★★</span></div>
+          </div>
+        </div>
+        <div class="resena-text">Super recomendado, entregó el trabajo antes del plazo y con excelente acabado.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div style="width:100%;text-align:center;color:#6B7280;font-size:13px;padding:20px 0;margin-top:20px;">
+  <strong style="color:#FF6B35;">Opción 2 (final)</strong> · Header compacto + avatar izquierda · Stats en franja oscura · Tabs Info / Cachuelos / Reseñas · Gráfico de estrellas · Reseñas con avatar de iniciales
+</div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
-║                     Actualizado: 2026-05-26                  ║
+║                     Actualizado: 2026-05-31                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
 1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
@@ -91,20 +91,64 @@
     (menú nativo del sistema). En desktop abre bottom sheet con WhatsApp,
     Telegram, X, LinkedIn y copiar enlace.
 
-19. ILUSTRACIONES DE ONBOARDING CON UNDRAW
-    Las ilustraciones SVG actuales de la WelcomeScreen (BrowseSVG, PublishSVG,
-    GrowSVG) fueron construidas a mano y no tienen la calidad visual de apps
-    como LinkedIn o Yape. Reemplazarlas con ilustraciones profesionales de
-    unDraw.co (gratis, personalizables con el color primario de la marca).
-    Pasos:
-    · Ir a undraw.co y buscar ilustraciones para los 3 slides:
-      - Slide 1 "Encuentra trabajo": buscar "search", "browsing" o "work"
-      - Slide 2 "Publica tu cachuelo": buscar "posting", "upload" o "setup"
-      - Slide 3 "Califica y crece": buscar "rating", "reviews" o "growth"
-    · Ajustar el color principal a #FF6B35 (naranja Cachuelo) en el picker
-    · Descargar los 3 archivos SVG y guardarlos en src/assets/
-    · Reemplazar los componentes BrowseSVG, PublishSVG y GrowSVG en App.jsx
-      por <img src={ilustracion} /> o importando el SVG como componente React
+19. ILUSTRACIONES DE ONBOARDING CON UNDRAW ✅ COMPLETADO
+    SVGs de unDraw guardados en src/assets/ (undraw1-3.svg).
+    Color #6c63ff reemplazado por #FF6B35 (naranja Cachuelo).
+    Componentes BrowseSVG, PublishSVG, GrowSVG usan <img> con los nuevos archivos.
+
+20. CACHUELOS GUARDADOS
+    Botón de "guardar" (bookmark) en las tarjetas del feed y en el detalle
+    de cachuelo. Los cachuelos guardados se listan en una sección dentro de
+    Mis Cachuelos → pestaña "Guardados". Requiere tabla `guardados` en
+    Supabase (user_id, cachuelo_id, created_at) y lógica para toggle
+    (guardar / quitar guardado).
+
+21. PORTAFOLIO CON FOTOS
+    Sección en el perfil donde el trabajador sube fotos de trabajos
+    anteriores con título y descripción breve. Se muestra en el perfil
+    propio (editable) y en el perfil público (solo lectura). Requiere
+    bucket de Supabase Storage para las imágenes y tabla `portafolio`
+    (user_id, url, titulo, descripcion, created_at).
+
+22. CONTRATO DIGITAL SIMPLE
+    Al aceptar a un postulante, generar automáticamente un acuerdo básico
+    con los datos del cachuelo (descripción, fecha, precio) y las firmas
+    digitales de ambas partes (checkbox de aceptación con timestamp).
+    Se guarda en Supabase y es accesible desde el chat y desde Mis
+    Cachuelos mientras el trabajo esté activo.
+
+23. DASHBOARD PARA EL EMPLEADOR
+    Vista de métricas por cachuelo publicado: número de vistas, postulaciones
+    recibidas, tiempo promedio hasta contratar y estado actual. Accesible
+    desde Mis Cachuelos → Publicados → botón "Ver estadísticas". Datos
+    base ya disponibles en Supabase; falta agregar contador de vistas
+    (incrementar en cada apertura del detalle).
+
+24. SISTEMA DE INSIGNIAS
+    Insignias que se otorgan automáticamente según comportamiento verificado:
+    · "Responde rápido" – responde chats en menos de 2h en promedio
+    · "Siempre puntual" – 5+ trabajos completados sin reclamos de demora
+    · "Trabajador Top" – rating ≥ 4.8 con 10+ reseñas
+    · "Empleador confiable" – 5+ trabajos completados como publicador
+    Se muestran como chips en el perfil público y propio. Requiere lógica
+    de cálculo al completar cada trabajo y columna `insignias` (array) en
+    la tabla `profiles`.
+
+25. MODO URGENTE
+    Tag especial "🔴 Urgente" en cachuelos que necesitan cubrirse el mismo
+    día o en las próximas horas. El publicador puede activarlo al crear o
+    editar su cachuelo. Los cachuelos urgentes aparecen destacados al tope
+    del feed con un borde rojo y envían notificación push a trabajadores
+    de esa categoría en el mismo distrito. Requiere campo `urgente` (bool)
+    en tabla `cachuelos` y lógica de notificación.
+
+26. INTEGRACIÓN YAPE / PLIN
+    Botón de pago directo desde el chat o desde la pantalla de trabajo
+    activo. Al marcar un trabajo como completado, el empleador puede pagar
+    al trabajador vía Yape o Plin con deep link a la app correspondiente
+    (yape://pagar?numero=xxx&monto=xxx). En una segunda fase, integrar con
+    la API de Yape Empresas para pagos in-app sin salir de Cachuelo.
+    También habilitar propina opcional al completar el trabajo.
 
 18. SEGURIDAD – CIERRE DE FUGAS ANTES DE PRODUCCIÓN
     Revisar y corregir todas las vulnerabilidades de seguridad antes

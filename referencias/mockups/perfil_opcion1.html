@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Opción 1 – Bio en el Header</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111827; display: flex; justify-content: center; align-items: flex-start; gap: 40px; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; flex-wrap: wrap; }
+  .label { color: #9CA3AF; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .phone { width: 390px; background: #F8FAFC; border-radius: 48px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 0 0 1.5px rgba(255,255,255,0.1); position: relative; }
+  .phone::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 32px; background: #111827; border-radius: 0 0 20px 20px; z-index: 99; }
+  .status-bar { height: 44px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 8px; position: relative; z-index: 2; }
+  .status-bar span { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); }
+
+  /* HEADER GRADIENT */
+  .header { background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 60%, #1A3A8F 100%); padding: 0 24px 88px; text-align: center; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.04); }
+  .header::after { content: ''; position: absolute; bottom: 20px; left: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.03); }
+
+  .avatar-ring { width: 96px; height: 96px; border-radius: 50%; padding: 3px; background: linear-gradient(135deg, #FF6B35, #F59E0B); display: inline-block; margin-bottom: 14px; position: relative; z-index: 1; }
+  .avatar-inner { width: 90px; height: 90px; border-radius: 50%; background: #0D1B3E; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #fff; }
+  .profile-name { color: #fff; font-size: 22px; font-weight: 900; letter-spacing: -0.3px; position: relative; z-index: 1; }
+  .profile-bio { color: rgba(255,255,255,0.72); font-size: 13px; margin-top: 6px; line-height: 1.5; max-width: 260px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; }
+  .badges { display: flex; gap: 6px; justify-content: center; margin-top: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .badge-green { background: rgba(16,185,129,0.2); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.3); }
+  .badge-yellow { background: rgba(245,158,11,0.2); color: #FCD34D; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-purple { background: rgba(139,92,246,0.25); color: #C4B5FD; border: 1px solid rgba(139,92,246,0.4); }
+
+  /* STATS CARD */
+  .stats-wrap { padding: 0 20px; margin-top: -52px; position: relative; z-index: 2; }
+  .stats-card { background: #fff; border-radius: 20px; padding: 16px 0; box-shadow: 0 8px 32px rgba(13,27,62,0.14); border: 1px solid #E2E8F0; display: flex; }
+  .stat { flex: 1; text-align: center; padding: 4px 8px; }
+  .stat + .stat { border-left: 1px solid #E2E8F0; }
+  .stat-icon { font-size: 11px; margin-bottom: 2px; }
+  .stat-val { font-size: 22px; font-weight: 900; line-height: 1; }
+  .stat-label { font-size: 10px; font-weight: 700; color: #64748B; margin-top: 2px; }
+  .stat-sub { font-size: 9px; color: #94A3B8; }
+
+  /* BODY */
+  .body { padding: 18px 20px 48px; background: #F8FAFC; }
+  .section-title { font-size: 15px; font-weight: 800; color: #0F172A; margin-bottom: 12px; }
+  .cachuelo-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; display: flex; gap: 12px; align-items: center; }
+  .cat-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .cachuelo-info { flex: 1; min-width: 0; }
+  .cachuelo-title { font-weight: 700; font-size: 13px; color: #0F172A; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cachuelo-meta { display: flex; gap: 10px; font-size: 11px; color: #64748B; }
+  .cachuelo-price { font-size: 15px; font-weight: 800; color: #2563EB; flex-shrink: 0; }
+
+  .resena-card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; }
+  .resena-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .resena-autor { font-size: 13px; font-weight: 700; color: #0F172A; }
+  .stars { color: #F59E0B; font-size: 12px; }
+  .resena-text { font-size: 12px; color: #475569; line-height: 1.5; }
+
+  /* PUBLIC PROFILE differences */
+  .header-pub { background: linear-gradient(135deg, #1E40AF, #0D1B3E); padding: 0 24px 88px; text-align: center; position: relative; overflow: hidden; }
+  .header-pub::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.04); }
+
+  .report-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; color: #94A3B8; font-size: 12px; padding: 12px 0; margin: 8px auto 0; }
+
+  .back-btn { position: absolute; top: 52px; left: 20px; width: 36px; height: 36px; border-radius: 18px; background: rgba(255,255,255,0.2); border: none; display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .gear-btn { position: absolute; top: 52px; right: 20px; width: 38px; height: 38px; border-radius: 19px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; }
+
+  .edit-bio { margin-top: 20px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; margin-bottom: 4px; }
+  .edit-bio-label { font-size: 12px; font-weight: 700; color: #64748B; margin-bottom: 8px; }
+  .edit-bio-input { width: 100%; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #0F172A; resize: none; height: 72px; background: #F8FAFC; }
+  .edit-bio-hint { font-size: 11px; color: #94A3B8; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ MI PERFIL (propio) ═══════════════ -->
+<div>
+  <div class="label">Opción 1 · Mi Perfil</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 60%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>▲ ▲ 🔋</span>
+      </div>
+      <div class="back-btn" style="left:auto;right:20px;top:52px;">⚙️</div>
+      <div class="header" style="padding-top: 16px;">
+        <div class="avatar-ring">
+          <div class="avatar-inner">SC</div>
+        </div>
+        <div class="camera-btn" style="display:inline-block;background:linear-gradient(135deg,#FF6B35,#c44d1e);border-radius:14px;width:28px;height:28px;margin-left:-18px;margin-top:-20px;vertical-align:top;line-height:28px;text-align:center;font-size:13px;border:2px solid rgba(255,255,255,0.9);">📷</div>
+        <div class="profile-name">Sergio Cotillo</div>
+        <!-- BIO en el header -->
+        <div class="profile-bio">"Carpintero con 5 años de experiencia. Trabajos de calidad en Lima y alrededores. Puntual y responsable."</div>
+        <div class="badges" style="margin-top:12px;">
+          <span class="badge badge-green">✓ DNI Verificado</span>
+          <span class="badge badge-yellow">⭐ 4.8</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats flotante -->
+    <div class="stats-wrap">
+      <div class="stats-card">
+        <div class="stat">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-val" style="color:#F59E0B;">4.8</div>
+          <div class="stat-label">Rating</div>
+          <div class="stat-sub">12 trabajos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val" style="color:#10B981;">12</div>
+          <div class="stat-label">Completados</div>
+          <div class="stat-sub">cachuelos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">📢</div>
+          <div class="stat-val" style="color:#2563EB;">3</div>
+          <div class="stat-label">Publicados</div>
+          <div class="stat-sub">ofertas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="body">
+      <!-- Editar bio -->
+      <div class="edit-bio">
+        <div class="edit-bio-label">TU DESCRIPCIÓN</div>
+        <textarea class="edit-bio-input" readonly>"Carpintero con 5 años de experiencia. Trabajos de calidad en Lima y alrededores. Puntual y responsable."</textarea>
+        <div class="edit-bio-hint">✏️ Toca para editar · Máximo 200 caracteres</div>
+      </div>
+
+      <div style="margin-top:20px;" class="section-title">Reseñas como trabajador</div>
+
+      <div class="resena-card">
+        <div class="resena-header">
+          <span class="resena-autor">María López</span>
+          <span class="stars">★★★★★</span>
+        </div>
+        <div class="resena-text">Excelente trabajo, muy puntual y los muebles quedaron perfectos. Lo recomiendo totalmente.</div>
+      </div>
+      <div class="resena-card">
+        <div class="resena-header">
+          <span class="resena-autor">Juan Pérez</span>
+          <span class="stars">★★★★☆</span>
+        </div>
+        <div class="resena-text">Buen trabajo, cumplió con lo prometido. Llegó un poco tarde pero el resultado fue muy bueno.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PERFIL PÚBLICO (otro usuario) ═══════════════ -->
+<div>
+  <div class="label">Opción 1 · Perfil Público</div>
+  <div class="phone" style="height: 820px; overflow-y: auto;">
+    <div style="background: linear-gradient(160deg, #1E40AF 0%, #0D1B3E 60%, #1A3A8F 100%); position: relative;">
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>▲ ▲ 🔋</span>
+      </div>
+      <div class="back-btn">←</div>
+      <div style="position:absolute;top:52px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#fff;z-index:2;">Perfil del publicador</div>
+      <div class="header-pub" style="padding-top: 16px;">
+        <div class="avatar-ring">
+          <div class="avatar-inner">AG</div>
+        </div>
+        <div class="profile-name">Admin Gonzales</div>
+        <div class="profile-bio">"Electricista certificado. Instalaciones, mantenimiento y emergencias. Disponible fines de semana."</div>
+        <div class="badges" style="margin-top:12px;">
+          <span class="badge badge-green">✓ DNI Verificado</span>
+          <span class="badge badge-yellow">⭐ 4.6</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats flotante -->
+    <div class="stats-wrap">
+      <div class="stats-card">
+        <div class="stat">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-val" style="color:#F59E0B;">4.6</div>
+          <div class="stat-label">Rating</div>
+          <div class="stat-sub">8 trabajos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val" style="color:#10B981;">8</div>
+          <div class="stat-label">Completados</div>
+          <div class="stat-sub">cachuelos</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">📢</div>
+          <div class="stat-val" style="color:#2563EB;">5</div>
+          <div class="stat-label">Publicados</div>
+          <div class="stat-sub">ofertas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="section-title">Cachuelos activos (3)</div>
+      <div class="cachuelo-card">
+        <div class="cat-icon" style="background:linear-gradient(135deg,#d1fae5,#6ee7b7);">🌿</div>
+        <div class="cachuelo-info">
+          <div class="cachuelo-title">cachuelistico</div>
+          <div class="cachuelo-meta"><span>📍 La Molina</span><span>⏱ 1 día</span></div>
+        </div>
+        <div class="cachuelo-price">S/399</div>
+      </div>
+      <div class="cachuelo-card">
+        <div class="cat-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);">🔧</div>
+        <div class="cachuelo-info">
+          <div class="cachuelo-title">Cachuelo MVP</div>
+          <div class="cachuelo-meta"><span>📍 San Isidro</span><span>⏱ 3 días</span></div>
+        </div>
+        <div class="cachuelo-price">S/250</div>
+      </div>
+
+      <div style="margin-top:20px;" class="section-title">Reseñas como trabajador</div>
+      <div class="resena-card">
+        <div class="resena-header">
+          <span class="resena-autor">Carlos Ruiz</span>
+          <span class="stars">★★★★★</span>
+        </div>
+        <div class="resena-text">Muy profesional, rápido y limpio. Solucionó el problema eléctrico en menos de una hora.</div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button class="report-btn" style="margin:0 auto;">🚩 Reportar este usuario</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="width:100%;text-align:center;color:#6B7280;font-size:13px;padding:20px 0;margin-top:20px;">
+  <strong style="color:#FF6B35;">Opción 1</strong> · Bio integrada en el header · Stats siempre visibles · Edición de bio en cuerpo del perfil
+</div>
+</body>
+</html>
