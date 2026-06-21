@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
-║                     Actualizado: 2026-05-31                  ║
+║                     Actualizado: 2026-06-21                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
 1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
@@ -10,15 +10,22 @@
    porque el trabajo fue completado antes de que existiera el código de
    inserción. Pendiente investigar con el console.error ya agregado.
 
-2. MEJORAR VISUALIZACIÓN DEL PERFIL DE USUARIO
-   Las pantallas ProfileScreen (perfil propio) y PublicProfileScreen (perfil
-   de otro usuario) necesitan un rediseño visual para ser más atractivas y
-   mostrar mejor la información del trabajador.
+2. MEJORAR VISUALIZACIÓN DEL PERFIL DE USUARIO ✅ COMPLETADO
+   Rediseño completo de ProfileScreen y PublicProfileScreen (v0.13).
+   Header con avatar, bio, rating, disponibilidad y especialidades.
+   Tabs de Información, Trabajos y Reseñas en perfil público.
+   Fixes adicionales (v0.14):
+   · Header reposicionado (padding-top 44px, igual que otros screens)
+   · Edición de "Sobre mí" corregida y con manejo de error
+   · "Especialidades" ahora abre modal con las 12 categorías seleccionables
+   · "Zonas de trabajo" ahora abre modal con los 43 distritos seleccionables
+   · Columnas faltantes agregadas a Supabase (ver referencias/sql3.txt):
+     bio, avatar_url, disponible, especialidades[], zonas[], tiempo_respuesta
 
-3. HISTORIAL DE ESTADOS DEL POSTULANTE
-   Cuando un postulante pasa por distintos estados (Pendiente → Visto →
-   Aceptado / Rechazado), no hay una vista clara de ese recorrido. Se necesita
-   una línea de tiempo o historial visible en el chat o en Mis Cachuelos.
+3. HISTORIAL DE ESTADOS DEL POSTULANTE ✅ COMPLETADO
+   Timeline expandible en ChatScreen que muestra cada cambio de estado
+   (Pendiente → Visto → Aceptado/Rechazado/Completado) con ícono, color
+   y fecha/hora. Se activa con botón "Ver (N eventos)".
 
 4. CONTRAOFERTA DE PRECIO EN EL CHAT
    En el chat entre publicador y postulante, el postulante debería poder
@@ -30,10 +37,10 @@
    Bug corregido: cachuelos abiertos desde Mis Cachuelos y Perfil público
    ahora muestran correctamente "A coordinar" en el detalle.
 
-6. EDITAR CACHUELO YA PUBLICADO
-   El publicador no puede modificar un cachuelo después de publicarlo.
-   Se necesita un botón de edición en Mis Cachuelos → Publicados que
-   abra un formulario pre-llenado con los datos actuales.
+6. EDITAR CACHUELO YA PUBLICADO ✅ COMPLETADO
+   EditCachueloScreen pre-llenado con todos los datos del cachuelo.
+   Botón ✏️ Editar en Mis Cachuelos → Publicados (solo cachuelos activos).
+   Guarda cambios en Supabase y refresca el listado al volver.
 
 7. FLUJO POST-ACEPTACIÓN
    Cuando se acepta a un postulante no hay un estado "En progreso". Se

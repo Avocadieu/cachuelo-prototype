@@ -2807,6 +2807,12 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [editingEspecialidades, setEditingEspecialidades] = useState(false);
+  const [tempEspecialidades, setTempEspecialidades] = useState([]);
+  const [savingEsp, setSavingEsp] = useState(false);
+  const [editingZonas, setEditingZonas] = useState(false);
+  const [tempZonas, setTempZonas] = useState([]);
+  const [savingZonas, setSavingZonas] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -2846,9 +2852,25 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
   };
 
   const handleSaveBio = async () => {
-    await supabase.from('profiles').update({ bio: bioText }).eq('id', user.id);
-    setProfile(p => ({ ...p, bio: bioText }));
+    const { error } = await supabase.from('profiles').update({ bio: bioText }).eq('id', user.id);
+    if (!error) setProfile(p => ({ ...p, bio: bioText }));
     setEditingBio(false);
+  };
+
+  const handleSaveEspecialidades = async () => {
+    setSavingEsp(true);
+    const { error } = await supabase.from('profiles').update({ especialidades: tempEspecialidades }).eq('id', user.id);
+    if (!error) setProfile(p => ({ ...p, especialidades: tempEspecialidades }));
+    setSavingEsp(false);
+    setEditingEspecialidades(false);
+  };
+
+  const handleSaveZonas = async () => {
+    setSavingZonas(true);
+    const { error } = await supabase.from('profiles').update({ zonas: tempZonas }).eq('id', user.id);
+    if (!error) setProfile(p => ({ ...p, zonas: tempZonas }));
+    setSavingZonas(false);
+    setEditingZonas(false);
   };
 
   const handleToggleDisponible = async () => {
@@ -2920,7 +2942,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
       {/* ── HEADER COMPACTO ── */}
       <div style={{ position: 'relative' }}>
-        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '8px 20px 20px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '44px 20px 20px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {/* Avatar */}
@@ -3012,7 +3034,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
           <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Especialidades</span>
-              <button style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
+              <button onClick={() => { setTempEspecialidades([...(profile?.especialidades || [])]); setEditingEspecialidades(true); }} style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
             </div>
             {especialidades.length > 0
               ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{especialidades.map((e, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: C.primary + '18', color: C.primary, border: `1px solid ${C.primary}30` }}>{e}</span>)}</div>
@@ -3023,7 +3045,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
           <div style={{ background: C.card, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: `1px solid ${C.border}`, marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: C.textSec, textTransform: 'uppercase', letterSpacing: 0.5 }}>Zonas de trabajo</span>
-              <button style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
+              <button onClick={() => { setTempZonas([...(profile?.zonas || [])]); setEditingZonas(true); }} style={{ fontSize: 11, color: C.primary, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>✏️ Editar</button>
             </div>
             {zonas.length > 0
               ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{zonas.map((z, i) => <span key={i} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, background: '#EDE9FE', color: '#5B21B6', border: '1px solid #DDD6FE' }}>📍 {z}</span>)}</div>
@@ -3078,6 +3100,65 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
             : resenas.map((r, i) => <ReviewCard key={r.id || i} r={r} i={i} />)}
         </>)}
       </div>
+
+      {/* ── MODAL ESPECIALIDADES ── */}
+      {editingEspecialidades && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
+          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '75vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Especialidades</div>
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>Selecciona las categorías en las que trabajas</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+              {CATEGORIES.map(cat => {
+                const sel = tempEspecialidades.includes(cat.label);
+                return (
+                  <button key={cat.id}
+                    onClick={() => setTempEspecialidades(prev => sel ? prev.filter(e => e !== cat.label) : [...prev, cat.label])}
+                    style={{ padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${sel ? C.primary : C.border}`, background: sel ? C.primary + '18' : C.cardElevated, color: sel ? C.primary : C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 6, background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <cat.Icon size={12} color="#fff" strokeWidth={2.5} />
+                    </div>
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+            <Btn onClick={handleSaveEspecialidades} disabled={savingEsp} style={{ width: '100%', marginBottom: 10 }}>
+              {savingEsp ? 'Guardando...' : 'Guardar'}
+            </Btn>
+            <button onClick={() => setEditingEspecialidades(false)} style={{ width: '100%', padding: '12px 0', borderRadius: 14, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL ZONAS ── */}
+      {editingZonas && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
+          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '80vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Zonas de trabajo</div>
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>Selecciona los distritos donde puedes trabajar</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+              {DISTRITOS.map(d => {
+                const sel = tempZonas.includes(d);
+                return (
+                  <button key={d}
+                    onClick={() => setTempZonas(prev => sel ? prev.filter(z => z !== d) : [...prev, d])}
+                    style={{ padding: '7px 14px', borderRadius: 20, border: `1.5px solid ${sel ? '#8B5CF6' : C.border}`, background: sel ? '#EDE9FE' : C.cardElevated, color: sel ? '#5B21B6' : C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    📍 {d}
+                  </button>
+                );
+              })}
+            </div>
+            <Btn onClick={handleSaveZonas} disabled={savingZonas} style={{ width: '100%', marginBottom: 10 }}>
+              {savingZonas ? 'Guardando...' : 'Guardar'}
+            </Btn>
+            <button onClick={() => setEditingZonas(false)} style={{ width: '100%', padding: '12px 0', borderRadius: 14, background: 'none', border: `1.5px solid ${C.border}`, color: C.textSec, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL PREVIEW FOTO ── */}
       {previewUrl && (

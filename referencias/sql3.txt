@@ -1,0 +1,16 @@
+-- ============================================================
+-- Cachuelo – Migración v3
+-- Columnas faltantes en profiles (bio, avatar, disponible, etc.)
+-- Ejecutar en: Supabase → SQL Editor
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- Columnas de perfil público del trabajador
+-- ------------------------------------------------------------
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio           TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url    TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS disponible    BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS especialidades TEXT[]  DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS zonas          TEXT[]  DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS tiempo_respuesta TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email         TEXT;
