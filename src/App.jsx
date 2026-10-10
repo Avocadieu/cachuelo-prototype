@@ -2,7 +2,45 @@ import { supabase } from './lib/supabase.js';
 import undraw1 from './assets/undraw1.svg';
 import undraw2 from './assets/undraw2.svg';
 import undraw3 from './assets/undraw3.svg';
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect } from 'react';
+import { APIProvider } from '@vis.gl/react-google-maps';
+import './styles/liquid-glass.css';
+import { LIGHT, DARK, ThemeCtx, useTheme } from './ui/theme.js';
+import { CATEGORIES, CATEGORY_GROUPS, categoriesInGroup, groupOfLabel, getGroup, matchesQuery } from './data/categories.js';
+import CategoryPicker, { CategorySheet, CatChip } from './features/catalog/CategoryPicker.jsx';
+import { feed as simFeed, SIM_EVENT, hasOffer as simHasOffer, offersFor as simOffersFor, ago as simAgo } from './features/demo/demoWorld.js';
+import DemoMyCachuelos from './features/demo/DemoMyCachuelos.jsx';
+import SimulatorScreen from './features/demo/SimulatorScreen.jsx';
+import UserProfileScreen from './features/profiles/UserProfileScreen.jsx';
+import { DISTRITOS, DISTRITOS_LIMA, DEPARTAMENTOS_PERU, CIUDADES_PERU } from './data/places.js';
+import { Stars, Avatar, Badge, Btn, Input, Textarea, CategoryIcon, TabBar, Screen, TABBAR_SPACE, SkeletonCard } from './ui/primitives.jsx';
+import { Wallet as WalletIcon } from 'lucide-react';
+import { ToastHost, toast, haptic } from './ui/toast.jsx';
+import { resolveCoords, distanceKm, formatDistance } from './data/geo.js';
+import { insertCachuelo, updateCachuelo, geoToColumns, DEMO_EVENT } from './data/cachuelosApi.js';
+import { isDemoBackend, friendlyError } from './lib/demoBackend.js';
+import { normalizeCachuelos } from './data/normalize.js';
+import MapScreen from './features/map/MapScreen.jsx';
+import LocationFields, { locationFromCachuelo } from './features/map/LocationFields.jsx';
+import { useGeolocation } from './features/map/useGeolocation.js';
+import { MAPS_API_KEY, hasMapsKey } from './features/map/mapConfig.js';
+import PaymentSheet from './features/payments/PaymentSheet.jsx';
+import PaymentStatusCard, { ProtectedBadge } from './features/payments/PaymentStatusCard.jsx';
+import WalletScreen from './features/payments/WalletScreen.jsx';
+import { getPaymentForPostulacion, onPaymentsChange } from './features/payments/paymentStore.js';
+import { shieldContact } from './features/payments/contactShield.js';
+import VerificationScreen, { useVerification, VerificationStatusCard, VerifyGateSheet } from './features/verification/VerificationScreen.jsx';
+import AdminVerificationsScreen from './features/verification/AdminVerificationsScreen.jsx';
+import { getVerification, verifUserId, submitAvatarChange, ageFrom, MIN_AGE, isDemoVerification } from './features/verification/verificationStore.js';
+import OfferForm from './features/offers/OfferForm.jsx';
+import RequirementsField from './features/offers/RequirementsField.jsx';
+import { insertPostulacion, offerAmount, cleanMessage } from './features/offers/offersApi.js';
+import { findDiscrimination } from './features/compliance/discriminationFilter.js';
+import { isRisky } from './features/compliance/requirements.js';
+import { INTERMEDIARY_NOTICE, SAFETY_NOTICE_PUBLISH } from './features/compliance/legal.js';
+import SafetySheet from './features/compliance/SafetySheet.jsx';
+import { Siren, ShieldCheck as ShieldCheckIcon, FlaskConical, ArrowUpDown, LayoutGrid } from 'lucide-react';
+import { PRICE_MIN, SERVICE_FEE_RATE, CONNECTION_FEE } from './features/payments/pricing.js';
 import {
   Home, Search, PlusCircle, Briefcase, User, Star, MapPin, Clock,
   ChevronRight, ChevronLeft, X, Check, ArrowLeft, Bell, Settings,
@@ -11,77 +49,16 @@ import {
   Leaf, Monitor, Calendar, MessageCircle, Filter, Heart, Share2,
   LogOut, Eye, CheckCircle, AlertCircle, Package, Send, Hash,
   DollarSign, Trash2, Pencil, Flag,
-  Sparkles, Palette, ChefHat, GraduationCap, PartyPopper
+  Sparkles, Palette, ChefHat, GraduationCap, PartyPopper, MapPinned,
+  Map as MapIcon
 } from 'lucide-react';
-
-// ─── TEMA ────────────────────────────────────────────────────────────────────
-const LIGHT = {
-  primary: '#FF6B35', primaryLight: '#FF8C5A', primaryDark: '#E55A25',
-  headerBg: '#2563EB', headerDark: '#1D4ED8', headerLight: '#3B82F6',
-  success: '#10B981', warning: '#F59E0B', danger: '#EF4444', purple: '#8B5CF6',
-  // Themed via CSS variables (fallback = light values)
-  bg: 'var(--c-bg,#F0F4FF)', card: 'var(--c-card,#FFFFFF)',
-  cardElevated: 'var(--c-card-el,#F8FAFF)',
-  text: 'var(--c-text,#0D1B3E)', textSec: 'var(--c-tsec,#4A5780)',
-  textMuted: 'var(--c-tmut,#8A93B0)', border: 'var(--c-bord,#DDE3F5)',
-};
-const DARK = {
-  primary: '#FF7A47', primaryLight: '#FF9563', primaryDark: '#E86A35',
-  headerBg: '#1E40AF', headerDark: '#1E3A8A', headerLight: '#2563EB',
-  success: '#34D399', warning: '#FCD34D', danger: '#F87171', purple: '#C4B5FD',
-  bg: 'var(--c-bg,#0B0F1A)', card: 'var(--c-card,#1C2438)',
-  cardElevated: 'var(--c-card-el,#242E48)',
-  text: 'var(--c-text,#F0F4FF)', textSec: 'var(--c-tsec,#A8B4D8)',
-  textMuted: 'var(--c-tmut,#6874A0)', border: 'var(--c-bord,#2E3C5E)',
-};
 
 // Fallback module-level C (used in default prop values & pre-hook code)
 let C = LIGHT;
 
-const ThemeCtx = createContext({ C: LIGHT, isDark: false, toggleDark: () => {} });
-const useTheme = () => useContext(ThemeCtx);
-
-// ─── DISTRITOS DE LIMA ───────────────────────────────────────────────────────
-const DISTRITOS = [
-  'Ancón','Ate','Barranco','Breña','Carabayllo','Cercado de Lima','Chaclacayo',
-  'Chorrillos','Cieneguilla','Comas','El Agustino','Independencia','Jesús María',
-  'La Molina','La Victoria','Lince','Los Olivos','Lurigancho','Lurín',
-  'Magdalena del Mar','Miraflores','Pachacámac','Pucusana','Pueblo Libre',
-  'Puente Piedra','Punta Hermosa','Punta Negra','Rímac','San Bartolo','San Borja',
-  'San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis',
-  'San Martín de Porres','San Miguel','Santa Anita','Santa María del Mar',
-  'Santa Rosa','Santiago de Surco','Surquillo','Villa El Salvador','Villa María del Triunfo',
-];
 
 // ─── DATOS MOCK ─────────────────────────────────────────────────────────────
-const CATEGORIES = [
-  { id: 1,  label: 'Limpieza',     Icon: Sparkles,      iconBgA: '#0EA5E9', iconBgB: '#38BDF8', color: '#E0F2FE' },
-  { id: 2,  label: 'Mudanza',      Icon: Package,        iconBgA: '#F97316', iconBgB: '#FDBA74', color: '#FEF3C7' },
-  { id: 3,  label: 'Redacción',    Icon: FileText,       iconBgA: '#10B981', iconBgB: '#6EE7B7', color: '#F0FDF4' },
-  { id: 4,  label: 'Diseño',       Icon: Palette,        iconBgA: '#8B5CF6', iconBgB: '#C4B5FD', color: '#FDF4FF' },
-  { id: 5,  label: 'Reparaciones', Icon: Wrench,         iconBgA: '#F59E0B', iconBgB: '#FDE68A', color: '#FFF7ED' },
-  { id: 6,  label: 'Cocina',       Icon: ChefHat,        iconBgA: '#F43F5E', iconBgB: '#FDA4AF', color: '#FEF9C3' },
-  { id: 7,  label: 'Delivery',     Icon: Truck,          iconBgA: '#14B8A6', iconBgB: '#5EEAD4', color: '#ECFDF5' },
-  { id: 8,  label: 'Tutorías',     Icon: GraduationCap,  iconBgA: '#3B82F6', iconBgB: '#93C5FD', color: '#EFF6FF' },
-  { id: 9,  label: 'Jardinería',   Icon: Leaf,           iconBgA: '#22C55E', iconBgB: '#86EFAC', color: '#F0FDF4' },
-  { id: 10, label: 'Tecnología',   Icon: Monitor,        iconBgA: '#6366F1', iconBgB: '#A5B4FC', color: '#F5F3FF' },
-  { id: 11, label: 'Fotografía',   Icon: Camera,         iconBgA: '#EC4899', iconBgB: '#F9A8D4', color: '#FDF2F8' },
-  { id: 12, label: 'Eventos',      Icon: PartyPopper,    iconBgA: '#EF4444', iconBgB: '#FCA5A5', color: '#FFF1F2' },
-];
 
-const CategoryIcon = ({ label, size = 44, iconSize = 22, radius = 12 }) => {
-  const cat = CATEGORIES.find(c => c.label === label) || { Icon: Briefcase, iconBgA: '#6B7280', iconBgB: '#9CA3AF' };
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: radius, flexShrink: 0,
-      background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: `0 4px 12px ${cat.iconBgA}50`,
-    }}>
-      <cat.Icon size={iconSize} color="#fff" strokeWidth={2} />
-    </div>
-  );
-};
 
 const CACHUELOS = [
   {
@@ -138,283 +115,124 @@ const CACHUELOS = [
     schedule: 'A coordinar esta semana',
     remote: false,
   },
+  {
+    id: 7, title: 'Ayudante para mudanza en Cayma',
+    category: 'Mudanza', emoji: '📦', location: 'Arequipa', departamento: 'Arequipa', district: 'Arequipa',
+    duration: '1 día', price: 120, type: 'Presencial', featured: false,
+    publisher: { name: 'Lucía Paredes', rating: 4.7, verified: true, avatar: 'LP' },
+    description: 'Necesito 1 persona para cargar muebles de un 2do piso a camión. Mañana completa.',
+    schedule: 'Sábado, 8am–1pm', remote: false,
+  },
+  {
+    id: 8, title: 'Mesero para evento (matrimonio)',
+    category: 'Eventos', emoji: '🎉', location: 'Trujillo', departamento: 'La Libertad', district: 'Trujillo',
+    duration: '1 día', price: 90, type: 'Presencial', featured: true,
+    publisher: { name: 'Eventos Moche', rating: 4.8, verified: true, avatar: 'EM' },
+    description: 'Buscamos 3 meseros con experiencia para un matrimonio de 150 personas. Uniforme negro.',
+    schedule: 'Viernes, 6pm–2am', remote: false,
+  },
 ];
 
-// ─── UTILIDADES ──────────────────────────────────────────────────────────────
-const Stars = ({ rating, size = 12 }) => (
-  <span style={{ color: C.warning, fontSize: size, letterSpacing: 1 }}>
-    {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
-  </span>
-);
-
-const Avatar = ({ initials, src, size = 36, bg = C.primary, color = '#fff', fontSize = 13 }) => (
-  <div style={{
-    width: size, height: size, borderRadius: size, background: bg,
-    color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontWeight: 700, fontSize, flexShrink: 0, overflow: 'hidden',
-  }}>
-    {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
-  </div>
-);
-
-const Badge = ({ children, color = C.primary, bg }) => (
-  <span style={{
-    background: bg || color + '18', color,
-    fontSize: 10, fontWeight: 600, padding: '2px 7px',
-    borderRadius: 20, whiteSpace: 'nowrap',
-  }}>{children}</span>
-);
-
-const Btn = ({ children, onClick, style = {}, variant = 'primary', disabled }) => {
-  const { C } = useTheme();
-  const base = {
-    border: 'none', borderRadius: 14, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: 14, transition: 'all .2s', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 6, padding: '13px 22px',
-    opacity: disabled ? 0.55 : 1, letterSpacing: 0.1,
-  };
-  const variants = {
-    primary: {
-      background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
-      color: '#fff', boxShadow: `0 4px 16px ${C.primary}45`,
-    },
-    outline: { background: 'transparent', color: C.primary, border: `2px solid ${C.primary}` },
-    ghost: { background: C.cardElevated, color: C.text },
-    danger: {
-      background: `linear-gradient(135deg, ${C.danger} 0%, #DC2626 100%)`,
-      color: '#fff', boxShadow: '0 4px 12px rgba(239,68,68,0.35)',
-    },
-  };
-  return (
-    <button onClick={disabled ? undefined : onClick}
-      onMouseDown={e => { if (!disabled) e.currentTarget.style.transform = 'scale(0.97)'; }}
-      onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-      style={{ ...base, ...variants[variant], ...style }}>
-      {children}
-    </button>
-  );
-};
-
-const Input = ({ label, placeholder, type = 'text', value, onChange, icon }) => {
-  const { C } = useTheme();
-  return (
-    <div style={{ marginBottom: 14 }}>
-      {label && <label style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 6, display: 'block', letterSpacing: 0.2 }}>{label}</label>}
-      <div style={{ position: 'relative' }}>
-        {icon && <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.textMuted }}>{icon}</span>}
-        <input
-          type={type} placeholder={placeholder} value={value} onChange={onChange}
-          style={{
-            width: '100%', padding: icon ? '12px 14px 12px 40px' : '12px 14px',
-            border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 14,
-            color: C.text, background: C.card, outline: 'none', fontFamily: 'inherit',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
-    </div>
-  );
-};
-
-const Textarea = ({ label, placeholder, value, onChange, rows = 4 }) => {
-  const { C } = useTheme();
-  return (
-    <div style={{ marginBottom: 14 }}>
-      {label && <label style={{ fontSize: 12, fontWeight: 700, color: C.textSec, marginBottom: 6, display: 'block', letterSpacing: 0.2 }}>{label}</label>}
-      <textarea
-        placeholder={placeholder} value={value} onChange={onChange} rows={rows}
-        style={{
-          width: '100%', padding: '12px 14px', border: `1.5px solid ${C.border}`,
-          borderRadius: 12, fontSize: 14, color: C.text, background: C.card,
-          outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box',
-        }}
-      />
-    </div>
-  );
-};
-
 // ─── PHONE FRAME ─────────────────────────────────────────────────────────────
+// En escritorio se ve dentro de un iPhone; en un celular real (≤520px) ocupa
+// toda la pantalla (ver .pf-* en styles/liquid-glass.css).
 const THEME_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-  * { box-sizing: border-box; }
-  body { font-family: 'Nunito', system-ui, -apple-system, sans-serif; }
-  .light-mode {
-    --c-bg:#F0F4FF; --c-card:#FFFFFF; --c-card-el:#F5F7FF;
-    --c-text:#0D1B3E; --c-tsec:#4A5780; --c-tmut:#8A93B0; --c-bord:#DDE3F5;
-  }
-  .dark-mode {
-    --c-bg:#0B0F1A; --c-card:#1C2438; --c-card-el:#242E48;
-    --c-text:#F0F4FF; --c-tsec:#A8B4D8; --c-tmut:#6874A0; --c-bord:#2E3C5E;
-  }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner { animation: spin 1s linear infinite; }
+  .spinner { animation: spin 1s linear infinite; display: inline-block; }
 `;
 
-const PhoneFrame = ({ children, isDark, onToggleDark }) => (
-  <div style={{
-    display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px 40px',
-    minHeight: '100vh',
-    background: isDark
-      ? 'linear-gradient(160deg, #050710 0%, #0a0e1f 50%, #0d1530 100%)'
-      : 'linear-gradient(160deg, #1a237e 0%, #1565c0 50%, #0d47a1 100%)',
-    transition: 'background 0.4s ease',
-  }}>
-    <style>{THEME_CSS}</style>
-
-    {/* Brand label */}
-    <div style={{ marginBottom: 20, textAlign: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
-        <div style={{ boxShadow: '0 4px 14px rgba(255,107,53,0.55)', borderRadius: 10 }}>
-          <CachueloMark size={32} />
-        </div>
-        <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>Cachuelo</div>
-      </div>
-      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-        Prototipo v0.11 · Lima, Perú 🇵🇪
-      </div>
-    </div>
-
-    {/* Phone shell */}
-    <div style={{
-      width: 375, background: '#000', borderRadius: 52,
-      boxShadow: isDark
-        ? '0 0 0 2px #222, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.9), inset 0 0 0 1px #333'
-        : '0 0 0 2px #333, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.7), inset 0 0 0 1px #444',
-      padding: '14px 8px 8px', position: 'relative',
+const PhoneFrame = ({ children, isDark, onToggleDark, statusLight }) => {
+  const ink = statusLight ? '#FFFFFF' : (isDark ? '#EDF0FA' : '#0D1B3E');
+  return (
+    <div className="pf-root" style={{
+      background: isDark
+        ? 'radial-gradient(1200px 600px at 20% 0%, #10204a 0%, #050710 55%), #050710'
+        : 'radial-gradient(1000px 600px at 15% 0%, #4f7cff 0%, #1a3fb8 45%, #0f2a7a 100%)',
     }}>
-      {/* Notch */}
-      <div style={{
-        position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
-        width: 120, height: 30, background: '#000', borderRadius: 20,
-        zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-      }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #333' }} />
-        <div style={{ width: 60, height: 6, borderRadius: 3, background: '#111' }} />
+      <style>{THEME_CSS}</style>
+
+      {/* Marca */}
+      <div className="pf-brand" style={{ marginBottom: 20, textAlign: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ boxShadow: '0 4px 14px rgba(255,107,53,0.55)', borderRadius: 10 }}>
+            <CachueloMark size={32} />
+          </div>
+          <div style={{ color: '#fff', fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>Cachuelo</div>
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>
+          Prototipo v0.18 · Doble rol + Catálogo + Simulador · Perú 🇵🇪
+        </div>
       </div>
 
-      {/* Screen */}
-      <div className={isDark ? 'dark-mode' : 'light-mode'} style={{
-        width: '100%', height: 780, borderRadius: 44, overflow: 'hidden',
-        background: isDark ? '#0D1018' : '#F0F4FF', position: 'relative',
+      {/* Carcasa */}
+      <div className="pf-shell" style={{
+        boxShadow: isDark
+          ? '0 0 0 2px #222, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.9), inset 0 0 0 1px #333'
+          : '0 0 0 2px #333, 0 0 0 4px #111, 0 50px 100px rgba(0,0,0,0.55), inset 0 0 0 1px #444',
       }}>
-        {/* Status bar */}
-        <div style={{
-          background: 'transparent', display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', padding: '12px 20px 0', position: 'absolute',
-          top: 0, left: 0, right: 0, zIndex: 20, pointerEvents: 'none',
-        }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: isDark ? '#EDF0FA' : '#0D1B3E' }}>9:41</span>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-              {[3,5,7,9].map(h => <div key={h} style={{ width: 3, height: h, background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />)}
-            </div>
-            <div style={{ width: 14, height: 8, border: `1.5px solid ${isDark ? '#EDF0FA' : '#0D1B3E'}`, borderRadius: 2, position: 'relative' }}>
-              <div style={{ position: 'absolute', right: -3, top: '50%', transform: 'translateY(-50%)', width: 2, height: 4, background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />
-              <div style={{ width: '70%', height: '100%', background: isDark ? '#EDF0FA' : '#0D1B3E', borderRadius: 1 }} />
+        {/* Dynamic Island */}
+        <div className="pf-notch" style={{
+          position: 'absolute', top: 24, left: '50%', transform: 'translateX(-50%)',
+          width: 112, height: 32, background: '#000', borderRadius: 20, zIndex: 900,
+        }} />
+
+        {/* Pantalla */}
+        <div className={`pf-screen lg-app ${isDark ? 'dark-mode' : 'light-mode'}`}>
+          <div className="lg-ambient" aria-hidden="true"><i /></div>
+
+          {/* Barra de estado */}
+          <div className="pf-statusbar" style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '14px 30px 0', position: 'absolute', top: 0, left: 0, right: 0,
+            zIndex: 800, pointerEvents: 'none', transition: 'color .3s',
+          }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: ink }}>9:41</span>
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+                {[4,6,8,10].map(h => <div key={h} style={{ width: 3, height: h, background: ink, borderRadius: 1 }} />)}
+              </div>
+              <div style={{ width: 22, height: 11, border: `1.5px solid ${ink}`, borderRadius: 3.5, position: 'relative', opacity: 0.95 }}>
+                <div style={{ position: 'absolute', right: -3.5, top: '50%', transform: 'translateY(-50%)', width: 2, height: 4, background: ink, borderRadius: 1 }} />
+                <div style={{ position: 'absolute', inset: 1.5, right: '30%', background: ink, borderRadius: 1.5 }} />
+              </div>
             </div>
           </div>
+
+          {/* Contenido */}
+          <div className="pf-content">
+            {children}
+          </div>
+          <ToastHost />
         </div>
 
-        {/* App content */}
-        <div style={{ position: 'absolute', inset: 0, paddingTop: 24, overflowY: 'auto' }}>
-          {children}
+        {/* Home indicator */}
+        <div className="pf-home-indicator" style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
+          <div style={{ width: 120, height: 5, background: '#333', borderRadius: 3 }} />
         </div>
       </div>
 
-      {/* Home indicator */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
-        <div style={{ width: 120, height: 5, background: '#333', borderRadius: 3 }} />
+      {/* Controles del prototipo */}
+      <div className="pf-controls" style={{ marginTop: 24, textAlign: 'center' }}>
+        <button onClick={onToggleDark} style={{
+          background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 20,
+          color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 18px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6, margin: '0 auto 16px',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        }}>
+          {isDark ? '☀️ Modo claro' : '🌙 Modo oscuro'}
+        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {['React', 'Vite', 'Supabase', 'Google Maps', hasMapsKey ? 'Mapa: activo' : 'Mapa: sin API key'].map(t => (
+            <span key={t} style={{
+              background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
+              fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.14)',
+            }}>{t}</span>
+          ))}
+        </div>
       </div>
-    </div>
-
-    {/* Bottom: dark mode toggle + stack */}
-    <div style={{ marginTop: 24, textAlign: 'center' }}>
-      <button onClick={onToggleDark} style={{
-        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)',
-        border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20,
-        color: '#fff', fontSize: 12, fontWeight: 700, padding: '7px 18px',
-        cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center',
-        gap: 6, margin: '0 auto 16px',
-      }}>
-        {isDark ? '☀️ Modo claro' : '🌙 Modo oscuro'}
-      </button>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {['React', 'Vite', 'Supabase', 'PostgreSQL'].map(t => (
-          <span key={t} style={{
-            background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)',
-            fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
-          }}>{t}</span>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-// ─── TAB BAR ─────────────────────────────────────────────────────────────────
-const TabBar = ({ active, onNavigate }) => {
-  const { C } = useTheme();
-  const tabs = [
-    { id: 'home',        icon: Home,       label: 'Inicio'       },
-    { id: 'search',      icon: Search,     label: 'Buscar'       },
-    { id: 'publish',     icon: PlusCircle, label: 'Publicar'     },
-    { id: 'mycachuelos', icon: Briefcase,  label: 'Mis Cachuelos'},
-    { id: 'profile',     icon: User,       label: 'Perfil'       },
-  ];
-  return (
-    <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100,
-      background: C.card, borderTop: `1px solid ${C.border}`,
-      display: 'flex', alignItems: 'flex-end', paddingBottom: 8,
-      boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
-    }}>
-      {tabs.map(tab => {
-        const Icon = tab.icon;
-        const isPublish = tab.id === 'publish';
-        const isActive = active === tab.id;
-        return (
-          <button key={tab.id} onClick={() => onNavigate(tab.id)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: 2, border: 'none', background: 'transparent', cursor: 'pointer',
-              padding: isPublish ? '0 0 4px' : '8px 0 4px', position: 'relative',
-            }}
-          >
-            {isPublish ? (
-              <div style={{
-                width: 54, height: 54, borderRadius: 27,
-                background: `linear-gradient(135deg, ${C.primary} 0%, ${C.primaryDark} 100%)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 6px 20px ${C.primary}55`,
-                marginTop: -24, border: `3px solid ${C.card}`,
-              }}>
-                <Icon size={24} color="#fff" />
-              </div>
-            ) : (
-              <div style={{ position: 'relative', padding: '4px 12px', borderRadius: 12,
-                background: isActive ? `${C.primary}15` : 'transparent', transition: 'all .2s' }}>
-                <Icon size={20} color={isActive ? C.primary : C.textMuted} strokeWidth={isActive ? 2.5 : 1.8} />
-              </div>
-            )}
-            <span style={{
-              fontSize: 9, fontWeight: isActive || isPublish ? 800 : 500,
-              color: isPublish ? C.primary : isActive ? C.primary : C.textMuted,
-            }}>{tab.label}</span>
-          </button>
-        );
-      })}
     </div>
   );
 };
-
-// ─── SCREEN WRAPPER ──────────────────────────────────────────────────────────
-const Screen = ({ children, withTabs, activeTab, onNavigate, style = {} }) => (
-  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', ...style }}>
-    <div style={{ flex: 1, overflowY: 'auto', paddingBottom: withTabs ? 72 : 0 }}>
-      {children}
-    </div>
-    {withTabs && <TabBar active={activeTab} onNavigate={onNavigate} />}
-  </div>
-);
 
 // ─── LOGO MARK ───────────────────────────────────────────────────────────────
 const CachueloMark = ({ size = 36 }) => (
@@ -546,50 +364,8 @@ const OnboardingScreen = ({ onDone }) => {
 // 3. LOGIN ────────────────────────────────────────────────────────────────────
 const PAISES = ['Perú','Argentina','Bolivia','Brasil','Chile','Colombia','Ecuador','México','Paraguay','Uruguay','Venezuela','Otro'];
 
-const DISTRITOS_LIMA = [
-  'Ancón','Ate','Barranco','Breña','Carabayllo','Cercado de Lima','Chaclacayo','Chorrillos',
-  'Cieneguilla','Comas','El Agustino','Independencia','Jesús María','La Molina','La Victoria',
-  'Lince','Los Olivos','Lurigancho','Lurín','Magdalena del Mar','Miraflores','Pachacámac',
-  'Pucusana','Pueblo Libre','Puente Piedra','Punta Hermosa','Punta Negra','Rímac','San Bartolo',
-  'San Borja','San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis',
-  'San Martín de Porres','San Miguel','Santa Anita','Santa María del Mar','Santa Rosa',
-  'Santiago de Surco','Surquillo','Villa El Salvador','Villa María del Triunfo',
-];
 
-const DEPARTAMENTOS_PERU = [
-  'Amazonas','Áncash','Apurímac','Arequipa','Ayacucho','Cajamarca',
-  'Callao','Cusco','Huancavelica','Huánuco','Ica','Junín','La Libertad',
-  'Lambayeque','Lima','Loreto','Madre de Dios','Moquegua','Pasco',
-  'Piura','Puno','San Martín','Tacna','Tumbes','Ucayali',
-];
 
-const CIUDADES_PERU = {
-  'Amazonas':     ['Chachapoyas','Bagua','Bagua Grande','Luya','Utcubamba','Condorcanqui'],
-  'Áncash':       ['Huaraz','Chimbote','Nuevo Chimbote','Caraz','Casma','Huarmey','Yungay','Recuay'],
-  'Apurímac':     ['Abancay','Andahuaylas','Chalhuanca','Tambobamba','Chincheros'],
-  'Arequipa':     ['Arequipa','Camaná','Mollendo','Caravelí','Cotahuasi','Islay'],
-  'Ayacucho':     ['Ayacucho','Huanta','San Miguel','Coracora','Cangallo','Vilcashuamán'],
-  'Cajamarca':    ['Cajamarca','Jaén','Chota','Cutervo','Cajabamba','San Ignacio','Hualgayoc','Celendín'],
-  'Callao':       ['Callao','Bellavista','La Perla','La Punta','Mi Perú','Ventanilla'],
-  'Cusco':        ['Cusco','Sicuani','Calca','Quillabamba','Urubamba','Espinar','Chumbivilcas'],
-  'Huancavelica': ['Huancavelica','Acobamba','Lircay','Castrovirreyna','Churcampa','Pampas'],
-  'Huánuco':      ['Huánuco','Tingo María','Ambo','La Unión','Huacaybamba','Puerto Inca'],
-  'Ica':          ['Ica','Chincha Alta','Pisco','Nazca','Palpa'],
-  'Junín':        ['Huancayo','La Oroya','Tarma','San Ramón','Satipo','Chupaca','Junín'],
-  'La Libertad':  ['Trujillo','Chepén','Otuzco','Pacasmayo','Ascope','Virú','Huamachuco'],
-  'Lambayeque':   ['Chiclayo','Lambayeque','Ferreñafe','Motupe','Olmos'],
-  'Lima':         ['Lima','Barranca','Huacho','Huaral','Cañete','Mala','Matucana','Oyón'],
-  'Loreto':       ['Iquitos','Requena','Yurimaguas','Nauta','Caballococha'],
-  'Madre de Dios':['Puerto Maldonado','Iberia','Iñapari','Laberinto'],
-  'Moquegua':     ['Moquegua','Ilo','Omate'],
-  'Pasco':        ['Cerro de Pasco','Oxapampa','Yanahuanca'],
-  'Piura':        ['Piura','Sullana','Paita','Talara','Huancabamba','Ayabaca','Sechura','Chulucanas'],
-  'Puno':         ['Puno','Juliaca','Azángaro','Ilave','Macusani','Yunguyo','Desaguadero'],
-  'San Martín':   ['Moyobamba','Tarapoto','Rioja','Juanjuí','Tocache','Bellavista','Saposoa'],
-  'Tacna':        ['Tacna','Tarata','Candarave','Locumba'],
-  'Tumbes':       ['Tumbes','Zarumilla','Aguas Verdes','Zorritos'],
-  'Ucayali':      ['Pucallpa','Atalaya','Aguaytía','Contamana','Sepahua'],
-};
 
 // ─── WELCOME SCREEN ──────────────────────────────────────────────────────────
 // Slide 1: Person sitting outdoors, browsing phone for gigs
@@ -736,6 +512,7 @@ const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
 
 const handleRegister = async () => {
   setError('');
+  if (ageFrom(reg.fechaNac) < MIN_AGE) { setError(`Cachuelo es solo para mayores de ${MIN_AGE} años.`); return; }
   setLoading(true);
   const { data, error } = await supabase.auth.signUp({
     email: reg.email,
@@ -766,21 +543,21 @@ const handleRegister = async () => {
   onLogin({ id: data.user.id, email: data.user.email, nombre: reg.nombre, apellido: reg.apellido });
 };
 
-  const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac
+  const isMinor = reg.fechaNac && ageFrom(reg.fechaNac) < MIN_AGE;
+  const regFilled = reg.nombre && reg.apellido && reg.email && reg.emailConf && reg.fechaNac && !isMinor
     && reg.telefono && reg.distrito && reg.pass && reg.passConf
     && !emailMismatch && !passMismatch && passValid;
 
   const selectStyle = {
     width: '100%', padding: '11px 14px', border: `1.5px solid ${C.border}`,
-    borderRadius: 10, fontSize: 14, color: C.text, background: C.card,
+    borderRadius: 14, fontSize: 16, color: C.text, background: C.card,
     outline: 'none', fontFamily: 'inherit',
   };
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: C.card, overflowY: 'auto' }}>
       {/* Header */}
-      <div style={{
-        background: `linear-gradient(160deg, ${C.headerBg}, ${C.headerDark})`,
+      <div className="lg-header lg-header--static" style={{
         padding: '60px 24px 40px', textAlign: 'center', position: 'relative',
       }}>
         {onBack && (
@@ -793,8 +570,8 @@ const handleRegister = async () => {
             <ArrowLeft size={18} color="#fff" />
           </button>
         )}
-        <div style={{ fontSize: 40, marginBottom: 8 }}>💼</div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: '#fff' }}>Cachuelo</div>
+        <div style={{ display: 'inline-flex', marginBottom: 10, borderRadius: 18, boxShadow: '0 10px 24px -8px rgba(255,107,53,0.8)' }}><CachueloMark size={58} /></div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>Cachuelo</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Trabajos puntuales en Perú</div>
       </div>
 
@@ -869,7 +646,7 @@ const handleRegister = async () => {
               </div>
             )}
             {error && (
-              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
+              <div style={{ background: C.dangerSoft, border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
                 {error}
               </div>
             )}
@@ -902,7 +679,8 @@ const handleRegister = async () => {
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Fecha de nacimiento *</label>
-              <input type="date" value={reg.fechaNac} onChange={e => updReg('fechaNac', e.target.value)} style={selectStyle} />
+              <input type="date" value={reg.fechaNac} onChange={e => updReg('fechaNac', e.target.value)} max={new Date().toISOString().split('T')[0]} style={selectStyle} />
+              {isMinor && <div style={{ fontSize: 12, color: C.danger, marginTop: 6 }}>Cachuelo es solo para mayores de {MIN_AGE} años.</div>}
             </div>
 
             <Input label="Correo electrónico *" placeholder="tu@correo.com" type="email"
@@ -921,7 +699,7 @@ const handleRegister = async () => {
                     width: '100%', padding: '11px 12px 11px 38px',
                     border: `1.5px solid ${emailMismatch ? C.danger : C.border}`,
                     borderRadius: 10, fontSize: 14, color: C.text,
-                    background: emailMismatch ? '#FEF2F2' : '#fff',
+                    background: emailMismatch ? C.dangerSoft : '#fff',
                     outline: 'none', fontFamily: 'inherit',
                   }}
                 />
@@ -1017,7 +795,7 @@ const handleRegister = async () => {
                   width: '100%', padding: '11px 14px',
                   border: `1.5px solid ${passMismatch ? C.danger : C.border}`,
                   borderRadius: 10, fontSize: 14, color: C.text,
-                  background: passMismatch ? '#FEF2F2' : '#fff',
+                  background: passMismatch ? C.dangerSoft : '#fff',
                   outline: 'none', fontFamily: 'inherit',
                 }}
               />
@@ -1025,14 +803,14 @@ const handleRegister = async () => {
             </div>
 
             {regSuccess && (
-              <div style={{ background: '#ECFDF5', border: `1px solid ${C.success}40`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, textAlign: 'center' }}>
+              <div style={{ background: C.successSoft, border: `1px solid ${C.success}40`, borderRadius: 10, padding: '12px 14px', marginBottom: 14, textAlign: 'center' }}>
                 <div style={{ fontSize: 24, marginBottom: 4 }}>📧</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>¡Revisa tu correo!</div>
                 <div style={{ fontSize: 12, color: '#166534', marginTop: 4 }}>Te enviamos un link para confirmar tu cuenta.</div>
               </div>
             )}
             {error && (
-              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
+              <div style={{ background: C.dangerSoft, border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
                 {error}
               </div>
             )}
@@ -1086,14 +864,17 @@ const handleRegister = async () => {
 };
 
 // 4. HOME ─────────────────────────────────────────────────────────────────────
-const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotifications }) => {
+const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotifications, loading = false, onVerify }) => {
   const { C, isDark } = useTheme();
   const [filter, setFilter] = useState('Todos');
   const [selectedCat, setSelectedCat] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [catSheet, setCatSheet] = useState(false);
+  const [sortBy, setSortBy] = useState('recomendados');
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isDemoBackend) return;
     const fetchCount = async () => {
       const readIds = JSON.parse(localStorage.getItem('cachuelo_read_notifs') || '[]');
       let count = 0;
@@ -1121,125 +902,220 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
     };
     fetchCount();
   }, [user?.id]);
-  const filters = ['Todos', 'Destacados', 'Remoto', 'Cerca'];
+  const filters = ['Todos', 'Destacados', 'Remoto', 'Cerca', ...(isDemoBackend ? ['Sin ofertas'] : [])];
+  const geo = useGeolocation();
+  const NEAR_KM = 8;
 
-  const filteredCachuelos = cachuelos.filter(c => {
+  // Saludo según la hora en Lima (antes decía siempre "Buenos días")
+  const hourLima = Number(new Intl.DateTimeFormat('es-PE', { hour: 'numeric', hour12: false, timeZone: 'America/Lima' }).format(new Date()));
+  const greeting = hourLima < 12 ? 'Buenos días' : hourLima < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+  const withDistance = cachuelos.map(c => {
+    const pos = resolveCoords(c);
+    return { c, dist: geo.coords && pos ? distanceKm(geo.coords, pos) : null };
+  });
+
+  const byGroup = selectedGroup ? withDistance.filter(({ c }) => groupOfLabel(c.category) === selectedGroup) : withDistance;
+  const catCounts = {};
+  cachuelos.forEach(c => { catCounts[c.category] = (catCounts[c.category] || 0) + 1; });
+  const filteredCachuelos = byGroup.filter(({ c, dist }) => {
+    if (selectedCat && c.category !== selectedCat) return false;
     if (filter === 'Destacados') return c.featured;
     if (filter === 'Remoto') return c.remote;
-    if (selectedCat) return c.category === selectedCat;
+    if (filter === 'Cerca') return geo.coords ? (dist != null && dist <= NEAR_KM) : true;
+    if (filter === 'Sin ofertas') return !c.offersCount;
     return true;
-  });
+  })
+    .sort((a, b) => {
+      if (sortBy === 'recientes') return (b.c.createdAt || '').localeCompare(a.c.createdAt || '');
+      if (sortBy === 'precio_asc') return a.c.price - b.c.price;
+      if (sortBy === 'precio_desc') return b.c.price - a.c.price;
+      if ((sortBy === 'cerca' || filter === 'Cerca') && geo.coords) return (a.dist ?? 1e9) - (b.dist ?? 1e9);
+      return Number(b.c.featured) - Number(a.c.featured) || (b.c.createdAt || '').localeCompare(a.c.createdAt || '');
+    })
+    .map(({ c, dist }) => ({ ...c, _dist: dist }));
+  const groupCats = selectedGroup ? categoriesInGroup(selectedGroup).filter(cat => catCounts[cat.label]) : [];
+  const pickGroup = (g) => { setSelectedGroup(g); setSelectedCat(null); };
+  const pickCat = (label) => { setSelectedCat(label); setSelectedGroup(groupOfLabel(label)); };
+
+  const nearCount = withDistance.filter(x => x.dist != null && x.dist <= NEAR_KM).length;
+  const mappable = cachuelos.filter(c => !c.remote).length;
+
+  const onFilter = (f) => {
+    setFilter(f);
+    if (f === 'Cerca' && !geo.coords) geo.request();
+  };
 
   return (
     <Screen withTabs activeTab="home" onNavigate={onNavigate}>
-      {/* Header */}
-      <div style={{
-        background: `linear-gradient(135deg, ${C.headerBg} 0%, ${C.headerDark} 100%)`,
-        padding: '44px 20px 20px',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+      {/* Header de vidrio */}
+      <div className="lg-header" style={{ padding: '50px 18px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>Buenos días 👋</div>
-            <div style={{ color: '#fff', fontSize: 20, fontWeight: 800, marginTop: 2 }}>Hola, {user?.nombre || 'Cachueler@'}</div>
+            <div style={{ color: 'rgba(255,255,255,0.82)', fontSize: 13, fontWeight: 600 }}>{greeting} 👋</div>
+            <div style={{ color: '#fff', fontSize: 23, fontWeight: 900, marginTop: 1, letterSpacing: -0.4 }}>Hola, {user?.nombre || 'Cachueler@'}</div>
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11.5, fontWeight: 600, marginTop: 1 }}>Publica lo que necesitas o postula a un cachuelo</div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={onNotifications} style={{
-              width: 38, height: 38, borderRadius: 19, background: 'rgba(255,255,255,0.2)',
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative',
+            <button onClick={onNotifications} aria-label={`Notificaciones${notifCount ? `: ${notifCount} nuevas` : ''}`} style={{
+              width: 42, height: 42, borderRadius: 21, background: 'rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
             }}>
-              <Bell size={18} color="#fff" />
+              <Bell size={19} color="#fff" />
               {notifCount > 0 && (
-                <div style={{ position: 'absolute', top: 5, right: 5, minWidth: 16, height: 16, background: '#FCD34D', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#000', padding: '0 3px' }}>
+                <div className="lg-num" style={{ position: 'absolute', top: 2, right: 0, minWidth: 18, height: 18, background: C.primary, border: '2px solid #fff', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, fontWeight: 800, color: '#fff', padding: '0 3px' }}>
                   {notifCount > 99 ? '99+' : notifCount}
                 </div>
               )}
             </button>
-            <button onClick={() => onNavigate('profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <Avatar initials={user ? (`${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`).toUpperCase() || 'U' : 'U'} size={38} bg="rgba(255,255,255,0.25)" fontSize={13} />
+            <button onClick={() => onNavigate('profile')} aria-label="Mi perfil" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <Avatar initials={user ? (`${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`).toUpperCase() || 'U' : 'U'} size={42} bg="rgba(255,255,255,0.22)" fontSize={14} />
             </button>
           </div>
         </div>
 
-        {/* Search bar */}
-        <div style={{
-          background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center',
-          padding: '0 14px', gap: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-        }}>
-          <Search size={16} color="#9BA3BC" />
-          <input placeholder="Buscar cachuelos..." style={{
-            flex: 1, border: 'none', outline: 'none', fontSize: 14,
-            color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent',
-          }} onClick={() => onNavigate('search')} readOnly />
+        {/* Buscador (abre la pantalla de búsqueda con filtros) + acceso al mapa */}
+        <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => onNavigate('search')} style={{
-            background: C.primary, border: 'none', borderRadius: 8,
-            padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            flex: 1, height: 48, borderRadius: 24, display: 'flex', alignItems: 'center', gap: 10,
+            padding: '0 16px', border: '1px solid rgba(255,255,255,0.7)', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.92)', boxShadow: 'inset 0 1px 0 #fff, 0 8px 20px -10px rgba(0,0,0,0.45)',
+            color: '#7C86A6', fontSize: 15, fontWeight: 500, textAlign: 'left',
           }}>
-            <Filter size={14} color="#fff" />
+            <Search size={18} color="#7C86A6" /> ¿Qué cachuelo buscas?
+          </button>
+          <button onClick={() => onNavigate('map')} aria-label="Ver mapa" style={{
+            width: 48, height: 48, borderRadius: 24, border: '1px solid rgba(255,255,255,0.45)', cursor: 'pointer',
+            background: `linear-gradient(145deg, ${C.primaryLight}, ${C.primary} 50%, ${C.primaryDark})`,
+            boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.5), 0 8px 18px -8px rgba(255,107,53,0.9)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MapIcon size={20} color="#fff" />
           </button>
         </div>
       </div>
 
-      <div style={{ padding: '0 0 16px' }}>
-        {/* Categories */}
-        <div style={{ padding: '16px 20px 0' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Categorías</div>
+      {user && <div style={{ padding: '16px 18px 0' }}><VerificationStatusCard user={user} onStart={onVerify} compact /></div>}
+      {isDemoBackend && (
+        <div style={{ padding: '12px 18px 0' }}>
+          <button onClick={() => onNavigate('simulator')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 20, cursor: 'pointer', textAlign: 'left', border: '1.5px dashed rgba(139,92,246,0.55)', background: 'rgba(139,92,246,0.08)', fontFamily: 'inherit' }}>
+            <span style={{ width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(145deg,#A78BFA,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FlaskConical size={20} color="#fff" /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 900, color: C.text }}>Simulador de Cachuelo</span>
+              <span style={{ display: 'block', fontSize: 12, color: C.textSec }}>{user?.persona ? `Estás como ${user.nombre}. ` : ''}Entra como contratante o trabajador y prueba pagos, reseñas y perfiles.</span>
+            </span>
+            <ChevronRight size={18} color={C.textMuted} />
+          </button>
         </div>
-        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
-          {CATEGORIES.map(cat => {
-            const isSelected = selectedCat === cat.label;
-            const catBg = isSelected ? C.primary
-              : isDark ? 'rgba(255,255,255,0.07)' : cat.color;
-            const catBorder = isSelected ? C.primary
-              : isDark ? 'rgba(255,255,255,0.12)' : 'transparent';
+      )}
+
+      {/* Acceso al mapa */}
+      <div style={{ padding: '16px 18px 0' }}>
+        <button onClick={() => onNavigate('map')} className="lg-pop-in" style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: 14, borderRadius: 22,
+          border: '1px solid var(--lg-stroke)', cursor: 'pointer', textAlign: 'left',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(37,99,235,0.28), rgba(255,122,71,0.18))'
+            : 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,236,226,0.85))',
+          boxShadow: 'inset 0 1px 0 var(--lg-highlight), 0 10px 26px -14px rgba(13,27,62,0.4)',
+        }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(145deg, #60A5FA, #2563EB)', boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.5), 0 8px 16px -8px #2563EB' }}>
+            <MapPinned size={24} color="#fff" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Explora el mapa de cachuelos</div>
+            <div style={{ fontSize: 12.5, color: C.textSec, marginTop: 2 }}>
+              {geo.coords ? `${nearCount} cerca de ti · ` : ''}{mappable} presenciales en todo el Perú
+            </div>
+          </div>
+          <ChevronRight size={20} color={C.textMuted} />
+        </button>
+      </div>
+
+      <div style={{ padding: '0 0 16px' }}>
+        {/* Categorías agrupadas (v0.18: 62 tipos en 12 grupos) */}
+        <div style={{ padding: '18px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ fontSize: 17, fontWeight: 900, color: C.text, letterSpacing: -0.2, marginBottom: 10 }}>Categorías</div>
+          <button onClick={() => setCatSheet(true)} style={{ border: 'none', background: 'none', color: C.primary, fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><LayoutGrid size={14} /> Ver todas ({CATEGORIES.length})</button>
+        </div>
+        <div className="lg-hscroll" style={{ gap: 10, padding: '2px 20px 6px' }}>
+          {[{ id: null, short: 'Todas', Icon: Sparkles, a: C.headerLight, b: C.headerBg }, ...CATEGORY_GROUPS].map(g => {
+            const isSelected = selectedGroup === g.id;
             return (
-              <button key={cat.id} onClick={() => setSelectedCat(isSelected ? null : cat.label)}
+              <button key={g.id || 'all'} onClick={() => pickGroup(isSelected && g.id ? null : g.id)} aria-pressed={isSelected}
                 style={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 6, background: catBg, border: `1.5px solid ${catBorder}`,
-                  borderRadius: 16, padding: '10px 12px', cursor: 'pointer', minWidth: 68,
-                  transition: 'all .2s',
+                  gap: 7, borderRadius: 20, padding: '11px 10px 10px', cursor: 'pointer', minWidth: 76,
+                  border: `1px solid ${isSelected ? 'rgba(255,255,255,0.5)' : 'var(--lg-stroke)'}`,
+                  background: isSelected ? `linear-gradient(145deg, ${C.primaryLight}, ${C.primary} 55%, ${C.primaryDark})` : C.card,
+                  boxShadow: isSelected
+                    ? `inset 0 1.5px 0 rgba(255,255,255,0.45), 0 10px 20px -10px ${C.primary}`
+                    : 'inset 0 1px 0 var(--lg-highlight), 0 6px 16px -12px rgba(13,27,62,0.35)',
+                  transition: 'transform .2s cubic-bezier(.34,1.56,.64,1), background .2s',
+                  transform: isSelected ? 'translateY(-2px)' : 'none',
                 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: isSelected ? 'rgba(255,255,255,0.25)' : `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
+                  width: 40, height: 40, borderRadius: 13,
+                  background: isSelected ? 'rgba(255,255,255,0.25)' : `linear-gradient(145deg, ${g.b}, ${g.a})`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: isSelected ? 'none' : `0 3px 8px ${cat.iconBgA}50`,
+                  boxShadow: isSelected ? 'inset 0 1px 0 rgba(255,255,255,0.4)' : `inset 0 1.5px 0 rgba(255,255,255,0.45), 0 6px 12px -6px ${g.a}`,
                 }}>
-                  <cat.Icon size={18} color="#fff" strokeWidth={2} />
+                  <g.Icon size={20} color="#fff" strokeWidth={2.2} />
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, color: isSelected ? '#fff' : C.text, whiteSpace: 'nowrap' }}>
-                  {cat.label}
-                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: isSelected ? '#fff' : C.text, whiteSpace: 'nowrap' }}>{g.short}</span>
               </button>
             );
           })}
         </div>
+        {selectedGroup && (
+          <div className="lg-hscroll lg-pop-in" style={{ gap: 7, padding: '8px 20px 2px' }}>
+            <button onClick={() => setSelectedCat(null)} aria-pressed={!selectedCat} className="lg-chip lg-glass lg-glass--strong">Todo {getGroup(selectedGroup).short}</button>
+            {groupCats.map(cat => <CatChip key={cat.id} small label={cat.label} count={catCounts[cat.label]} active={selectedCat === cat.label} onPress={() => setSelectedCat(selectedCat === cat.label ? null : cat.label)} />)}
+            {groupCats.length === 0 && <span style={{ fontSize: 12, color: C.textMuted, alignSelf: 'center' }}>Aún no hay cachuelos en este grupo</span>}
+          </div>
+        )}
+        <CategorySheet open={catSheet} onClose={() => setCatSheet(false)} selected={selectedCat} onSelect={pickCat} allowGroups selectedGroup={selectedGroup} onSelectGroup={pickGroup} counts={catCounts} />
 
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 8, padding: '16px 20px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {/* Filtros */}
+        <div className="lg-hscroll" style={{ padding: '12px 20px 2px' }}>
           {filters.map(f => (
-            <button key={f} onClick={() => { setFilter(f); setSelectedCat(null); }}
-              style={{
-                flexShrink: 0, padding: '7px 14px', borderRadius: 20, border: 'none',
-                fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                background: filter === f ? C.primary : C.cardElevated,
-                color: filter === f ? '#fff' : C.text,
-                border: filter === f ? 'none' : `1px solid ${C.border}`,
-                transition: 'all .2s',
-              }}>{f}</button>
+            <button key={f} onClick={() => onFilter(f)} aria-pressed={filter === f}
+              className="lg-chip lg-glass lg-glass--strong">
+              {f === 'Cerca' && '📍 '}{f === 'Destacados' && '★ '}{f}
+            </button>
           ))}
         </div>
 
         {/* Feed */}
         <div style={{ padding: '16px 20px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
               {filteredCachuelos.length} cachuelo{filteredCachuelos.length !== 1 ? 's' : ''} disponible{filteredCachuelos.length !== 1 ? 's' : ''}
+              {selectedCat ? ` en ${selectedCat}` : selectedGroup ? ` en ${getGroup(selectedGroup).short}` : ''}
             </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: C.textSec, flexShrink: 0 }}>
+              <ArrowUpDown size={13} />
+              <select value={sortBy} onChange={e => { setSortBy(e.target.value); if (e.target.value === 'cerca' && !geo.coords) geo.request(); }} aria-label="Ordenar por"
+                style={{ border: 'none', background: 'transparent', color: C.text, fontWeight: 800, fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
+                <option value="recomendados">Recomendados</option>
+                <option value="recientes">Más recientes</option>
+                <option value="cerca">Más cerca</option>
+                <option value="precio_asc">Menor precio</option>
+                <option value="precio_desc">Mayor precio</option>
+              </select>
+            </label>
           </div>
 
-          {filteredCachuelos.length === 0 && (
+          {filter === 'Cerca' && geo.status === 'locating' && (
+            <div style={{ fontSize: 13, color: C.textSec, marginBottom: 12 }}>📍 Obteniendo tu ubicación…</div>
+          )}
+          {filter === 'Cerca' && geo.error && (
+            <div style={{ fontSize: 12.5, color: C.danger, background: C.dangerSoft, borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>{geo.error}</div>
+          )}
+          {loading && [0, 1, 2].map(i => <SkeletonCard key={i} />)}
+          {!loading && filteredCachuelos.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
               <div style={{ fontWeight: 600 }}>Sin resultados</div>
@@ -1247,7 +1123,7 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
             </div>
           )}
 
-          {filteredCachuelos.map(c => (
+          {!loading && filteredCachuelos.map(c => (
             <CachuCard key={c.id} c={c} onPress={() => onViewCachuelo(c)} />
           ))}
         </div>
@@ -1256,64 +1132,76 @@ const HomeScreen = ({ onNavigate, onViewCachuelo, cachuelos, user, onNotificatio
   );
 };
 
-// Card de cachuelo
+// Card de cachuelo (superficie translúcida: el fondo ambiental hace de "vidrio")
 const CachuCard = ({ c, onPress }) => {
-  const { C, isDark } = useTheme();
+  const { C } = useTheme();
+  const place = c.departamento && c.departamento !== 'Lima' && !c.remote ? `${c.location}, ${c.departamento}` : c.location;
   return (
-  <div onClick={onPress} style={{
-    background: C.card, borderRadius: 18, padding: 16, marginBottom: 12,
-    boxShadow: '0 2px 16px rgba(13,27,62,0.07)', cursor: 'pointer',
-    border: `1px solid ${C.border}`, transition: 'transform .15s, box-shadow .15s',
-    overflow: 'hidden', position: 'relative',
+  <button onClick={onPress} aria-label={`${c.title}, S/${c.price}`} style={{
+    width: '100%', textAlign: 'left', display: 'block', fontFamily: 'inherit',
+    background: C.card, borderRadius: 22, padding: 16, marginBottom: 12, cursor: 'pointer',
+    border: '1px solid var(--lg-stroke)', overflow: 'hidden', position: 'relative',
+    boxShadow: 'inset 0 1px 0 var(--lg-highlight), 0 10px 26px -16px rgba(13,27,62,0.45)',
+    transition: 'transform .18s cubic-bezier(.34,1.56,.64,1)',
   }}
-    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.975)'; e.currentTarget.style.boxShadow = '0 1px 8px rgba(13,27,62,0.05)'; }}
-    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 16px rgba(13,27,62,0.07)'; }}
+    onPointerDown={e => { e.currentTarget.style.transform = 'scale(0.975)'; }}
+    onPointerUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+    onPointerLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
   >
     {c.featured && (
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3,
         background: `linear-gradient(90deg, ${C.warning}, ${C.primary})` }} />
     )}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flex: 1 }}>
-        <CategoryIcon label={c.category} size={44} iconSize={22} radius={12} />
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+        <CategoryIcon label={c.category} size={46} iconSize={22} radius={14} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, lineHeight: 1.3, marginBottom: 4 }}>{c.title}</div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: C.text, lineHeight: 1.3, marginBottom: c.servicio ? 2 : 5 }}>{c.title}</div>
+          {c.servicio && c.servicio !== c.title && <div style={{ fontSize: 12, color: C.textSec, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>“{c.servicio}”</div>}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {c.featured && <Badge color={C.warning}>⭐ Destacado</Badge>}
+            {c.featured && <Badge color={C.warning}>★ Destacado</Badge>}
             <Badge color={c.remote ? C.purple : C.success}>{c.remote ? '🌐 Remoto' : '📍 Presencial'}</Badge>
+            {c.category && <Badge color={C.textSec}>{c.category}</Badge>}
           </div>
         </div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: C.primary }}>S/{c.price}</div>
-        <div style={{ fontSize: 10, color: C.textMuted }}>Total</div>
+        <div className="lg-num" style={{ fontSize: 20, fontWeight: 900, color: C.primary, letterSpacing: -0.3 }}>S/{c.price}</div>
+        <div style={{ fontSize: 11, color: C.textMuted }}>{c.payType || 'Total'}</div>
       </div>
     </div>
 
-    <div style={{ display: 'flex', gap: 14, marginBottom: 12 }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}>
-        <MapPin size={12} /> {c.location}
+    <div style={{ display: 'flex', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: C.textSec }}>
+        <MapPin size={13} /> {place}
+        {c._dist != null && <b style={{ color: C.headerBg, marginLeft: 2 }}>· {formatDistance(c._dist)}</b>}
       </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.textSec }}>
-        <Clock size={12} /> {c.duration}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: C.textSec }}>
+        <Clock size={13} /> {c.duration}
       </span>
+      {c.offersCount != null && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: c.offersCount ? C.headerBg : C.success, fontWeight: 700 }}>
+          <Users size={13} /> {c.offersCount ? `${c.offersCount} oferta${c.offersCount !== 1 ? 's' : ''}` : 'Sé el primero'}
+        </span>
+      )}
+      {c.createdAt && <span style={{ fontSize: 12, color: C.textMuted }}>{simAgo(c.createdAt)}</span>}
     </div>
 
-    {/* Publisher */}
+    {/* Publicador */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Avatar initials={c.publisher.avatar} size={28} bg={C.primaryLight} fontSize={11} />
+        <Avatar initials={c.publisher.avatar} size={30} bg={C.primaryLight} fontSize={11} />
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 4 }}>
             {c.publisher.name}
-            {c.publisher.verified && <CheckCircle size={12} color={C.success} />}
+            {c.publisher.verified && <CheckCircle size={13} color={C.success} aria-label="Verificado" />}
           </div>
-          <Stars rating={c.publisher.rating} />
+          {c.publisher.rating > 0 ? <Stars rating={c.publisher.rating} /> : <span style={{ fontSize: 11, color: C.textMuted }}>Nuevo en Cachuelo</span>}
         </div>
       </div>
-      <ChevronRight size={16} color={C.textMuted} />
+      <ChevronRight size={18} color={C.textMuted} />
     </div>
-  </div>
+  </button>
   );
 };
 
@@ -1358,8 +1246,8 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 300 }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
+    <div className="lg-scrim" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+      <div className="lg-sheet" onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
         {done ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -1383,7 +1271,7 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
                 <button key={m} onClick={() => setMotivo(m)} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
                   borderRadius: 10, border: `2px solid ${motivo === m ? C.danger : C.border}`,
-                  background: motivo === m ? '#FEF2F2' : '#fff', cursor: 'pointer', textAlign: 'left',
+                  background: motivo === m ? C.dangerSoft : C.card, cursor: 'pointer', textAlign: 'left',
                 }}>
                   <div style={{ width: 16, height: 16, borderRadius: 8, border: `2px solid ${motivo === m ? C.danger : C.border}`, background: motivo === m ? C.danger : '#fff', flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: C.text, fontWeight: motivo === m ? 600 : 400 }}>{m}</span>
@@ -1392,7 +1280,7 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
             </div>
             <Textarea label="Detalles adicionales (opcional)" placeholder="Describe qué ocurrió..." value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={3} />
             {errorMsg && (
-              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}40`, borderRadius: 10, padding: '10px 14px', marginBottom: 8, fontSize: 12, color: C.danger }}>
+              <div style={{ background: C.dangerSoft, border: `1px solid ${C.danger}40`, borderRadius: 10, padding: '10px 14px', marginBottom: 8, fontSize: 12, color: C.danger }}>
                 {errorMsg}
               </div>
             )}
@@ -1411,7 +1299,7 @@ const ReporteModal = ({ tipo, targetId, targetTitle, reporterId, onClose }) => {
 };
 
 // 5. DETALLE DE CACHUELO ──────────────────────────────────────────────────────
-const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onViewPublisher, onVerPostulantes }) => {
+const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onViewPublisher, onVerPostulantes, tab = 'home', onVerify }) => {
   const { C, isDark } = useTheme();
   const [message, setMessage] = useState('');
   const [applied, setApplied] = useState(false);
@@ -1420,11 +1308,19 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showReporte, setShowReporte] = useState(false);
-
+  const [showGate, setShowGate] = useState(false);
+  const { isVerified, estado: verifEstado } = useVerification(user);
+  const requisitos = cachuelo?.requisitos || [];
+  const risky = isRisky(cachuelo?.category);
   const isOwner = user?.id && cachuelo?.userId && user.id === cachuelo.userId;
+  useEffect(() => {
+    if (!isDemoBackend || !cachuelo?.id) return;
+    if (user?.id && simHasOffer(cachuelo.id, user.id)) setApplied(true);
+    if (isOwner) setApplicantCount(simOffersFor(cachuelo.id).length);
+  }, [cachuelo?.id, user?.id, isOwner]);
 
   useEffect(() => {
-    if (!user?.id || !cachuelo?.id) return;
+    if (!user?.id || !cachuelo?.id || isDemoBackend) return;
     if (isOwner) {
       supabase.from('postulaciones')
         .select('id', { count: 'exact' })
@@ -1471,30 +1367,30 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
       ? new Date(cachuelo.fecha_inicio + 'T00:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
       : cachuelo?.schedule || '';
 
-  const handleApply = async () => {
+  const handleApply = async ({ monto, mensaje, cumpleRequisitos }) => {
     if (!user) { onRequireAuth(); return; }
+    if (!isVerified) { setShowGate(true); return; }
     if (applied || applying) return;
     setApplying(true);
-    const { data: postData, error } = await supabase.from('postulaciones').insert({
-      cachuelo_id: cachuelo.id,
-      postulante_id: user.id,
-      mensaje: message,
-      estado: 'Pendiente',
-    }).select().single();
+    const { data: postData, error } = await insertPostulacion({
+      cachuelo_id: cachuelo.id, postulante_id: user.id, mensaje,
+      monto_ofertado: monto, cumple_requisitos: cumpleRequisitos,
+    });
     setApplying(false);
+    if (error) { toast(friendlyError(error), 'error'); return; }
     if (!error) {
+      toast(isDemoBackend ? 'Oferta enviada (modo demo)' : 'Oferta enviada', 'success');
       setApplied(true);
-      if (postData?.id) {
+      if (postData?.id && !isDemoBackend) {
         await supabase.from('postulacion_historial').insert({ postulacion_id: postData.id, estado: 'Pendiente' });
       }
     }
   };
 
   return (
-    <Screen withTabs activeTab="home" onNavigate={onNavigate}>
+    <Screen withTabs activeTab={tab} onNavigate={onNavigate}>
       {/* Sticky header */}
-      <div style={{
-        background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`,
+      <div className="lg-header" style={{
         padding: '44px 20px 20px',
         position: 'sticky', top: 0, zIndex: 10,
       }}>
@@ -1524,11 +1420,14 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16 }}>
             <CategoryIcon label={cachuelo.category} size={54} iconSize={26} radius={16} />
             <div>
-              <div style={{ fontWeight: 800, fontSize: 16, color: C.text, lineHeight: 1.3, marginBottom: 6 }}>{cachuelo.title}</div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: C.text, lineHeight: 1.3, marginBottom: cachuelo.servicio ? 3 : 6 }}>{cachuelo.title}</div>
+              {cachuelo.servicio && cachuelo.servicio !== cachuelo.title && <div style={{ fontSize: 12.5, color: C.textSec, marginBottom: 6 }}>Servicio: “{cachuelo.servicio}”</div>}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {cachuelo.featured && <Badge color={C.warning}>⭐ Destacado</Badge>}
                 <Badge color={cachuelo.remote ? C.purple : C.success}>{cachuelo.type}</Badge>
                 <Badge color={C.primary}>{cachuelo.category}</Badge>
+                {cachuelo.category && <Badge color={C.textSec}>{getGroup(groupOfLabel(cachuelo.category)).short}</Badge>}
+                {isDemoBackend && cachuelo.offersCount != null && <Badge color={C.headerBg}>👥 {cachuelo.offersCount} oferta{cachuelo.offersCount !== 1 ? 's' : ''}</Badge>}
               </div>
             </div>
           </div>
@@ -1570,17 +1469,29 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
           ) : null}
         </div>
 
+        {requisitos.length > 0 && (
+          <div style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={15} color={C.headerBg} /> Requisitos / documentos</div>
+            {requisitos.map(r => <div key={r} style={{ fontSize: 13, color: C.textSec, display: 'flex', gap: 8, padding: '3px 0' }}><CheckCircle size={14} color={C.success} style={{ flexShrink: 0, marginTop: 2 }} />{r}</div>)}
+          </div>
+        )}
+        {risky && (
+          <div style={{ display: 'flex', gap: 8, fontSize: 12.5, color: C.textSec, background: 'rgba(245,158,11,0.12)', borderRadius: 14, padding: '10px 12px', marginBottom: 14, lineHeight: 1.45 }}>
+            ⚠️ <span>{SAFETY_NOTICE_PUBLISH}</span>
+          </div>
+        )}
+
         {/* Publisher */}
         <div onClick={() => cachuelo.userId && onViewPublisher?.(cachuelo.userId)}
           style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: cachuelo.userId ? 'pointer' : 'default' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Publicado por</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>Publicado por {cachuelo.createdAt && <span style={{ fontWeight: 600, color: C.textMuted, fontSize: 11.5 }}>{simAgo(cachuelo.createdAt)}</span>}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Avatar initials={pubAvatar} size={48} bg={C.primaryLight} fontSize={16} />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                 <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{pubName}</span>
                 {pubVerified && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: '#ECFDF5', padding: '2px 7px', borderRadius: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: C.successSoft, padding: '2px 7px', borderRadius: 10 }}>
                     <Shield size={10} color={C.success} />
                     <span style={{ fontSize: 10, color: C.success, fontWeight: 600 }}>Verificado</span>
                   </div>
@@ -1612,33 +1523,22 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
                 </div>
               </div>
             </div>
-            {applicantCount > 0 && (
+            {(applicantCount > 0 || isDemoBackend) && (
               <Btn onClick={() => onVerPostulantes?.(cachuelo)} style={{ width: '100%', marginTop: 14 }}>
-                <Users size={16} /> Ver postulantes
+                <Users size={16} /> {applicantCount > 0 ? 'Ver ofertas' : 'Gestionar en Mis cachuelos'}
               </Btn>
             )}
           </div>
         ) : (
           <div style={{ background: C.card, borderRadius: 16, padding: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <Textarea
-              label="Tu mensaje (opcional)"
-              placeholder="Cuéntale por qué eres el candidato ideal para este cachuelo..."
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              rows={3}
-            />
-            <Btn
-              onClick={handleApply}
-              style={{ width: '100%', fontSize: 15, padding: '14px 0' }}
-              disabled={applied || applying}
-            >
-              {applied ? <><CheckCircle size={18} /> Postulado con éxito</> : applying ? 'Enviando...' : <><Send size={18} /> Postularme</>}
-            </Btn>
-            {applied && (
-              <p style={{ fontSize: 11, color: C.success, textAlign: 'center', marginTop: 8 }}>
-                ¡Tu postulación fue enviada! El publicador te contactará pronto.
-              </p>
+            <ProtectedBadge />
+            {user && !isVerified && !applied && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: C.textSec, background: C.infoSoft, borderRadius: 12, padding: '9px 12px', marginBottom: 12 }}>
+                <ShieldCheckIcon size={16} color={C.headerBg} style={{ flexShrink: 0 }} />
+                {verifEstado === 'pendiente' ? 'Tu verificación está en revisión. Podrás enviar ofertas al aprobarse.' : 'Para enviar ofertas necesitas verificar tu identidad (DNI, selfie y CUL).'}
+              </div>
             )}
+            <OfferForm cachuelo={cachuelo} requisitos={requisitos} risky={risky} onSubmit={handleApply} submitting={applying} applied={applied} />
           </div>
         )}
 
@@ -1650,6 +1550,8 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
             <Flag size={12} /> Reportar este cachuelo
           </button>
         )}
+        <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.5, textAlign: 'center', padding: '4px 8px 0' }}>{INTERMEDIARY_NOTICE}</div>
+        <VerifyGateSheet open={showGate} onClose={() => setShowGate(false)} onStart={() => { setShowGate(false); onVerify?.(); }} estado={verifEstado} action="enviar ofertas" />
       </div>
 
       {showReporte && (
@@ -1664,11 +1566,11 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
 
       {/* Share bottom sheet */}
       {showShareModal && (
-        <div
+        <div className="lg-scrim"
           onClick={() => setShowShareModal(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}
+          style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}
         >
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
+          <div className="lg-sheet" onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
             <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>Compartir cachuelo</div>
             <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20, lineHeight: 1.4 }}>
@@ -1683,14 +1585,14 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
               ].map(({ emoji, label, color, href }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                   onClick={() => setShowShareModal(false)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: '#F9FAFB', textDecoration: 'none', border: `1px solid ${C.border}` }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: C.cardElevated, textDecoration: 'none', border: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 22 }}>{emoji}</span>
                   <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
                 </a>
               ))}
               <button onClick={handleCopyLink} style={{
                 display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-                borderRadius: 12, background: copied ? '#F0FDF4' : '#F9FAFB',
+                borderRadius: 12, background: copied ? C.successSoft : C.cardElevated,
                 border: `1px solid ${copied ? C.success : C.border}`, cursor: 'pointer', width: '100%',
               }}>
                 <span style={{ fontSize: 22 }}>{copied ? '✅' : '🔗'}</span>
@@ -1707,44 +1609,58 @@ const DetailScreen = ({ cachuelo, onBack, onNavigate, user, onRequireAuth, onVie
 };
 
 // 6. PUBLICAR ─────────────────────────────────────────────────────────────────
-const PublishScreen = ({ onNavigate, user, onPublished }) => {
+const PublishScreen = ({ onNavigate, user, onPublished, onVerify }) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    title: '', category: '', description: '',
+    title: '', servicio: '', category: '', description: '',
     price: '', payType: 'Fijo', district: '', duration: '',
     durNum: '', durUnit: 'día(s)', startDate: '',
     tipo: 'Presencial', featured: false, payMethod: '',
   });
+  const emptyLoc = { departamento: 'Lima', district: '', lat: null, lng: null, pinTouched: false };
+  const [loc, setLoc] = useState(emptyLoc);
+  const [geoSkipped, setGeoSkipped] = useState(false);
+  const [requisitos, setRequisitos] = useState([]);
+  const [showGate, setShowGate] = useState(false);
+  const { isVerified, estado: verifEstado } = useVerification(user);
+  const discrim = findDiscrimination(form.title, form.description, ...requisitos);
   const [published, setPublished] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const stepLabels = ['Info básica', 'Detalles', 'Pago'];
+  const stepLabels = ['Info básica', 'Detalles', 'Publicar'];
 
   const handlePublish = async () => {
     if (!user) return;
+    if (!isVerified) { setShowGate(true); return; }
+    if (discrim.length) { toast('Corrige los requisitos discriminatorios antes de publicar', 'error'); return; }
     setSaving(true);
     setError(null);
     const cat = CATEGORIES.find(c => c.label === form.category);
-    const { error: err } = await supabase.from('cachuelos').insert({
+    const isRemote = form.tipo === 'Remoto';
+    const { error: err, geoSkipped: skipped } = await insertCachuelo({
       user_id: user.id,
-      titulo: form.title,
-      descripcion: form.description,
+      titulo: form.title.trim(),
+      servicio: form.servicio.trim() || null,
+      descripcion: form.description.trim(),
       categoria_id: cat?.id || null,
       precio: Number(form.price),
       tipo_pago: form.payType,
-      distrito: form.district,
+      distrito: isRemote ? null : loc.district,
       duracion: form.duration,
       tipo: form.tipo,
       destacado: form.featured,
       fecha_inicio: form.startDate === 'flexible' ? null : (form.startDate || null),
       fecha_flexible: form.startDate === 'flexible',
       estado: 'Activo',
-    });
+      ...geoToColumns(loc, form.tipo),
+      requisitos,
+    }, user);
     setSaving(false);
-    if (err) { console.error('Supabase insert error:', err); setError(`Error: ${err.message} (code: ${err.code})`); return; }
+    if (err) { console.error('Supabase insert error:', err); setError(`No pudimos publicar: ${friendlyError(err)}`); return; }
+    setGeoSkipped(skipped);
     await onPublished?.();
     setPublished(true);
   };
@@ -1758,18 +1674,19 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
           <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, marginBottom: 32 }}>
             Tu cachuelo ya está visible para cientos de trabajadores. Te notificaremos cuando lleguen postulaciones.
           </div>
-          <div style={{ background: '#ECFDF5', borderRadius: 16, padding: 16, marginBottom: 24, width: '100%' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', marginBottom: 4 }}>Cobro procesado</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.success }}>
-              S/{form.featured ? 8 : 5}
-            </div>
-            <div style={{ fontSize: 11, color: '#166534' }}>
-              Publicación {form.featured ? '+ Destacado' : 'estándar'}
-            </div>
+          <div style={{ background: C.successSoft, borderRadius: 16, padding: 16, marginBottom: 24, width: '100%' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.success, marginBottom: 4 }}>{form.featured ? 'Destacado activado' : 'Publicación gratuita'}</div>
+            <div className="lg-num" style={{ fontSize: 24, fontWeight: 800, color: C.success }}>{form.featured ? 'S/ 3.00' : 'S/ 0.00'}</div>
+            <div style={{ fontSize: 11.5, color: C.textSec, marginTop: 2 }}>Solo pagas al aceptar a alguien: Pago Protegido (10 %) o S/ 5 de conexión.</div>
           </div>
-          <Btn style={{ width: '100%' }} onClick={() => { setPublished(false); setStep(1); setForm({ title:'',category:'',description:'',price:'',payType:'Fijo',district:'',duration:'',featured:false,payMethod:'' }); onNavigate('home'); }}>
-            Volver al inicio
+          <Btn style={{ width: '100%' }} onClick={() => { const wasRemote = form.tipo === 'Remoto'; setPublished(false); setStep(1); setForm({ title:'',servicio:'',category:'',description:'',price:'',payType:'Fijo',district:'',duration:'',durNum:'',durUnit:'día(s)',startDate:'',tipo:'Presencial',featured:false,payMethod:'' }); setLoc(emptyLoc); setGeoSkipped(false); setRequisitos([]); onNavigate(wasRemote ? 'home' : 'map'); }}>
+            {form.tipo === 'Remoto' ? 'Volver al inicio' : 'Ver en el mapa'}
           </Btn>
+          {geoSkipped && (
+            <div style={{ marginTop: 14, fontSize: 12, color: C.warning, lineHeight: 1.5 }}>
+              Se publicó sin el pin exacto (falta correr la migración de mapa en Supabase). Aparecerá en el centro del distrito.
+            </div>
+          )}
         </div>
       </Screen>
     );
@@ -1778,7 +1695,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
   return (
     <Screen withTabs activeTab="publish" onNavigate={onNavigate}>
       {/* Header */}
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Publicar Cachuelo</div>
         {/* Step indicators */}
         <div style={{ display: 'flex', gap: 0 }}>
@@ -1812,29 +1729,25 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
         {/* STEP 1 */}
         {step === 1 && (
           <>
-            <Input label="Título del cachuelo *" placeholder="Ej: Necesito diseñador para logo" value={form.title} onChange={e => upd('title', e.target.value)} />
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Categoría *</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {CATEGORIES.map(cat => (
-                  <button key={cat.id} onClick={() => upd('category', cat.label)}
-                    style={{
-                      padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`,
-                      background: form.category === cat.label ? C.primary + '18' : C.card,
-                      color: form.category === cat.label ? C.primary : C.text,
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <cat.Icon size={11} color="#fff" strokeWidth={2.5} />
-                    </div>
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Input label="Título del cachuelo *" placeholder="Ej: Se me atoró el lavadero" value={form.title} onChange={e => upd('title', e.target.value)} />
+            <Input label="¿Qué servicio necesitas? (escríbelo a tu manera)" placeholder="Ej: destorar lavadero, pasear a mi perro…" value={form.servicio} onChange={e => upd('servicio', e.target.value.slice(0, 80))} />
+            <CategoryPicker value={form.category} onChange={v => upd('category', v)} hintText={`${form.title} ${form.servicio}`} />
             <Textarea label="Descripción *" placeholder="Describe detalladamente lo que necesitas..." value={form.description} onChange={e => upd('description', e.target.value)} rows={4} />
-            <Btn onClick={() => setStep(2)} style={{ width: '100%' }} disabled={!form.title || !form.category || !form.description}>
+            {form.category && <RequirementsField category={form.category} value={requisitos} onChange={setRequisitos} />}
+            {isRisky(form.category) && (
+              <div style={{ display: 'flex', gap: 8, fontSize: 12.5, color: C.textSec, background: 'rgba(245,158,11,0.12)', borderRadius: 14, padding: '10px 12px', marginBottom: 12, lineHeight: 1.45 }}>⚠️ <span>{SAFETY_NOTICE_PUBLISH}</span></div>
+            )}
+            {discrim.length > 0 && (
+              <div className="lg-pop-in" style={{ fontSize: 12.5, color: C.danger, background: C.dangerSoft, borderRadius: 14, padding: '10px 12px', marginBottom: 12, lineHeight: 1.5 }}>
+                <b>Tu aviso pide requisitos que no están permitidos</b> ({discrim.join(', ')}). La ley peruana (Ley 26772) prohíbe pedir sexo, edad, apariencia, estado civil, religión, nacionalidad o historial crediticio. Describe solo lo que el trabajo necesita: experiencia, herramientas, licencias.
+              </div>
+            )}
+            {!isVerified && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: C.textSec, background: C.infoSoft, borderRadius: 12, padding: '9px 12px', marginBottom: 12 }}>
+                <ShieldCheckIcon size={16} color={C.headerBg} style={{ flexShrink: 0 }} /> Para publicar necesitas tu identidad verificada. Puedes preparar el aviso y verificarte al final.
+              </div>
+            )}
+            <Btn onClick={() => setStep(2)} style={{ width: '100%' }} disabled={!form.title || !form.category || !form.description || discrim.length > 0}>
               Siguiente <ChevronRight size={16} />
             </Btn>
           </>
@@ -1873,28 +1786,21 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                 ))}
               </div>
             </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>
-                Distrito *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <MapPin size={15} color={C.textMuted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                <select
-                  value={form.district}
-                  onChange={e => upd('district', e.target.value)}
-                  style={{
-                    width: '100%', padding: '11px 14px 11px 34px',
-                    border: `1.5px solid ${form.district ? C.primary : C.border}`,
-                    borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted,
-                    background: C.card, outline: 'none', fontFamily: 'inherit',
-                    appearance: 'none', cursor: 'pointer',
-                  }}
-                >
-                  <option value="">Selecciona un distrito...</option>
-                  {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+            {form.price !== '' && Number(form.price) < PRICE_MIN && (
+              <div style={{ fontSize: 12.5, color: C.danger, background: C.dangerSoft, borderRadius: 12, padding: '9px 12px', marginBottom: 12 }}>
+                El pago mínimo es S/ {PRICE_MIN}. Pon el monto real: protege a quien trabaja y a ti.
               </div>
+            )}
+            <div style={{ fontSize: 12, color: C.textSec, background: C.infoSoft, borderRadius: 12, padding: '9px 12px', marginBottom: 12, lineHeight: 1.5 }}>
+              💡 Publicar es <b>gratis</b>. Al aceptar a alguien eliges: <b>Pago Protegido</b> (+{Math.round(SERVICE_FEE_RATE * 100)}% de tarifa) o <b>pago directo</b> (S/ {CONNECTION_FEE} de conexión).
             </div>
+            {form.tipo === 'Presencial' ? (
+              <LocationFields value={loc} onChange={setLoc} />
+            ) : (
+              <div style={{ padding: '12px 14px', borderRadius: 14, background: C.infoSoft, color: C.textSec, fontSize: 12.5, marginBottom: 14, lineHeight: 1.5 }}>
+                🌐 Los cachuelos remotos no se muestran en el mapa; aparecen en el Inicio con el filtro "Remoto".
+              </div>
+            )}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec }}>Fecha de inicio *</label>
@@ -1923,7 +1829,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                 {['1 día','2 días','1 semana','2 semanas','3 semanas','1 mes'].map(d => (
                   <button key={d} onClick={() => { upd('duration', d); upd('durNum', ''); upd('durUnit', 'día(s)'); }} style={{
                     padding: '7px 12px', borderRadius: 20, border: `1.5px solid ${form.duration === d ? C.primary : C.border}`,
-                    background: form.duration === d ? C.primary : '#fff',
+                    background: form.duration === d ? C.primary : C.card,
                     color: form.duration === d ? '#fff' : C.text,
                     fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>{d}</button>
@@ -1965,7 +1871,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setStep(1)} style={{ flex: 1 }}><ChevronLeft size={16} /> Atrás</Btn>
-              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || !form.district || !form.duration || !form.startDate && form.startDate !== 'flexible'}>
+              <Btn onClick={() => setStep(3)} style={{ flex: 2 }} disabled={!form.price || Number(form.price) < PRICE_MIN || (form.tipo === 'Presencial' && !loc.district) || !form.duration || !form.startDate}>
                 Siguiente <ChevronRight size={16} />
               </Btn>
             </div>
@@ -1978,8 +1884,8 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
             <div style={{ background: C.card, borderRadius: 16, padding: 16, marginBottom: 16, border: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Resumen de costos</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: C.textSec }}>Publicación estándar</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>S/5.00</span>
+                <span style={{ fontSize: 13, color: C.textSec }}>Publicación</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.success }}>Gratis</span>
               </div>
 
               {/* Featured toggle */}
@@ -2014,12 +1920,17 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Total</span>
-                <span style={{ fontSize: 20, fontWeight: 800, color: C.primary }}>S/{form.featured ? 8 : 5}.00</span>
+                <span className="lg-num" style={{ fontSize: 20, fontWeight: 800, color: C.primary }}>{form.featured ? 'S/3.00' : 'S/0.00'}</span>
               </div>
             </div>
 
-            {/* Payment methods */}
-            <div style={{ marginBottom: 16 }}>
+            {!form.featured && (
+              <div style={{ fontSize: 12.5, color: C.textSec, background: C.infoSoft, borderRadius: 12, padding: '10px 12px', marginBottom: 16, lineHeight: 1.5 }}>
+                ✅ Publicar es gratis. Solo pagarás cuando aceptes a alguien (Pago Protegido 10 % o S/ 5 de conexión).
+              </div>
+            )}
+            {/* Payment methods (solo para destacar) */}
+            {form.featured && <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: 'block' }}>Método de pago</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
@@ -2030,7 +1941,7 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                   <button key={m.id} onClick={() => upd('payMethod', m.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
                     border: `1.5px solid ${form.payMethod === m.id ? C.primary : C.border}`,
-                    borderRadius: 12, background: form.payMethod === m.id ? C.primary + '08' : '#fff',
+                    borderRadius: 14, background: form.payMethod === m.id ? C.primary + '14' : C.card,
                     cursor: 'pointer', textAlign: 'left',
                   }}>
                     <span style={{ fontSize: 22 }}>{m.emoji}</span>
@@ -2042,22 +1953,23 @@ const PublishScreen = ({ onNavigate, user, onPublished }) => {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {error && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#DC2626' }}>
+              <div style={{ background: C.dangerSoft, border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#DC2626' }}>
                 {error}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setStep(2)} style={{ flex: 1 }} disabled={saving}><ChevronLeft size={16} /> Atrás</Btn>
-              <Btn onClick={handlePublish} style={{ flex: 2 }} disabled={!form.payMethod || saving}>
-                <Zap size={16} /> {saving ? 'Publicando...' : `Publicar S/${form.featured ? 8 : 5}`}
+              <Btn onClick={handlePublish} style={{ flex: 2 }} disabled={(form.featured && !form.payMethod) || saving}>
+                <Zap size={16} /> {saving ? 'Publicando...' : form.featured ? 'Publicar · S/3' : 'Publicar gratis'}
               </Btn>
             </div>
           </>
         )}
       </div>
+      <VerifyGateSheet open={showGate} onClose={() => setShowGate(false)} onStart={() => { setShowGate(false); onVerify?.(); }} estado={verifEstado} action="publicar" />
     </Screen>
   );
 };
@@ -2076,6 +1988,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
   const parsed = parseCustomDur(cachuelo?.duration);
   const [form, setForm] = useState({
     title:       cachuelo?.title        || '',
+    servicio:    cachuelo?.servicio     || '',
     category:    cachuelo?.category     || '',
     description: cachuelo?.description  || '',
     price:       cachuelo?.price        ? String(cachuelo.price) : '',
@@ -2090,6 +2003,8 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
   const [saved, setSaved]   = useState(false);
+  const [loc, setLoc] = useState(() => locationFromCachuelo(cachuelo));
+  const [requisitos, setRequisitos] = useState(cachuelo?.requisitos || []);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -2097,25 +2012,30 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
     setSaving(true);
     setError(null);
     const cat = CATEGORIES.find(c => c.label === form.category);
-    const { error: err } = await supabase.from('cachuelos').update({
-      titulo:       form.title,
-      descripcion:  form.description,
+    const isRemote = form.tipo === 'Remoto';
+    const { error: err } = await updateCachuelo(cachuelo.id, {
+      titulo:       form.title.trim(),
+      servicio:     form.servicio.trim() || null,
+      descripcion:  form.description.trim(),
       categoria_id: cat?.id || null,
       precio:       Number(form.price),
       tipo_pago:    form.payType,
-      distrito:     form.district,
+      distrito:     isRemote ? null : loc.district,
       duracion:     form.duration,
       tipo:         form.tipo,
       fecha_inicio: form.startDate === 'flexible' ? null : (form.startDate || null),
       fecha_flexible: form.startDate === 'flexible',
-    }).eq('id', cachuelo.id);
+      ...geoToColumns(loc, form.tipo),
+      requisitos,
+    });
     setSaving(false);
     if (err) { setError(`Error: ${err.message}`); return; }
     await onSaved?.();
     setSaved(true);
   };
 
-  const canSave = form.title && form.category && form.description && form.price && form.district && form.duration;
+  const discrim = findDiscrimination(form.title, form.description, ...requisitos);
+  const canSave = discrim.length === 0 && form.title && form.category && form.description && Number(form.price) >= PRICE_MIN && (form.tipo === 'Remoto' || loc.district) && form.duration;
 
   if (saved) return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
@@ -2130,7 +2050,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
 
   return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={18} color="#fff" />
@@ -2146,20 +2066,8 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
         {/* Info básica */}
         <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Info básica</div>
         <Input label="Título *" placeholder="Ej: Necesito diseñador para logo" value={form.title} onChange={e => upd('title', e.target.value)} />
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6, display: 'block' }}>Categoría *</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => upd('category', cat.label)}
-                style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${form.category === cat.label ? C.primary : C.border}`, background: form.category === cat.label ? C.primary + '18' : C.card, color: form.category === cat.label ? C.primary : C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <cat.Icon size={11} color="#fff" strokeWidth={2.5} />
-                </div>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Input label="Servicio (escríbelo a tu manera)" placeholder="Ej: destorar lavadero" value={form.servicio} onChange={e => upd('servicio', e.target.value.slice(0, 80))} />
+        <CategoryPicker value={form.category} onChange={v => upd('category', v)} hintText={`${form.title} ${form.servicio}`} />
         <Textarea label="Descripción *" placeholder="Describe detalladamente lo que necesitas..." value={form.description} onChange={e => upd('description', e.target.value)} rows={4} />
 
         {/* Detalles */}
@@ -2185,16 +2093,9 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
             ))}
           </div>
         </div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, display: 'block' }}>Distrito *</label>
-          <div style={{ position: 'relative' }}>
-            <MapPin size={15} color={C.textMuted} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <select value={form.district} onChange={e => upd('district', e.target.value)} style={{ width: '100%', padding: '11px 14px 11px 34px', border: `1.5px solid ${form.district ? C.primary : C.border}`, borderRadius: 10, fontSize: 14, color: form.district ? C.text : C.textMuted, background: C.card, outline: 'none', fontFamily: 'inherit', appearance: 'none', cursor: 'pointer' }}>
-              <option value="">Selecciona un distrito...</option>
-              {DISTRITOS.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-        </div>
+        {form.category && <RequirementsField category={form.category} value={requisitos} onChange={setRequisitos} />}
+        {discrim.length > 0 && <div style={{ fontSize: 12.5, color: C.danger, background: C.dangerSoft, borderRadius: 14, padding: '10px 12px', marginBottom: 12 }}>Requisitos no permitidos ({discrim.join(', ')}). Ley 26772.</div>}
+        {form.tipo === 'Presencial' && <LocationFields value={loc} onChange={setLoc} />}
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec }}>Fecha de inicio</label>
@@ -2237,7 +2138,7 @@ const EditCachueloScreen = ({ cachuelo, onBack, onSaved, onNavigate }) => {
           </div>
         </div>
 
-        {error && <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>{error}</div>}
+        {error && <div style={{ background: C.dangerSoft, border: `1px solid ${C.danger}30`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>{error}</div>}
         <Btn onClick={handleSave} style={{ width: '100%' }} disabled={!canSave || saving}>
           {saving ? 'Guardando...' : '💾 Guardar cambios'}
         </Btn>
@@ -2282,16 +2183,18 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   const { C, isDark } = useTheme();
   const [query, setQuery]           = useState('');
   const [selectedCat, setSelectedCat] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ modalidad: null, precioRange: null, distrito: null, duracion: null });
 
   const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: f[key] === val ? null : val }));
 
-  const clearAll = () => { setFilters({ modalidad: null, precioRange: null, distrito: null, duracion: null }); setSelectedCat(null); setQuery(''); };
+  const clearAll = () => { setFilters({ modalidad: null, precioRange: null, distrito: null, duracion: null }); setSelectedCat(null); setSelectedGroup(null); setQuery(''); };
 
   const results = cachuelos.filter(c => {
-    if (query && !c.title.toLowerCase().includes(query.toLowerCase()) && !c.category.toLowerCase().includes(query.toLowerCase())) return false;
+    if (query && !matchesQuery(c, query)) return false;
     if (selectedCat && c.category !== selectedCat) return false;
+    if (selectedGroup && groupOfLabel(c.category) !== selectedGroup) return false;
     if (filters.modalidad && c.type !== filters.modalidad) return false;
     if (filters.precioRange) {
       const r = PRECIO_OPTS.find(o => o.label === filters.precioRange);
@@ -2302,11 +2205,12 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
     return true;
   });
 
-  const activeCount = (selectedCat ? 1 : 0) + Object.values(filters).filter(Boolean).length;
+  const activeCount = (selectedCat ? 1 : 0) + (selectedGroup && !selectedCat ? 1 : 0) + Object.values(filters).filter(Boolean).length;
   const hasActive   = query || activeCount > 0;
 
   const activeChips = [
     selectedCat        && { key: 'cat',    label: selectedCat,        onRemove: () => setSelectedCat(null) },
+    selectedGroup && !selectedCat && { key: 'grp', label: getGroup(selectedGroup).short, onRemove: () => setSelectedGroup(null) },
     filters.modalidad  && { key: 'mod',    label: filters.modalidad,  onRemove: () => setFilter('modalidad', filters.modalidad) },
     filters.precioRange && { key: 'precio', label: filters.precioRange, onRemove: () => setFilter('precioRange', filters.precioRange) },
     filters.distrito   && { key: 'dist',   label: filters.distrito,   onRemove: () => setFilter('distrito', filters.distrito) },
@@ -2316,14 +2220,14 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
   return (
     <Screen withTabs activeTab="search" onNavigate={onNavigate}>
       {/* ── Header ── */}
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 16px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 16px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Buscar</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, background: 'rgba(255,255,255,0.95)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
             <Search size={16} color="#8A93B0" />
             <input
               value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar cachuelos, categorías..."
+              placeholder="Ej: gasfitero, torta, pasear perro…"
               style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#0D1B3E', padding: '12px 0', fontFamily: 'inherit', background: 'transparent' }}
               autoFocus
             />
@@ -2373,35 +2277,26 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
       <div style={{ padding: '16px 20px' }}>
         {!hasActive ? (
           <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Explorar categorías</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-              {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCat(cat.label)}
-                  style={{
-                    padding: '14px 8px', borderRadius: 16,
-                    border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'transparent'}`,
-                    background: isDark ? 'rgba(255,255,255,0.06)' : cat.color,
-                    cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                  }}>
-                  <div style={{
-                    width: 46, height: 46, borderRadius: 14,
-                    background: `linear-gradient(135deg, ${cat.iconBgA}, ${cat.iconBgB})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: `0 4px 10px ${cat.iconBgA}50`,
-                  }}>
-                    <cat.Icon size={22} color="#fff" strokeWidth={2} />
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>{cat.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>Explorar por grupo</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>{CATEGORIES.length} tipos de cachuelo. Toca un grupo o una categoría.</div>
+            {CATEGORY_GROUPS.map(g => (
+              <div key={g.id} style={{ marginBottom: 14 }}>
+                <button onClick={() => setSelectedGroup(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none', padding: '2px 0 8px', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 9, background: `linear-gradient(135deg, ${g.a}, ${g.b})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 10px ${g.a}50` }}><g.Icon size={15} color="#fff" /></span>
+                  <span style={{ fontSize: 13.5, fontWeight: 900, color: C.text, flex: 1, textAlign: 'left' }}>{g.label}</span>
+                  <ChevronRight size={16} color={C.textMuted} />
                 </button>
-              ))}
-            </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {categoriesInGroup(g.id).map(cat => <CatChip key={cat.id} small label={cat.label} onPress={() => setSelectedCat(cat.label)} />)}
+                </div>
+              </div>
+            ))}
           </>
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>
               {results.length} resultado{results.length !== 1 ? 's' : ''}
-              {selectedCat && ` en ${selectedCat}`}
+              {selectedCat ? ` en ${selectedCat}` : selectedGroup ? ` en ${getGroup(selectedGroup).short}` : ''}
             </div>
             {results.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>
@@ -2418,9 +2313,9 @@ const SearchScreen = ({ onNavigate, onViewCachuelo, cachuelos }) => {
 
       {/* ── Panel de filtros (bottom sheet) ── */}
       {showFilters && (
-        <div onClick={() => setShowFilters(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}>
-          <div onClick={e => e.stopPropagation()}
+        <div className="lg-scrim" onClick={() => setShowFilters(false)}
+          style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+          <div className="lg-sheet" onClick={e => e.stopPropagation()}
             style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px', maxHeight: '82vh', overflowY: 'auto' }}>
             <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
 
@@ -2519,6 +2414,9 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
           type: c.tipo, featured: c.destacado, remote: c.tipo === 'Remoto',
           description: c.descripcion || '', fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
           payType: c.tipo_pago || 'Fijo',
+          district: c.distrito || '', departamento: c.departamento || null, ciudad: c.ciudad || null,
+          lat: c.lat ?? null, lng: c.lng ?? null,
+          requisitos: c.requisitos || [],
           userId: c.user_id, publisher: { name: user.nombre || 'Yo', rating: 0, verified: false, avatar: (user.nombre?.[0] || 'Y').toUpperCase() },
         })));
       }
@@ -2540,7 +2438,7 @@ const MyCachuelos = ({ onNavigate, onViewCachuelo, user, onVerPostulantes, onIni
 
   return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Mis Cachuelos</div>
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 3 }}>
           {['publicados','postulados'].map(t => (
@@ -2709,12 +2607,12 @@ const ResenasSection = ({ resenas, loading }) => {
 };
 
 // 9. PERFIL ────────────────────────────────────────────────────────────────────
-const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, user }) => {
+const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, user, onVerify, onAdminVerif, onSimulator }) => {
   const { C } = useTheme();
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isDemoBackend) return;
     supabase.from('profiles').select('*').eq('id', user.id).single()
       .then(({ data }) => { if (data) setProfile(data); });
   }, [user?.id]);
@@ -2724,8 +2622,10 @@ const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, use
   const isAdmin     = profile?.rol === 'admin';
 
   const menuItems = [
-    { icon: Shield,    label: 'Verificar DNI',          desc: 'Aumenta tu confiabilidad',    color: C.primary,  action: null },
-    { icon: Award,     label: 'Verificar CUL',          desc: 'Certificado único laboral',   color: C.purple,   action: null },
+    ...(isDemoBackend ? [{ icon: FlaskConical, label: 'Simulador (demo)', desc: user?.persona ? `Estás como ${user.nombre} · cambiar de persona` : 'Entra como contratante o trabajador', color: '#7C3AED', action: onSimulator }] : []),
+    { icon: Shield,    label: 'Verificación de identidad', desc: 'DNI, selfie y Certificado Único Laboral', color: C.primary, action: onVerify },
+    ...((isAdmin || isDemoVerification) ? [{ icon: Users, label: `Revisar verificaciones${isAdmin ? '' : ' (demo)'}`, desc: 'Aprobar identidades y fotos de perfil', color: '#7C3AED', action: onAdminVerif }] : []),
+    { icon: WalletIcon, label: 'Mis cobros y pagos',   desc: 'Pago Protegido y método de cobro', color: C.success, action: () => onNavigate('wallet') },
     { icon: Star,      label: 'Mis calificaciones',     desc: completados > 0 ? `${rating.toFixed(1)} · ${completados} reseña${completados !== 1 ? 's' : ''}` : 'Sin reseñas aún', color: C.warning, action: null },
     ...(isAdmin ? [
       { icon: Wrench,    label: 'Herramientas Admin',   desc: 'Gestionar cachuelos',         color: '#7C3AED',  action: onAdminTools },
@@ -2738,7 +2638,7 @@ const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, use
 
   return (
     <Screen withTabs activeTab="profile" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={18} color="#fff" />
@@ -2827,6 +2727,9 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
       .then(({ data }) => setTrabajos(data || []));
   }, [user?.id]);
 
+  const { verification: myVerif } = useVerification(user);
+  const avatarSrc = profile?.avatar_url || myVerif?.avatar_aprobado || null;   // demo: selfie aprobada
+  const avatarPending = !!(myVerif?.avatar_pendiente || myVerif?.avatar_pendiente_path);
   const handleSelectPhoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2836,7 +2739,16 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
   };
 
   const handleConfirmPhoto = async () => {
-    if (!previewFile || !user?.id) return;
+    if (!previewFile) return;
+    // v0.17: toda foto nueva pasa por aprobación (debe coincidir con el DNI)
+    setUploadingPhoto(true);
+    try {
+      await submitAvatarChange(user, previewFile);
+      toast('Foto enviada a revisión. La verás cuando el equipo la apruebe.', 'info');
+    } catch (e) { toast(e.message, 'error'); }
+    setUploadingPhoto(false); setPreviewFile(null); setPreviewUrl(null);
+    return;
+    // eslint-disable-next-line no-unreachable
     setUploadingPhoto(true);
     const ext = previewFile.name.split('.').pop();
     const path = `${user.id}.${ext}`;
@@ -2942,15 +2854,15 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
       {/* ── HEADER COMPACTO ── */}
       <div style={{ position: 'relative' }}>
-        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '44px 20px 20px', position: 'relative', overflow: 'hidden' }}>
+        <div className="lg-header lg-header--static" style={{ padding: '44px 20px 20px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {/* Avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 80, height: 80, borderRadius: 40, padding: 3, background: `linear-gradient(135deg, ${C.primary}, ${C.warning})` }}>
                 <div style={{ width: 74, height: 74, borderRadius: 37, overflow: 'hidden', background: C.headerDark }}>
-                  {profile?.avatar_url
-                    ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {avatarSrc
+                    ? <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: '#fff' }}>{initials}</div>}
                 </div>
               </div>
@@ -2958,6 +2870,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
                 <Camera size={12} color="#fff" />
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleSelectPhoto} />
               </label>
+              {avatarPending && <span style={{ position: 'absolute', left: '50%', bottom: -8, transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontSize: 9.5, fontWeight: 800, color: '#fff', background: '#F59E0B', padding: '2px 7px', borderRadius: 8, border: '1.5px solid #fff' }}>Foto en revisión</span>}
               {dniVerificado && (
                 <div style={{ position: 'absolute', bottom: 2, left: 2, width: 26, height: 26, borderRadius: 13, background: C.success, border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <CheckCircle size={13} color="#fff" />
@@ -3005,7 +2918,7 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
       </div>
 
       {/* ── CONTENIDO TABS ── */}
-      <div style={{ padding: '16px 16px 80px', background: C.cardElevated }}>
+      <div style={{ padding: '16px 16px 80px', background: 'transparent' }}>
 
         {/* TAB: INFORMACIÓN */}
         {activeTab === 'info' && (<>
@@ -3103,8 +3016,8 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
       {/* ── MODAL ESPECIALIDADES ── */}
       {editingEspecialidades && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
-          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '75vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+        <div className="lg-scrim" style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+          <div className="lg-sheet" style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '75vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Especialidades</div>
             <div style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>Selecciona las categorías en las que trabajas</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
@@ -3134,8 +3047,8 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
       {/* ── MODAL ZONAS ── */}
       {editingZonas && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
-          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '80vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+        <div className="lg-scrim" style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+          <div className="lg-sheet" style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '24px 20px 36px', maxHeight: '80vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Zonas de trabajo</div>
             <div style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>Selecciona los distritos donde puedes trabajar</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
@@ -3162,8 +3075,8 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 
       {/* ── MODAL PREVIEW FOTO ── */}
       {previewUrl && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', zIndex: 100 }}>
-          <div style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '28px 20px 36px' }}>
+        <div className="lg-scrim" style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+          <div className="lg-sheet" style={{ width: '100%', background: C.card, borderRadius: '24px 24px 0 0', padding: '28px 20px 36px' }}>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 900, color: C.text, marginBottom: 4 }}>Vista previa</div>
               <div style={{ fontSize: 13, color: C.textSec }}>¿Te gusta cómo se ve?</div>
@@ -3321,7 +3234,7 @@ const AdminDashboard = ({ onBack }) => {
                   <div style={{ width: 34, height: 34, borderRadius: 10, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={17} color={k.color} />
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: C.success, background: '#ECFDF5', padding: '2px 6px', borderRadius: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: C.success, background: C.successSoft, padding: '2px 6px', borderRadius: 6 }}>
                     {k.change}
                   </span>
                 </div>
@@ -3723,7 +3636,7 @@ const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onVi
 
   return (
     <Screen withTabs activeTab="home" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={18} color="#fff" />
@@ -3744,7 +3657,7 @@ const NotificationsScreen = ({ user, onBack, onNavigate, onViewPostulantes, onVi
         ) : notifs.map(n => {
           const isRead = readIds.includes(n.id);
           return (
-            <div key={n.id} onClick={() => handleClick(n)} style={{ background: isRead ? '#F9FAFB' : '#EFF6FF', borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${isRead ? C.border : '#BFDBFE'}`, borderLeft: `4px solid ${isRead ? C.border : C.headerBg}`, display: 'flex', gap: 14, alignItems: 'flex-start', cursor: 'pointer' }}>
+            <div key={n.id} onClick={() => handleClick(n)} style={{ background: isRead ? C.cardElevated : C.infoSoft, borderRadius: 14, padding: '14px 16px', marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${isRead ? C.border : 'rgba(37,99,235,0.3)'}`, borderLeft: `4px solid ${isRead ? C.border : C.headerBg}`, display: 'flex', gap: 14, alignItems: 'flex-start', cursor: 'pointer' }}>
               <div style={{ width: 42, height: 42, borderRadius: 21, background: (isRead ? '#9CA3AF' : n.color) + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                 {n.icono}
               </div>
@@ -3773,7 +3686,7 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
       setLoading(true);
       const { data: posts } = await supabase
         .from('postulaciones')
-        .select('id, mensaje, estado, created_at, postulante_id')
+        .select('*')
         .eq('cachuelo_id', cachuelo.id)
         .order('created_at', { ascending: false });
 
@@ -3798,7 +3711,8 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
           completados: prof.cachuelos_completados || 0,
           distrito: prof.distrito || prof.ciudad || 'Lima',
           verificado: prof.dni_verificado || false,
-          mensaje: p.mensaje || '',
+          mensaje: cleanMessage(p.mensaje || ''),
+          monto_ofertado: offerAmount(p, Number(cachuelo?.price || 0)),
           estado: p.estado,
           fecha: new Date(p.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' }),
         };
@@ -3812,7 +3726,7 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
 
   return (
     <Screen withTabs activeTab="mycachuelos" onNavigate={onNavigate}>
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 20px 20px' }}>
+      <div className="lg-header" style={{ padding: '44px 20px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={18} color="#fff" />
@@ -3877,9 +3791,16 @@ const PostulantesScreen = ({ cachuelo, onBack, onViewProfile, onIniciarChat, onN
                   )}
                 </div>
 
+                {/* Oferta */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                  <span className="lg-num" style={{ fontSize: 22, fontWeight: 900, color: C.primary }}>S/ {p.monto_ofertado}</span>
+                  {Number(p.monto_ofertado) !== Number(cachuelo?.price) && cachuelo?.price != null
+                    ? <Badge color={Number(p.monto_ofertado) > Number(cachuelo.price) ? C.warning : C.success}>Contraoferta · publicado S/ {cachuelo.price}</Badge>
+                    : <Badge color={C.success}>Acepta tu precio</Badge>}
+                </div>
                 {/* Mensaje */}
                 {p.mensaje ? (
-                  <div style={{ background: '#F9FAFB', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: C.textSec, lineHeight: 1.5, borderLeft: `3px solid ${C.primary}`, marginBottom: 12 }}>
+                  <div style={{ background: C.cardElevated, borderRadius: 10, padding: '10px 12px', fontSize: 12, color: C.textSec, lineHeight: 1.5, borderLeft: `3px solid ${C.primary}`, marginBottom: 12 }}>
                     "{p.mensaje}"
                   </div>
                 ) : (
@@ -3914,6 +3835,17 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
   const [recipientId, setRecipientId] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [showPay, setShowPay] = useState(false);
+  const [payment, setPayment] = useState(null);
+  const [shieldNote, setShieldNote] = useState(false);
+  const [showSafety, setShowSafety] = useState(false);
+  const [offer, setOffer] = useState(chatData?.postulante?.monto_ofertado ?? null);
+  useEffect(() => {
+    if (!postulacion_id) return;
+    const load = () => getPaymentForPostulacion(postulacion_id).then(setPayment);
+    load();
+    return onPaymentsChange(load);
+  }, [postulacion_id]);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingStars, setRatingStars] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
@@ -3927,15 +3859,16 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       try {
         // 1. Postulacion: estado, ids, y mensaje inicial de postulación
         const { data: post } = await supabase.from('postulaciones')
-          .select('estado, cachuelo_id, postulante_id, mensaje, created_at')
+          .select('*')
           .eq('id', postulacion_id).single();
 
         if (post) {
           setEstado(post.estado);
+          const o = offerAmount(post, null); if (o != null) setOffer(o);
 
           // 2. Cachuelo (minimal, sin join) + perfil del postulante
           const { data: cachMin } = await supabase
-            .from('cachuelos').select('id, user_id, titulo').eq('id', post.cachuelo_id).single();
+            .from('cachuelos').select('id, user_id, titulo, precio, distrito').eq('id', post.cachuelo_id).single();
           const { data: postlanteProfile } = await supabase
             .from('profiles').select('id, nombre, apellido, email').eq('id', post.postulante_id).single();
 
@@ -3943,7 +3876,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
             const publisherId = cachMin.user_id;
             // Calcular recipient: si soy el postulante → escribo al publicador, y viceversa
             setRecipientId(currentUser?.id === post.postulante_id ? publisherId : post.postulante_id);
-            setCachuelo({ id: cachMin.id, title: cachMin.titulo, userId: publisherId });
+            setCachuelo(prev => ({ ...prev, id: cachMin.id, title: cachMin.titulo, userId: publisherId, price: Number(cachMin.precio ?? prev?.price ?? 0), location: cachMin.distrito || prev?.location }));
           }
 
           if (postlanteProfile) {
@@ -4014,13 +3947,17 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
 
   const sendMessage = async () => {
     const trimmed = text.trim();
+    // Antes de aceptar, ocultamos teléfonos/correos (anti "sacados de vuelta")
+    const unlocked = estado === 'Aceptado' || estado === 'Completado';
+    const shield = unlocked ? { text: trimmed, flagged: false } : shieldContact(trimmed);
+    if (shield.flagged) { setShieldNote(true); haptic(20); }
     if (!trimmed || !recipientId) return;
     setText('');
     const { data: inserted } = await supabase.from('mensajes').insert({
       postulacion_id,
       sender_id: currentUser?.id,
       recipient_id: recipientId,
-      texto: trimmed,
+      texto: shield.text,
       leido: false,
     }).select().single();
     // Mostrar el mensaje inmediatamente sin esperar realtime
@@ -4055,16 +3992,8 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
     // 2. Actualizar rating del trabajador (promedio acumulado) + guardar reseña
     const trabajadorId = postulante?.postulante_id || postulante?.id;
     if (trabajadorId) {
-      const { data: prof } = await supabase.from('profiles').select('rating, cachuelos_completados').eq('id', trabajadorId).single();
-      if (prof) {
-        const completados = prof.cachuelos_completados || 0;
-        const oldRating   = prof.rating || 0;
-        const newRating   = completados > 0 ? (oldRating * completados + ratingStars) / (completados + 1) : ratingStars;
-        await supabase.from('profiles').update({
-          rating: Math.round(newRating * 10) / 10,
-          cachuelos_completados: completados + 1,
-        }).eq('id', trabajadorId);
-      }
+      // v0.18: el promedio y los contadores los recalcula el servidor (trigger
+      // tras_resena). Antes se calculaban aquí y cualquiera podía alterarlos.
       const { error: resenaError } = await supabase.from('resenas').insert({
         trabajador_id: trabajadorId,
         publicador_id: currentUser?.id,
@@ -4103,9 +4032,9 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       <TabBar active="mycachuelos" onNavigate={onNavigate} />
 
       {/* Contenedor principal: ocupa todo menos los 72px del TabBar */}
-      <div style={{ position: 'absolute', inset: 0, bottom: 72, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'absolute', inset: 0, bottom: TABBAR_SPACE - 8, display: 'flex', flexDirection: 'column' }}>
       {/* Header – fijo arriba */}
-      <div style={{ background: `linear-gradient(135deg, ${C.headerBg}, ${C.headerDark})`, padding: '44px 16px 16px', flexShrink: 0 }}>
+      <div className="lg-header" style={{ padding: '44px 16px 16px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 18, background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ArrowLeft size={18} color="#fff" />
@@ -4124,13 +4053,28 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
               style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(239,68,68,0.15)', border: '1.5px solid rgba(239,68,68,0.6)', color: '#FCA5A5', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <X size={15} /> Rechazar
             </button>
-            <button onClick={() => updateEstado('Aceptado')} disabled={updatingEstado}
+            <button onClick={() => { haptic(); setShowPay(true); }} disabled={updatingEstado}
               style={{ flex: 1, padding: '9px 0', borderRadius: 10, background: 'rgba(16,185,129,0.15)', border: '1.5px solid rgba(16,185,129,0.6)', color: '#6EE7B7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Check size={15} /> Aceptar
             </button>
           </div>
         )}
-        {estado === 'Aceptado' && isPublisher && (
+        {payment && (
+          <div style={{ marginTop: 10 }}>
+            <PaymentStatusCard payment={payment} isPublisher={isPublisher} onReleased={() => setShowRatingModal(true)} />
+          </div>
+        )}
+        {(estado === 'Aceptado' || estado === 'Completado') && (
+          <button onClick={() => setShowSafety(true)} style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '9px 0', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.45)', background: 'rgba(239,68,68,0.25)', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+            <Siren size={15} /> Seguridad y emergencias
+          </button>
+        )}
+        {shieldNote && !(estado === 'Aceptado' || estado === 'Completado') && (
+          <div className="lg-pop-in" style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.14)', borderRadius: 12, padding: '8px 10px', lineHeight: 1.45 }}>
+            🔒 Ocultamos teléfonos y correos hasta que se acepte la postulación. Así ambos quedan protegidos.
+          </div>
+        )}
+        {estado === 'Aceptado' && isPublisher && !(payment?.modo === 'protegido' && payment?.estado !== 'liberado') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button onClick={() => setShowRatingModal(true)}
               style={{ width: '100%', padding: '9px 0', borderRadius: 10, background: 'rgba(139,92,246,0.2)', border: '1.5px solid rgba(139,92,246,0.6)', color: '#C4B5FD', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -4204,7 +4148,7 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
           const isMe = m.sender_id === currentUser?.id;
           return (
             <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '75%', background: isMe ? C.headerBg : '#fff', color: isMe ? '#fff' : C.text, borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontSize: 13, lineHeight: 1.5, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ maxWidth: '75%', background: isMe ? `linear-gradient(145deg, ${C.headerLight}, ${C.headerBg})` : C.card, color: isMe ? '#fff' : C.text, borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px', padding: '10px 14px', fontSize: 13, lineHeight: 1.5, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                 <div>{m.texto}</div>
                 <div style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.65)' : C.textMuted, marginTop: 4, textAlign: 'right' }}>{formatTs(m.created_at)}</div>
               </div>
@@ -4228,6 +4172,16 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
       </div>{/* fin contenedor principal */}
 
       {/* Modal rating */}
+      <SafetySheet open={showSafety} onClose={() => setShowSafety(false)} cachuelo={cachuelo} otherName={isPublisher ? postulante?.nombre : 'el contratante'} />
+      <PaymentSheet
+        open={showPay}
+        onClose={() => setShowPay(false)}
+        cachuelo={{ ...cachuelo, price: Number(offer ?? cachuelo?.price ?? cachuelo?.precio ?? 0), title: cachuelo?.title ?? cachuelo?.titulo }}
+        payee={{ id: postulante?.postulante_id || postulante?.id, nombre: postulante?.nombre }}
+        payer={currentUser}
+        postulacionId={postulacion_id}
+        onPaid={async (p) => { setShowPay(false); setPayment(p); await updateEstado('Aceptado'); }}
+      />
       {showRatingModal && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', zIndex: 50 }}>
           <div style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '24px 20px 32px' }}>
@@ -4377,7 +4331,7 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
 
       {/* ── HEADER COMPACTO ── */}
       <div style={{ position: 'relative' }}>
-        <div style={{ background: `linear-gradient(160deg, ${C.headerBg} 0%, ${C.headerDark} 70%, #1A3A8F 100%)`, padding: '48px 20px 20px', position: 'relative', overflow: 'hidden' }}>
+        <div className="lg-header lg-header--static" style={{ padding: '48px 20px 20px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
           {loading ? (
             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Cargando...</div>
@@ -4444,7 +4398,7 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
       </div>
 
       {/* ── CONTENIDO TABS ── */}
-      <div style={{ padding: '16px 16px 80px', background: C.cardElevated }}>
+      <div style={{ padding: '16px 16px 80px', background: 'transparent' }}>
 
         {/* TAB: INFORMACIÓN */}
         {activeTab === 'info' && (<>
@@ -4545,8 +4499,8 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
 
       {/* Share bottom sheet */}
       {showShareModal && (
-        <div onClick={() => setShowShareModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 200 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
+        <div className="lg-scrim" onClick={() => setShowShareModal(false)} style={{ position: 'absolute', inset: 0, background: 'var(--lg-scrim)', display: 'flex', alignItems: 'flex-end', zIndex: 500 }}>
+          <div className="lg-sheet" onClick={e => e.stopPropagation()} style={{ width: '100%', background: C.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
             <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>Compartir perfil</div>
             <div style={{ fontSize: 12, color: C.textSec, marginBottom: 20 }}>{fullName}</div>
@@ -4558,12 +4512,12 @@ const PublicProfileScreen = ({ userId, onBack, onViewCachuelo, onNavigate, user 
                 { emoji: '💼', label: 'LinkedIn',    color: '#0077B5', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}` },
               ].map(({ emoji, label, color, href }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer" onClick={() => setShowShareModal(false)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: '#F9FAFB', textDecoration: 'none', border: `1px solid ${C.border}` }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: C.cardElevated, textDecoration: 'none', border: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 22 }}>{emoji}</span>
                   <span style={{ fontSize: 14, fontWeight: 600, color }}>{label}</span>
                 </a>
               ))}
-              <button onClick={handleCopyLink} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: copied ? '#F0FDF4' : '#F9FAFB', border: `1px solid ${copied ? C.success : C.border}`, cursor: 'pointer', width: '100%' }}>
+              <button onClick={handleCopyLink} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: copied ? C.successSoft : C.cardElevated, border: `1px solid ${copied ? C.success : C.border}`, cursor: 'pointer', width: '100%' }}>
                 <span style={{ fontSize: 22 }}>{copied ? '✅' : '🔗'}</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: copied ? C.success : C.text }}>{copied ? '¡Copiado!' : 'Copiar enlace'}</span>
               </button>
@@ -4621,7 +4575,7 @@ const ResetPasswordScreen = ({ onDone }) => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 14 }}>
               {[['8+ caracteres', pass.length >= 8], ['Mayúscula', /[A-Z]/.test(pass)], ['Número', /[0-9]/.test(pass)]].map(([label, ok]) => (
                 <span key={label} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                  background: ok ? '#ECFDF5' : '#F3F4F6', color: ok ? C.success : C.textMuted, fontWeight: 600 }}>
+                  background: ok ? C.successSoft : '#F3F4F6', color: ok ? C.success : C.textMuted, fontWeight: 600 }}>
                   {ok ? '✓' : '·'} {label}
                 </span>
               ))}
@@ -4634,7 +4588,7 @@ const ResetPasswordScreen = ({ onDone }) => {
               </div>
             )}
             {error && (
-              <div style={{ background: '#FEF2F2', border: `1px solid ${C.danger}30`, borderRadius: 10,
+              <div style={{ background: C.dangerSoft, border: `1px solid ${C.danger}30`, borderRadius: 10,
                 padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.danger }}>
                 {error}
               </div>
@@ -4666,43 +4620,30 @@ export default function App() {
   const [postulantesParent, setPostulantesParent] = useState('mycachuelos');
   const [chatData, setChatData] = useState(null); // { postulacion_id, cachuelo, postulante, isOwner }
   const [user, setUser] = useState(null);
-  const [cachuelos, setCachuelos] = useState(CACHUELOS); // fallback al mock mientras carga
+  const [selfUser, setSelfUser] = useState(null);          // tu cuenta (para volver después de "Entrar como…")
+  const [focusCachueloId, setFocusCachueloId] = useState(null);
+  const [profileStack, setProfileStack] = useState([]);    // para navegar de perfil en perfil y volver
+  const [profileReturn, setProfileReturn] = useState('home');
+  // En demo, el feed sale del mundo simulado (personas, ofertas, estados)
+  const [cachuelos, setCachuelos] = useState(() => (isDemoBackend ? simFeed() : CACHUELOS)); // fallback al mock si no hay datos
+  useEffect(() => {
+    if (!isDemoBackend) return;
+    const on = () => setCachuelos(simFeed());
+    [DEMO_EVENT, SIM_EVENT].forEach(e => window.addEventListener(e, on));
+    return () => [DEMO_EVENT, SIM_EVENT].forEach(e => window.removeEventListener(e, on));
+  }, []);
+  const [cachuelosLoading, setCachuelosLoading] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setCachuelosLoading(false), 4000); return () => clearTimeout(t); }, []);
 
-  const normalizeCachuelos = (data, profileMap = {}) => data.map(c => {
-    const p = profileMap[c.user_id];
-    const pubName = p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || p.email?.split('@')[0] || 'Usuario' : 'Usuario';
-    const pubAvatar = p ? (`${p.nombre?.[0] || ''}${p.apellido?.[0] || ''}`).toUpperCase() || 'U' : 'U';
-    return {
-      id: c.id,
-      title: c.titulo,
-      category: c.categorias?.label || '',
-      emoji: c.categorias?.emoji || '💼',
-      location: c.distrito || 'Lima',
-      duration: c.duracion || '',
-      price: Number(c.precio),
-      type: c.tipo,
-      featured: c.destacado,
-      remote: c.tipo === 'Remoto',
-      publisher: {
-        name: pubName,
-        rating: p?.rating || 0,
-        verified: p?.dni_verificado || false,
-        avatar: pubAvatar,
-      },
-      description: c.descripcion || '',
-      schedule: c.horario || '',
-      fecha_inicio: c.fecha_flexible ? 'flexible' : (c.fecha_inicio || ''),
-      userId: c.user_id,
-    };
-  });
 
   const refreshCachuelos = async () => {
+    if (isDemoBackend) { setCachuelos(simFeed()); setCachuelosLoading(false); return; }
     const { data, error } = await supabase
       .from('cachuelos')
       .select(`*, categorias(label, emoji, color)`)
       .eq('estado', 'Activo')
       .order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) return;
+    if (error || !data || data.length === 0) { setCachuelosLoading(false); return; }
     const userIds = [...new Set(data.map(c => c.user_id).filter(Boolean))];
     const { data: profiles, error: profError } = await supabase
       .from('profiles')
@@ -4711,6 +4652,7 @@ export default function App() {
     const profileMap = {};
     (profiles || []).forEach(p => { profileMap[p.id] = p; });
     setCachuelos(normalizeCachuelos(data, profileMap));
+    setCachuelosLoading(false);
   };
 
   // Cargar cachuelos al iniciar
@@ -4748,6 +4690,7 @@ export default function App() {
   }, [screen]);
 
   const navigate = (tab) => {
+    if (tab === 'wallet' || tab === 'simulator') setPrevScreen(screen);
     setActiveTab(tab);
     if (tab === 'home') setScreen('home');
     else if (tab === 'search') setScreen('search');
@@ -4756,6 +4699,28 @@ export default function App() {
     else if (tab === 'profile') setScreen('profile');
     else setScreen(tab);
   };
+
+  // Tras iniciar sesión: si nunca envió su verificación, mostrar el onboarding
+  const afterLogin = async (u) => {
+    if (isDemoBackend && !u.id) u = { ...u, id: verifUserId(u) };   // demo: id fijo para tu cuenta
+    setUser(u); setSelfUser(u); setActiveTab('home');
+    const v = await getVerification(verifUserId(u));
+    setScreen(v ? 'home' : 'verification');
+  };
+  const goVerify = () => { setPrevScreen(screen); setScreen('verification'); };
+
+  // Perfiles (demo): se puede saltar de un perfil a otro y volver en orden
+  const openProfile = (uid) => {
+    if (!uid) return;
+    if (screen === 'publicprofile') { if (uid === viewedUserId) return; setProfileStack(st => [...st, viewedUserId]); }
+    else { setProfileReturn(screen); setProfileStack([]); }
+    setViewedUserId(uid); setScreen('publicprofile');
+  };
+  const closeProfile = () => {
+    if (profileStack.length) { setViewedUserId(profileStack[profileStack.length - 1]); setProfileStack(st => st.slice(0, -1)); }
+    else setScreen(profileReturn);
+  };
+  const switchUser = (u) => { setUser(u || null); };
 
   const viewCachuelo = (c) => {
     setPrevScreen(screen);
@@ -4770,22 +4735,33 @@ export default function App() {
       case 'onboarding':  return <OnboardingScreen onDone={() => setScreen('welcome')} />;
       case 'welcome':     return <WelcomeScreen
                             onEmailLogin={() => setScreen('login')}
-                            onGoogleLogin={() => { setUser({ email: 'google@user.com', nombre: 'Usuario', apellido: 'Google' }); setScreen('home'); setActiveTab('home'); }}
+                            onGoogleLogin={() => afterLogin({ email: 'google@user.com', nombre: 'Usuario', apellido: 'Google' })}
                             onPhoneLogin={() => setScreen('login')}
                           />;
-      case 'login':       return <LoginScreen onLogin={(u) => { setUser(u); setScreen('home'); setActiveTab('home'); }} onAdmin={() => setScreen('admin')} />;
-      case 'home':        return <HomeScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
+      case 'login':       return <LoginScreen onLogin={afterLogin} onAdmin={() => setScreen('admin')} />;
+      case 'home':        return <HomeScreen onVerify={goVerify} loading={cachuelosLoading} onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
       case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} onOpenChat={(data) => { setChatData(data); setPrevScreen('notifications'); setScreen('chat'); }} />;
-      case 'detail':      return <DetailScreen cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => { setViewedUserId(uid); setPrevScreen('detail'); setScreen('publicprofile'); }} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
-      case 'publicprofile': return <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} user={user} />;
+      case 'detail':      return <DetailScreen onVerify={goVerify} tab={prevScreen === 'map' ? 'map' : prevScreen === 'mycachuelos' ? 'mycachuelos' : 'home'} cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => (isDemoBackend ? openProfile(uid) : (setViewedUserId(uid), setPrevScreen('detail'), setScreen('publicprofile')))} onVerPostulantes={(c) => { if (isDemoBackend) { setFocusCachueloId(c.id); navigate('mycachuelos'); return; } setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
+      case 'publicprofile': return isDemoBackend
+        ? <UserProfileScreen key={viewedUserId} userId={viewedUserId} selfUser={user} own={viewedUserId === (user?.id || 'demo-user')} onBack={closeProfile} onNavigate={navigate} onViewProfile={openProfile} onViewCachuelo={viewCachuelo} onVerify={goVerify} onConfig={() => setScreen('config')} activeTab={profileReturn === 'mycachuelos' ? 'mycachuelos' : profileReturn === 'profile' || profileReturn === 'simulator' || profileReturn === 'config' ? 'profile' : 'home'} />
+        : <PublicProfileScreen userId={viewedUserId} onBack={() => setScreen(prevScreen)} onViewCachuelo={(c) => { setPrevScreen('publicprofile'); setSelectedCachuelo(c); setScreen('detail'); }} onNavigate={navigate} user={user} />;
       case 'postulantes':   return <PostulantesScreen cachuelo={cachueloParaPostulantes} onBack={() => setScreen(postulantesParent)} onViewProfile={(uid) => { setViewedUserId(uid); setPrevScreen('postulantes'); setScreen('publicprofile'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('postulantes'); setScreen('chat'); }} onNavigate={navigate} />;
       case 'chat':          return <ChatScreen chatData={chatData} currentUser={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onAceptado={refreshCachuelos} />;
-      case 'publish':     return <PublishScreen onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
+      case 'publish':     return <PublishScreen onVerify={goVerify} onNavigate={navigate} user={user} onPublished={refreshCachuelos} />;
+      case 'verification': return <VerificationScreen user={user} onNavigate={navigate} onDone={() => navigate('home')} onSkip={() => (prevScreen && prevScreen !== 'verification' && prevScreen !== 'login' && prevScreen !== 'welcome' ? setScreen(prevScreen) : navigate('home'))} />;
+      case 'adminverif':  return <AdminVerificationsScreen onBack={() => setScreen('config')} onNavigate={navigate} />;
+      case 'wallet':      return <WalletScreen user={user} onBack={() => setScreen(prevScreen && prevScreen !== 'wallet' ? prevScreen : 'config')} onNavigate={navigate} />;
+      case 'simulator':   return <SimulatorScreen user={user} selfUser={selfUser} onSwitchUser={switchUser} onNavigate={navigate} onViewProfile={openProfile} onBack={() => setScreen(prevScreen && !['simulator', 'publicprofile'].includes(prevScreen) ? prevScreen : 'home')} />;
+      case 'map':         return <MapScreen cachuelos={cachuelos} onViewCachuelo={viewCachuelo} onNavigate={navigate} onOpenSearch={() => navigate('search')} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
-      case 'mycachuelos': return <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
+      case 'mycachuelos': return isDemoBackend
+        ? <DemoMyCachuelos key={`${user?.id}-${focusCachueloId}`} user={user} focusId={focusCachueloId} onNavigate={(t) => { setFocusCachueloId(null); navigate(t); }} onViewCachuelo={viewCachuelo} onViewProfile={openProfile} />
+        : <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
       case 'editcachuelo': return <EditCachueloScreen cachuelo={cachueloParaEditar} onBack={() => setScreen('mycachuelos')} onSaved={refreshCachuelos} onNavigate={navigate} />;
-      case 'profile':     return <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
-      case 'config':      return <ConfigScreen onBack={() => setScreen('profile')} onNavigate={navigate} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} />;
+      case 'profile':     return isDemoBackend
+        ? <UserProfileScreen key={user?.id || 'self'} userId={user?.id || 'demo-user'} selfUser={user} own onNavigate={navigate} onViewProfile={openProfile} onViewCachuelo={viewCachuelo} onVerify={goVerify} onConfig={() => setScreen('config')} />
+        : <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
+      case 'config':      return <ConfigScreen onSimulator={() => navigate('simulator')} onVerify={() => { setPrevScreen('config'); setScreen('verification'); }} onAdminVerif={() => setScreen('adminverif')} onBack={() => setScreen('profile')} onNavigate={navigate} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setSelfUser(null); setScreen('welcome'); }} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} />;
       case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
       case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;
       default:            return <SplashScreen />;
@@ -4793,12 +4769,19 @@ export default function App() {
   };
 
   const theme = isDark ? DARK : LIGHT;
+  // Pantallas sin header azul arriba → texto de la barra de estado oscuro
+  const statusLight = !['map', 'onboarding', 'welcome', 'admin', 'admintools', 'resetpassword'].includes(screen);
 
-  return (
+  const app = (
     <ThemeCtx.Provider value={{ C: theme, isDark, toggleDark }}>
-      <PhoneFrame isDark={isDark} onToggleDark={toggleDark}>
+      <PhoneFrame isDark={isDark} onToggleDark={toggleDark} statusLight={statusLight}>
         {renderScreen()}
       </PhoneFrame>
     </ThemeCtx.Provider>
   );
+
+  // El script de Google Maps solo se carga si hay API key configurada
+  return hasMapsKey
+    ? <APIProvider apiKey={MAPS_API_KEY} language="es" region="PE">{app}</APIProvider>
+    : app;
 }

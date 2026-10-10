@@ -1,8 +1,12 @@
 {
   "name": "cachuelo-prototype",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.18.0",
+  "description": "Cachuelo: app peruana para publicar y encontrar trabajos puntuales (React + Vite + Supabase).",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,7 +14,9 @@
     "ping": "node keep-alive.js"
   },
   "dependencies": {
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@supabase/supabase-js": "^2.98.0",
+    "@vis.gl/react-google-maps": "^1.10.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

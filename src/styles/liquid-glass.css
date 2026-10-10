@@ -1,0 +1,362 @@
+/* ============================================================================
+   CACHUELO · LIQUID GLASS DESIGN SYSTEM (v0.15)
+   ----------------------------------------------------------------------------
+   Principio (igual que Apple en iOS 26): el vidrio es para la capa de
+   NAVEGACIÓN que flota sobre el contenido (header, tab bar, sheets, controles
+   del mapa). El contenido (cards, listas) usa superficies translúcidas SIN
+   backdrop-filter: el fondo ambiental ya viene desenfocado, así que se ve
+   "esmerilado" sin costo de GPU. Esto importa: muchos usuarios en Perú usan
+   Android de gama de entrada.
+   ========================================================================== */
+
+/* ── 1. TOKENS ─────────────────────────────────────────────────────────────── */
+.light-mode {
+  /* Tokens existentes (usados por C.* en App.jsx) */
+  --c-bg: #EEF2FB;
+  --c-card: rgba(255, 255, 255, 0.78);
+  --c-card-el: rgba(255, 255, 255, 0.58);
+  --c-text: #0D1B3E;
+  --c-tsec: #45537A;
+  --c-tmut: #7C86A6;
+  --c-bord: rgba(13, 27, 62, 0.10);
+
+  /* Vidrio */
+  --lg-fill: rgba(255, 255, 255, 0.55);
+  --lg-fill-strong: rgba(255, 255, 255, 0.72);
+  --lg-fill-solid: #FFFFFF;
+  --lg-stroke: rgba(255, 255, 255, 0.75);
+  --lg-highlight: rgba(255, 255, 255, 0.95);
+  --lg-shadow: 0 10px 34px -10px rgba(13, 27, 62, 0.28), 0 2px 6px rgba(13, 27, 62, 0.06);
+  --lg-blur: 22px;
+  --lg-header-a: rgba(37, 99, 235, 0.84);
+  --lg-header-b: rgba(29, 78, 216, 0.78);
+  --lg-scrim: rgba(13, 27, 62, 0.28);
+  --lg-ink-on-glass: #0D1B3E;
+}
+
+.dark-mode {
+  --c-bg: #070B16;
+  --c-card: rgba(30, 38, 62, 0.72);
+  --c-card-el: rgba(255, 255, 255, 0.06);
+  --c-text: #F0F4FF;
+  --c-tsec: #AEB9DC;
+  --c-tmut: #76819F;
+  --c-bord: rgba(255, 255, 255, 0.10);
+
+  --lg-fill: rgba(28, 36, 58, 0.52);
+  --lg-fill-strong: rgba(28, 36, 58, 0.72);
+  --lg-fill-solid: #1C2438;
+  --lg-stroke: rgba(255, 255, 255, 0.14);
+  --lg-highlight: rgba(255, 255, 255, 0.22);
+  --lg-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --lg-blur: 24px;
+  --lg-header-a: rgba(30, 64, 175, 0.80);
+  --lg-header-b: rgba(30, 58, 138, 0.74);
+  --lg-scrim: rgba(0, 0, 0, 0.45);
+  --lg-ink-on-glass: #F0F4FF;
+}
+
+/* ── 2. BASE ───────────────────────────────────────────────────────────────── */
+.lg-app {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+  color: var(--c-text);
+}
+.lg-app button, .lg-app input, .lg-app select, .lg-app textarea { font-family: inherit; }
+.lg-app :focus-visible {
+  outline: 2.5px solid #FF6B35;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.lg-num { font-variant-numeric: tabular-nums; }
+
+/* ── 3. FONDO AMBIENTAL (desenfocado de fábrica) ──────────────────────────── */
+.lg-ambient {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: var(--c-bg);
+}
+.lg-ambient::before,
+.lg-ambient::after {
+  content: ''; position: absolute; border-radius: 50%; filter: blur(60px);
+  animation: lg-drift 26s ease-in-out infinite alternate;
+}
+.light-mode .lg-ambient::before {
+  width: 360px; height: 360px; top: -120px; left: -110px;
+  background: radial-gradient(circle, rgba(59,130,246,0.38), rgba(59,130,246,0) 70%);
+}
+.light-mode .lg-ambient::after {
+  width: 340px; height: 340px; bottom: -110px; right: -120px;
+  background: radial-gradient(circle, rgba(255,107,53,0.30), rgba(255,107,53,0) 70%);
+  animation-delay: -9s;
+}
+.dark-mode .lg-ambient::before {
+  width: 380px; height: 380px; top: -140px; left: -120px;
+  background: radial-gradient(circle, rgba(37,99,235,0.45), rgba(37,99,235,0) 70%);
+}
+.dark-mode .lg-ambient::after {
+  width: 360px; height: 360px; bottom: -120px; right: -130px;
+  background: radial-gradient(circle, rgba(255,122,71,0.26), rgba(255,122,71,0) 70%);
+  animation-delay: -9s;
+}
+.lg-ambient > i {
+  position: absolute; width: 260px; height: 260px; top: 38%; left: 45%;
+  border-radius: 50%; filter: blur(70px);
+  background: radial-gradient(circle, rgba(139,92,246,0.18), rgba(139,92,246,0) 70%);
+}
+@keyframes lg-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(24px, 30px, 0) scale(1.08); }
+}
+
+/* ── 4. SUPERFICIE DE VIDRIO GENÉRICA ─────────────────────────────────────── */
+.lg-glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--lg-fill);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+  backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+  border: 1px solid var(--lg-stroke);
+  box-shadow: inset 0 1px 0 var(--lg-highlight), inset 0 -1px 0 rgba(255,255,255,0.05), var(--lg-shadow);
+}
+/* Brillo especular: la "lente" que da el efecto líquido */
+.lg-glass::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background:
+    radial-gradient(120% 80% at 10% -10%, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%),
+    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 38%);
+  opacity: 0.7;
+}
+.dark-mode .lg-glass::before { opacity: 0.28; }
+.lg-glass--strong { background: var(--lg-fill-strong); }
+.lg-glass--pill { border-radius: 999px; }
+
+/* ── 5. HEADER (vidrio azul de marca, pegajoso) ───────────────────────────── */
+.lg-header {
+  position: sticky; top: 0; z-index: 30;
+  isolation: isolate;
+  background: linear-gradient(135deg, var(--lg-header-a), var(--lg-header-b));
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  backdrop-filter: blur(26px) saturate(190%);
+  border-bottom-left-radius: 26px; border-bottom-right-radius: 26px;
+  box-shadow:
+    inset 0 -1px 0 rgba(255,255,255,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 14px 34px -16px rgba(29, 78, 216, 0.65);
+}
+.lg-header::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%),
+    radial-gradient(60% 90% at 0% 100%, rgba(255,140,90,0.20), rgba(255,140,90,0) 60%);
+}
+.lg-header--static { position: relative; z-index: auto; }
+/* Botones circulares dentro del header */
+.lg-header button[style*="rgba(255, 255, 255, 0.2)"] {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+
+/* ── 6. TAB BAR FLOTANTE ──────────────────────────────────────────────────── */
+.lg-tabbar {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 100;
+  height: 66px; border-radius: 33px;
+  display: flex; align-items: center; padding: 0 6px;
+}
+.lg-tab {
+  flex: 1; height: 54px; position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: none; background: transparent; cursor: pointer; border-radius: 27px;
+  color: var(--c-tmut); -webkit-tap-highlight-color: transparent;
+  transition: color .25s ease, transform .2s ease;
+}
+.lg-tab:active { transform: scale(0.92); }
+.lg-tab[aria-current='page'] { color: #FF6B35; }
+.lg-tab__label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1px; white-space: nowrap; }
+.lg-tab[aria-current='page'] .lg-tab__label { font-weight: 800; }
+/* Lente que se desliza bajo la pestaña activa */
+.lg-tab-lens {
+  position: absolute; top: 6px; height: 54px; border-radius: 27px; z-index: 0;
+  background: rgba(255,107,53,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), inset 0 0 0 1px rgba(255,107,53,0.18);
+  transition: left .45s cubic-bezier(.34,1.56,.64,1), width .3s ease, opacity .2s;
+}
+.dark-mode .lg-tab-lens { background: rgba(255,122,71,0.16); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 0 0 1px rgba(255,122,71,0.25); }
+.lg-fab {
+  width: 52px; height: 52px; border-radius: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(145deg, #FF8C5A 0%, #FF6B35 45%, #E55A25 100%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 6px rgba(160,50,10,0.35),
+    0 8px 22px -6px rgba(255,107,53,0.75);
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.lg-tab:active .lg-fab { transform: scale(0.9); }
+
+.lg-tabbar { transition: transform .35s cubic-bezier(.2,.9,.25,1.05), left .35s, right .35s; transform-origin: 50% 100%; }
+.lg-tabbar--min { transform: translateY(8px) scale(0.9); }
+.lg-tabbar--min .lg-tab__label { opacity: 0; transition: opacity .2s; }
+
+/* ── 7. SHEETS Y SCRIM ────────────────────────────────────────────────────── */
+.lg-scrim {
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  backdrop-filter: blur(6px) saturate(120%);
+  animation: lg-fade-in .22s ease both;
+}
+.lg-sheet {
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--lg-highlight), 0 -18px 40px -18px rgba(0,0,0,0.35);
+  border: 1px solid var(--lg-stroke); border-bottom: none;
+  border-top-left-radius: 28px !important; border-top-right-radius: 28px !important;
+  animation: lg-sheet-in .38s cubic-bezier(.2,.9,.25,1.05) both;
+}
+@keyframes lg-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes lg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lg-pop-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+.lg-pop-in { animation: lg-pop-in .35s cubic-bezier(.2,.9,.25,1.05) both; }
+
+/* Esqueleto de carga */
+.lg-skel {
+  background: linear-gradient(90deg, var(--c-card-el) 25%, rgba(255,255,255,0.45) 50%, var(--c-card-el) 75%);
+  background-size: 200% 100%; animation: lg-shimmer 1.3s ease-in-out infinite;
+}
+.dark-mode .lg-skel { background-image: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%); }
+@keyframes lg-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ── 8. CHIPS ─────────────────────────────────────────────────────────────── */
+.lg-chip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 14px; border-radius: 18px; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: var(--lg-ink-on-glass);
+  white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  transition: transform .18s ease, background .2s ease;
+}
+.lg-chip:active { transform: scale(0.95); }
+.lg-chip[aria-pressed='true'] {
+  background: linear-gradient(145deg, #FF8C5A, #FF6B35 55%, #E55A25);
+  color: #fff; border-color: rgba(255,255,255,0.45);
+}
+.lg-hscroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.lg-hscroll::-webkit-scrollbar { display: none; }
+
+/* ── 9. MAPA: PINES Y CLUSTERS ────────────────────────────────────────────── */
+.lg-pin {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transform-origin: 50% 100%;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.lg-pin:hover, .lg-pin[data-selected='true'] { transform: scale(1.12); }
+.lg-pin__body {
+  display: flex; align-items: center; gap: 5px;
+  height: 34px; padding: 0 10px 0 4px; border-radius: 17px;
+  background: rgba(255,255,255,0.86);
+  -webkit-backdrop-filter: blur(10px) saturate(180%); backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: inset 0 1px 0 #fff, 0 6px 16px -4px rgba(13,27,62,0.45);
+  font: 800 12px/1 'Inter', system-ui, sans-serif; color: #0D1B3E; white-space: nowrap;
+}
+.lg-pin[data-selected='true'] .lg-pin__body { background: #0D1B3E; color: #fff; border-color: #0D1B3E; }
+.lg-pin__icon {
+  width: 26px; height: 26px; border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+}
+.lg-pin__tail {
+  width: 10px; height: 10px; margin-top: -6px; transform: rotate(45deg);
+  background: rgba(255,255,255,0.9); border-right: 1px solid rgba(255,255,255,0.9); border-bottom: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 3px 3px 6px -2px rgba(13,27,62,0.3);
+}
+.lg-pin[data-selected='true'] .lg-pin__tail { background: #0D1B3E; border-color: #0D1B3E; }
+/* Chip de ZONA: centrado (no apunta a un punto) */
+.lg-pin--zone { transform-origin: 50% 50%; }
+.lg-pin--zone .lg-pin__body { box-shadow: inset 0 1px 0 #fff, 0 0 0 3px rgba(255,107,53,0.25), 0 6px 16px -4px rgba(13,27,62,0.45); }
+/* "Alerta": pulso para cachuelos destacados */
+.lg-pin--alert .lg-pin__body::after {
+  content: ''; position: absolute; left: 50%; top: 17px; width: 34px; height: 34px;
+  margin: -17px 0 0 -17px; border-radius: 50%;
+  border: 2px solid #FF6B35; opacity: 0; z-index: -1;
+  animation: lg-pulse 1.8s ease-out infinite;
+}
+.lg-pin__flag {
+  position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 8px;
+  background: linear-gradient(145deg, #FCD34D, #F59E0B); border: 1.5px solid #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 9px;
+}
+@keyframes lg-pulse {
+  0%   { transform: scale(0.8); opacity: 0.85; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.lg-cluster {
+  min-width: 44px; height: 44px; padding: 0 10px; border-radius: 22px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: linear-gradient(145deg, rgba(37,99,235,0.92), rgba(29,78,216,0.88));
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.85);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 0 0 6px rgba(37,99,235,0.18), 0 8px 18px -6px rgba(13,27,62,0.6);
+  font: 800 14px/1 'Inter', system-ui, sans-serif; color: #fff; cursor: pointer;
+}
+.lg-user-dot {
+  width: 18px; height: 18px; border-radius: 9px; background: #2563EB; border: 3px solid #fff;
+  box-shadow: 0 0 0 8px rgba(37,99,235,0.2), 0 2px 6px rgba(0,0,0,0.3);
+}
+/* Pin central fijo del selector de ubicación */
+.lg-center-pin {
+  position: absolute; left: 50%; top: 50%; z-index: 5; pointer-events: none;
+  transform: translate(-50%, -100%);
+  filter: drop-shadow(0 6px 8px rgba(13,27,62,0.4));
+  transition: transform .2s ease;
+}
+.lg-center-pin[data-moving='true'] { transform: translate(-50%, calc(-100% - 10px)); }
+.lg-center-shadow {
+  position: absolute; left: 50%; top: 50%; z-index: 4; width: 14px; height: 6px; margin-left: -7px; margin-top: -3px;
+  border-radius: 50%; background: rgba(13,27,62,0.35); pointer-events: none;
+}
+.lg-privacy-ring {
+  position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px;
+  border-radius: 50%; background: rgba(255,107,53,0.12); border: 1.5px dashed rgba(255,107,53,0.6);
+  pointer-events: none; z-index: 3;
+}
+
+/* ── 10. PHONE FRAME (escritorio) / PANTALLA COMPLETA (móvil) ─────────────── */
+.pf-root {
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh; width: 100%; padding: 20px 16px 40px;
+  transition: background .4s ease;
+}
+.pf-shell {
+  width: 375px; background: #000; border-radius: 52px; padding: 14px 8px 8px; position: relative;
+}
+.pf-screen { width: 100%; height: 780px; border-radius: 44px; overflow: hidden; position: relative; }
+.pf-content { position: absolute; inset: 0; padding-top: 24px; overflow-y: auto; z-index: 1; }
+@media (max-width: 520px) {
+  /* En un celular real: la app ocupa toda la pantalla, sin marco */
+  .pf-root { padding: 0; min-height: 100dvh; }
+  .pf-brand, .pf-controls, .pf-notch, .pf-home-indicator, .pf-statusbar { display: none !important; }
+  .pf-shell { width: 100vw; height: 100dvh; border-radius: 0; padding: 0; box-shadow: none !important; background: transparent; }
+  .pf-screen { height: 100dvh; border-radius: 0; }
+  .pf-content { padding-top: env(safe-area-inset-top, 0px); }
+}
+
+/* ── 11. ACCESIBILIDAD Y FALLBACKS ────────────────────────────────────────── */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .lg-glass, .lg-glass--strong, .lg-sheet { background: var(--lg-fill-solid) !important; }
+  .lg-header { background: linear-gradient(135deg, #2563EB, #1D4ED8); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .lg-glass, .lg-glass--strong, .lg-sheet { background: var(--lg-fill-solid) !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .lg-header { background: linear-gradient(135deg, #2563EB, #1D4ED8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .light-mode { --c-card: #FFFFFF; --c-card-el: #F5F7FF; }
+  .dark-mode  { --c-card: #1C2438; --c-card-el: #242E48; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-ambient::before, .lg-ambient::after, .lg-pin--alert .lg-pin__body::after { animation: none !important; }
+  .lg-sheet, .lg-scrim, .lg-pop-in { animation-duration: 1ms !important; }
+  .lg-skel { animation: none !important; }
+  .lg-tabbar { transition: none !important; }
+  .lg-tab-lens, .lg-pin, .lg-fab { transition: none !important; }
+}
+
+/* Google Maps: ocultar la tarjeta de error por defecto detrás de nuestro overlay */
+.gm-style .gm-style-cc { opacity: 0.75; }
