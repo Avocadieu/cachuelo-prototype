@@ -105,13 +105,29 @@ Correr en **Supabase → SQL Editor**, **en este orden** (todas se pueden volver
 
 ---
 
-## Publicar en Netlify (carga manual)
+## Publicar en Netlify (deploy automático)
 
-1. Verifica que tu `.env` esté en la carpeta: las variables `VITE_*` se incluyen **al compilar**.
-2. `npm run build`
-3. Netlify → tu sitio → **Deploys** → arrastra **solo la carpeta `dist`**.
+Netlify está conectado a este repositorio de GitHub. **No hay que compilar ni arrastrar nada**:
+
+- **Merge a `main`** → Netlify compila (`npm run build`) y publica en producción en 1–2 minutos.
+- **Pull Request abierto** → Netlify crea una **vista previa** con su propia URL (aparece como comentario/check en el PR). Siempre corre en modo demo y sin mapa de Google.
+- Si un build falla, producción se queda con la última versión buena.
+
+La configuración vive en [`netlify.toml`](netlify.toml). Las variables `VITE_*` se leen del **panel de Netlify**, no del `.env` local.
+
+### Conectar el repositorio (una sola vez)
+
+1. Netlify → tu sitio → **Site configuration → Build & deploy → Continuous deployment → Link repository** → GitHub → `cachuelo-prototype`.
+2. Rama de producción: `main`. Build command y publish directory se toman de `netlify.toml` (déjalos como los muestra).
+3. **Deploy Previews:** activado ("Any pull request against your production branch"). **Branch deploys:** desactivado.
+4. **Site configuration → Environment variables** → agrega las mismas variables de tu `.env` (ver `.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GOOGLE_MAPS_API_KEY`, `VITE_GOOGLE_MAPS_MAP_ID`, `VITE_PAYMENTS_MODE`, `VITE_CULQI_PUBLIC_KEY`, `VITE_VERIFICATION_MODE`. **Nunca** `service_role` ni `CULQI_SECRET_KEY` (esas van solo en `supabase secrets`).
+5. **Deploys → Trigger deploy → Deploy site** para el primer build. Revisa el log y abre la URL.
+
+Si cambias una variable en el panel, hay que volver a desplegar (Trigger deploy) para que se aplique: Vite las mete en el JS al compilar.
 
 La llave de Google Maps debe estar restringida a la URL exacta del sitio y a `http://localhost:5173/*`. Nunca uses `*.netlify.app`.
+
+**Emergencia:** si GitHub o el build fallan y hay que publicar ya, sigue funcionando la carga manual (`npm run build` y arrastrar **solo `dist`** en Deploys), pero el próximo merge a `main` la reemplaza.
 
 ---
 

@@ -2,6 +2,12 @@
 
 Resumen corto de cada versión. El detalle completo, con capturas, decisiones y pasos, está en [`docs/cambios/`](docs/cambios/).
 
+## v0.18.1: Deploy automático en Netlify · 17 oct 2026
+- Netlify conectado a GitHub: merge a `main` publica solo; cada Pull Request tiene vista previa (modo demo, sin mapa).
+- Variables `VITE_*` en el panel de Netlify; ya no se compila ni se arrastra `dist` a mano.
+- Caché larga para `/assets`, sin caché para `index.html`.
+- Detalle: [docs/cambios/CAMBIOS_v0.18.1.md](docs/cambios/CAMBIOS_v0.18.1.md)
+
 ## v0.18: Doble rol, catálogo ampliado y simulador · 9 oct 2026
 - **Doble rol:** una cuenta publica y postula. "Mis cachuelos" tiene Publiqué / Postulé / Historial.
 - **Catálogo:** de 12 a **62 categorías** en 12 grupos. El servicio se escribe libremente y se cataloga solo.
