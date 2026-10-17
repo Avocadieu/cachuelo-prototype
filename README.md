@@ -1,4 +1,4 @@
-# Cachuelo
+# Cachuelo siuuu
 
 App peruana para **publicar y encontrar trabajos puntuales** ("cachuelos") de hasta un mes: limpieza, gasfitería, mudanzas, clases, eventos y más. Una misma cuenta puede **publicar** (contratante) y **postular** (trabajador).
 
