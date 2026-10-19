@@ -2,8 +2,11 @@
 // Si el .env tiene la URL de ejemplo (o ninguna), no hay servidor real: las
 // acciones que escriben datos (ofertas, publicar) se guardan en este navegador
 // para poder probar los flujos en Netlify sin errores "Failed to fetch".
+// VITE_DEMO_MODE=true fuerza este modo aunque haya un Supabase real (el login
+// sigue usando Supabase Auth; perfiles, feed y Mis cachuelos usan el mundo simulado).
 const url = import.meta.env.VITE_SUPABASE_URL || '';
-export const isDemoBackend = !url || /TU-PROYECTO|demo\.supabase|example\.supabase|\/\/x\.supabase/i.test(url);
+const forced = import.meta.env.VITE_DEMO_MODE === 'true';
+export const isDemoBackend = forced || !url || /TU-PROYECTO|demo\.supabase|example\.supabase|\/\/x\.supabase/i.test(url);
 
 /** Convierte errores técnicos en mensajes entendibles. */
 export const friendlyError = (err) => {
