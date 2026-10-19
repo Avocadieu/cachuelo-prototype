@@ -207,7 +207,7 @@
     a las del administrador.
 
 30. AL FINAL: CONECTAR DATOS A SUPABASE Y QUITAR EL MODO DEMO
-    Hoy (v0.18.2) la app corre en modo demo (VITE_DEMO_MODE=true) y hay
+    Hoy (v0.19) la app corre en modo demo (VITE_DEMO_MODE=true) y hay
     un interruptor provisional "Modo: Demo / Real" en Simulador y en
     Configuración (src/features/demo/BackendModeSwitch.jsx). Antes de
     producción:
@@ -216,3 +216,52 @@
       Mis cachuelos y edición de cachuelos a Supabase.
     · ELIMINAR el interruptor Demo/Real, `setBackendMode` y
       `VITE_DEMO_MODE` (src/lib/demoBackend.js).
+
+── Agregados el 2026-10-19 desde CAMBIOS_v0.18.md §11 ──
+
+31. "INVITAR A MI CACHUELO"
+    Desde el perfil de un trabajador, el contratante lo invita a
+    cotizar uno de sus cachuelos (equivalente a "Request a quote" de
+    Airtasker). Evaluado para la siguiente versión.
+
+32. PREGUNTAS PÚBLICAS EN CADA CACHUELO
+    Los trabajadores preguntan en el detalle del cachuelo y el
+    publicador responde a la vista de todos. Exige moderación (filtro
+    de contacto y de discriminación, reportes).
+
+33. NOTIFICACIONES DE OFERTAS Y ACEPTACIÓN
+    Avisar "te llegó una oferta" y "te aceptaron" (en la app y push).
+    Hoy en el simulador se simulan con botones morados. Relacionado
+    con el #25 (Modo urgente).
+
+34. FRANJA HORARIA AL PUBLICAR
+    Elegir mañana / mediodía / tarde (como Airtasker), además de la
+    fecha de inicio.
+
+35. REVISAR EL CATÁLOGO CON MIKI Y MAURICIO
+    ¿Falta alguna categoría típica de Lima o de provincias? Agregar una
+    es una línea en src/data/categories.js + una fila en SQL (sin
+    cambiar id ni label existentes).
+
+36. LOGIN DE ADMINISTRADOR SIN CONTRASEÑA EN EL CÓDIGO
+    Hoy el acceso admin usa un correo y contraseña escritos en
+    src/App.jsx (pantalla de login). Reemplazarlo por el rol `admin` de
+    Supabase (existe desde v0.17). Mientras tanto, mantener el
+    repositorio de GitHub en PRIVADO. Relacionado con #18, #27 y #28.
+
+── Agregado el 2026-10-19: decisiones pendientes para el Acta N°3 ──
+
+37. VOTAR EN LA REUNIÓN DEL ACTA N°3
+    El Acta N°3 aún no se ha realizado. Temas propuestos en
+    CAMBIOS_v0.16.md, CAMBIOS_v0.17.md §15 e INFORME_v0.16.1:
+    · Modelo de cobro v0.16 (publicar gratis; Pago Protegido 10 % o S/5
+      de conexión) y descartar el esquema de Airtasker.
+    · Tarifa 10 % con IGV incluido (lo que usa la app hoy) vs. 10 % + IGV.
+    · Verificación: ¿CUL para todos o solo para quien trabaja?
+    · ¿Permitir mirar la app sin verificarse (implementado) o bloquear todo?
+    · Política de antecedentes: qué registros impiden usar la app (con abogado).
+    · Seguro: aprobar Fase 1 (avisos) y cotizar Fase 2 con aseguradoras.
+    · Operaciones: quién revisa verificaciones y en qué plazo (rol de Miki).
+    · Presupuesto para abogado y contador: Política de Privacidad,
+      inscripción del banco de datos (Ley 29733), Términos y Condiciones,
+      RENAPE, mandato de cobro y régimen tributario.
