@@ -4,7 +4,7 @@
 //   Publicado → Asignado (pago retenido) → Trabajo hecho → Pagado → Calificado
 // Las acciones de la otra parte se simulan con botones "Simular: …".
 import { useEffect, useState } from 'react';
-import { Wallet, Users, ChevronDown, ChevronUp, BadgeCheck, Repeat, Sparkles, ShieldCheck, Flag, Camera, Star, Hammer, Megaphone } from 'lucide-react';
+import { Wallet, Users, ChevronDown, ChevronUp, BadgeCheck, Repeat, Sparkles, ShieldCheck, Flag, Camera, Star, Hammer, Megaphone, Pencil } from 'lucide-react';
 import { useTheme } from '../../ui/theme.js';
 import { Avatar, Btn, Screen, CategoryIcon, Stars } from '../../ui/primitives.jsx';
 import { toast, haptic } from '../../ui/toast.jsx';
@@ -104,7 +104,7 @@ function OfferCard({ o, price, onAccept, onViewProfile, selfUser }) {
   );
 }
 
-export default function DemoMyCachuelos({ user, onNavigate, onViewCachuelo, onViewProfile, focusId }) {
+export default function DemoMyCachuelos({ user, onNavigate, onViewCachuelo, onViewProfile, onEdit, focusId }) {
   const { C } = useTheme();
   useSim();
   const uid = user?.id || SELF_ID;
@@ -231,6 +231,11 @@ export default function DemoMyCachuelos({ user, onNavigate, onViewCachuelo, onVi
                 <Stepper idx={stepOf(st.estado, rated)} />
                 {st.estado === 'abierto' && (
                   <>
+                    {onEdit && (
+                      <Btn variant="ghost" onClick={() => onEdit(c)} style={{ width: '100%', minHeight: 44, padding: 8, marginBottom: 8 }}>
+                        <Pencil size={15} /> Editar cachuelo
+                      </Btn>
+                    )}
                     {offers.length === 0 ? (
                       <>
                         <Note>Aún no hay ofertas. En la vida real llegan notificaciones; aquí puedes simularlas.</Note>

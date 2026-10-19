@@ -1,7 +1,7 @@
 {
   "name": "cachuelo-prototype",
   "private": true,
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Cachuelo: app peruana para publicar y encontrar trabajos puntuales (React + Vite + Supabase).",
   "type": "module",
   "engines": {

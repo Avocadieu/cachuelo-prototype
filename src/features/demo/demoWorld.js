@@ -12,7 +12,7 @@
 //    experiencia externa (marcada como "no verificada").
 import { useEffect, useState } from 'react';
 import { demoStore } from '../../lib/demoBackend.js';
-import { readDemoCachuelos, DEMO_EVENT } from '../../data/cachuelosApi.js';
+import { readDemoCachuelos, readDemoEdits, DEMO_EDITS_KEY, DEMO_EVENT } from '../../data/cachuelosApi.js';
 import { getCategory, groupOfLabel } from '../../data/categories.js';
 import { artPhoto } from './art.js';
 
@@ -279,7 +279,7 @@ const userPublished = () => readDemoCachuelos().map(c => {
   return { ...c, createdAt: c.createdAt || new Date(Number(String(c.id).replace('demo-', '')) || Date.now()).toISOString(),
     publisher: p ? { name: fullName(p), rating: avg(reviewsFor(p.id, 'contratante')), verified: true, avatar: initialsOf(p) } : { ...c.publisher, name: (c.publisher?.name || 'Tú').replace(' (demo)', ''), rating: avg(reviewsFor(c.userId, 'contratante')) } };
 });
-const feedRaw = () => [...userPublished(), ...OPEN.map(toScreen)];
+const feedRaw = () => [...userPublished(), ...OPEN.map(o => { const c = toScreen(o); return { ...c, ...readDemoEdits(c.id) }; })];
 export const cachueloStatus = (id) => S().status[id] || { estado: 'abierto' };
 /** Todos los cachuelos (cualquier estado). */
 export const allCachuelos = () => feedRaw().map(c => ({ ...c, status: cachueloStatus(c.id), offersCount: offersFor(c.id).length }));
@@ -399,7 +399,7 @@ export function removePortfolioItem(id) {
 
 // ── REINICIO ─────────────────────────────────────────────────────────────────
 export function resetSimulation() {
-  [KEY, OFFERS_KEY, CACH_KEY, PAY_KEY].forEach(k => { try { localStorage.removeItem(k); } catch { /* nada */ } });
+  [KEY, OFFERS_KEY, CACH_KEY, PAY_KEY, DEMO_EDITS_KEY].forEach(k => { try { localStorage.removeItem(k); } catch { /* nada */ } });
   state = null; S();
   window.dispatchEvent(new CustomEvent(DEMO_EVENT));
   window.dispatchEvent(new CustomEvent('cachuelo:payments'));

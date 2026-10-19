@@ -1,10 +1,36 @@
 # ─── Netlify: configuración de build y despliegue ────────────────────────────
+# Deploy automático desde GitHub: cada merge a `main` publica en producción y
+# cada Pull Request genera una vista previa (deploy-preview-N--<sitio>.netlify.app).
+# Las variables VITE_* se cargan en el panel de Netlify (Site configuration →
+# Environment variables), NO desde el .env local. Ver README → "Publicar en Netlify".
 [build]
   command = "npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
+  # Las VITE_* terminan dentro del JS a propósito (son públicas por diseño:
+  # anon key con RLS, key de Maps restringida por dominio, llave pública de
+  # Culqi). Se excluyen del escáner de secretos para que no tumbe el build.
+  # Las llaves SECRETAS (service_role, CULQI_SECRET_KEY) nunca van en Netlify.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_GOOGLE_MAPS_API_KEY,VITE_GOOGLE_MAPS_MAP_ID,VITE_CULQI_PUBLIC_KEY,VITE_PAYMENTS_MODE,VITE_VERIFICATION_MODE,VITE_DEMO_MODE"
+  # v0.19 PROVISIONAL: modo demo (perfil v0.18 con datos ficticios). El login usa
+  # Supabase real. Quitar al conectar los datos (PENDIENTES #30).
+  VITE_DEMO_MODE = "true"
+
+# Vistas previas de Pull Requests y ramas: siempre en modo demo (sin cobros ni
+# documentos reales). Sin key de Maps: la restricción por dominio no cubre las
+# URLs de vista previa, así que la pestaña Mapa muestra "Explorar por zona".
+# Estos valores pisan a los del panel de Netlify.
+[context.deploy-preview.environment]
+  VITE_PAYMENTS_MODE = "demo"
+  VITE_VERIFICATION_MODE = "demo"
+  VITE_GOOGLE_MAPS_API_KEY = ""
+
+[context.branch-deploy.environment]
+  VITE_PAYMENTS_MODE = "demo"
+  VITE_VERIFICATION_MODE = "demo"
+  VITE_GOOGLE_MAPS_API_KEY = ""
 
 # La app es una sola página: cualquier ruta sirve index.html
 [[redirects]]
@@ -21,3 +47,15 @@
     X-Frame-Options = "SAMEORIGIN"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(self), camera=(), microphone=()"
+
+# Vite pone un hash en el nombre de cada archivo de /assets: se pueden cachear
+# para siempre. index.html no se cachea, así cada deploy se ve al instante.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
