@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
-║                     Actualizado: 2026-06-21                  ║
+║                     Actualizado: 2026-10-19                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
 1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
