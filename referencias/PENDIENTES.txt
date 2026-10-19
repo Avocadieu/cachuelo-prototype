@@ -27,10 +27,13 @@
    (Pendiente → Visto → Aceptado/Rechazado/Completado) con ícono, color
    y fecha/hora. Se activa con botón "Ver (N eventos)".
 
-4. CONTRAOFERTA DE PRECIO EN EL CHAT
-   En el chat entre publicador y postulante, el postulante debería poder
-   proponer un precio diferente al publicado. El publicador podría aceptar
-   o rechazar esa contraoferta formalmente desde el chat.
+4. CONTRAOFERTA DE PRECIO ✅ COMPLETADO (v0.17)
+   Se resolvió en la oferta, no en el chat (estilo "Make an offer" de
+   Airtasker). Al postular, el trabajador elige "Acepto el precio" o
+   "Propongo otro" (mínimo S/10) con un comentario obligatorio. El
+   publicador ve en "Postulantes" la etiqueta "Contraoferta · publicado
+   S/ X" y, al aceptar, el Pago Protegido usa el precio ofertado.
+   Código: src/features/offers/. Detalle: docs/cambios/CAMBIOS_v0.17.md §6.
 
 5. FECHA DE INICIO FLEXIBLE ✅ COMPLETADO
    Toggle "A coordinar" ya implementado en el wizard de publicación.
@@ -57,9 +60,17 @@
    · Conectar la API elegida para validar el DNI automáticamente.
      La llamada va en una Edge Function (la llave nunca en el frontend).
 
-9. PAGOS REALES (Yape / Plin / Tarjeta)
-   El wizard de publicación tiene la pantalla de pago pero no procesa
-   nada real. Pendiente integrar con una pasarela de pago peruana.
+9. PAGOS REALES (Yape / Plin / Tarjeta) 🟡 HECHO EN DEMO, FALTA ACTIVAR
+   Modelo actual (v0.16): publicar es GRATIS (destacar +S/3). Se cobra al
+   ACEPTAR: Pago Protegido (10 % de tarifa, dinero retenido hasta
+   confirmar) o pago directo (S/5 de conexión). Integrado con Culqi
+   (tarjeta y Yape, máx. S/500 por Yape) + QR para Plin, billetera
+   "Mis cobros y pagos" y Edge Function `payments`.
+   Código: src/features/payments/ (reglas en pricing.js). Hoy corre con
+   VITE_PAYMENTS_MODE=demo (sin dinero real). Falta para cobrar de verdad:
+   · RUC y cuenta de Culqi; llaves pk/sk de prueba y luego de producción.
+   · `supabase secrets set CULQI_SECRET_KEY=…` y desplegar la Edge Function.
+   · Pasar a VITE_PAYMENTS_MODE=live y probar con tarjetas de prueba.
 
 10. PAGINACIÓN EN HOME
     El feed carga todos los cachuelos activos de una sola vez. Con muchos
@@ -114,12 +125,14 @@
     Supabase (user_id, cachuelo_id, created_at) y lógica para toggle
     (guardar / quitar guardado).
 
-21. PORTAFOLIO CON FOTOS
-    Sección en el perfil donde el trabajador sube fotos de trabajos
-    anteriores con título y descripción breve. Se muestra en el perfil
-    propio (editable) y en el perfil público (solo lectura). Requiere
-    bucket de Supabase Storage para las imágenes y tabla `portafolio`
-    (user_id, url, titulo, descripcion, created_at).
+21. PORTAFOLIO CON FOTOS 🟡 HECHO EN DEMO, FALTA SUPABASE
+    Pantalla lista desde v0.18 y visible desde v0.19 (modo demo): hasta
+    6 fotos por experiencia, descripción, "cachuelo verificado" si está
+    ligado a un trabajo completado, separado por rol (trabajador /
+    contratante). Código: src/features/profiles/Portfolio.jsx.
+    La tabla `portafolio` y el bucket existen en la migración v0.18, pero
+    la app aún no los usa: las fotos se guardan en el navegador.
+    Conectarlo es parte del #30.
 
 22. CONTRATO DIGITAL SIMPLE
     Al aceptar a un postulante, generar automáticamente un acuerdo básico
