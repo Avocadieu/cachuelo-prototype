@@ -48,10 +48,14 @@
    claro para marcarlo como completado (ya existe el botón en el chat,
    pero falta la pantalla de estado intermedio).
 
-8. VERIFICACIÓN DNI REAL
-   El botón "Verificar DNI" en el perfil no hace nada. En producción
-   conectaría con RENIEC u otro servicio. Para el MVP se podría simular
-   con un flujo de carga de foto del documento.
+8. CONECTAR LA API DE RENIEC (VERIFICACIÓN DNI)
+   Hoy (v0.17) la verificación es manual: DNI ambos lados + selfie + CUL,
+   revisada por un admin. Falta:
+   · Investigar el proceso de verificación de DNI en Perú: convenio con
+     RENIEC, proveedores de terceros (Apiperu.dev, Apis.net.pe u otros),
+     costos, requisitos (RUC, contrato) y cumplimiento de la Ley 29733.
+   · Conectar la API elegida para validar el DNI automáticamente.
+     La llamada va en una Edge Function (la llave nunca en el frontend).
 
 9. PAGOS REALES (Yape / Plin / Tarjeta)
    El wizard de publicación tiene la pantalla de pago pero no procesa
@@ -174,3 +178,28 @@
     a producción, cuando el modelo de datos ya esté estable. Hacerlo
     antes puede bloquear el desarrollo porque RLS mal configurado
     rompe queries silenciosamente.
+
+27. CREAR VISTA DE ADMINISTRADOR
+    Una vista propia para el administrador, separada de la app de
+    usuario, que reúna en un solo lugar sus herramientas (verificaciones,
+    reportes, usuarios, cachuelos, pagos).
+
+28. MEJORAR LAS FUNCIONES DE ADMINISTRADOR
+    La cuenta de administrador ya está creada. Ampliar y mejorar lo que
+    puede hacer desde su panel.
+
+29. USUARIO DE ATENCIÓN AL CLIENTE
+    Crear un usuario (rol propio) de atención al cliente que responda
+    las dudas de los usuarios. Tendrá sus propias funciones, distintas
+    a las del administrador.
+
+30. AL FINAL: CONECTAR DATOS A SUPABASE Y QUITAR EL MODO DEMO
+    Hoy (v0.18.2) la app corre en modo demo (VITE_DEMO_MODE=true) y hay
+    un interruptor provisional "Modo: Demo / Real" en Simulador y en
+    Configuración (src/features/demo/BackendModeSwitch.jsx). Antes de
+    producción:
+    · Correr la migración v0.18 en el Supabase real.
+    · Conectar perfil v0.18, portafolio (tabla + bucket `portafolio`),
+      Mis cachuelos y edición de cachuelos a Supabase.
+    · ELIMINAR el interruptor Demo/Real, `setBackendMode` y
+      `VITE_DEMO_MODE` (src/lib/demoBackend.js).
