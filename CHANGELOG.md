@@ -2,13 +2,20 @@
 
 Resumen corto de cada versión. El detalle completo, con capturas, decisiones y pasos, está en [`docs/cambios/`](docs/cambios/).
 
-## v0.18.2: Modo demo forzado · 19 oct 2026
-- `VITE_DEMO_MODE=true` muestra el perfil v0.18 (portafolio, doble rol) aunque haya un Supabase real; el login sigue siendo real.
-- Interruptor provisional **Demo ⇄ Real** en Simulador y Configuración (se quita al final).
+## v0.19: Perfil v0.18 visible, interruptor Demo/Real y editar cachuelos · 19 oct 2026
+- Modo demo por defecto (`VITE_DEMO_MODE=true`, también en `netlify.toml`): se ve el perfil de doble rol con portafolio aunque haya un Supabase real; el login sigue siendo real.
+- Interruptor provisional **Demo ⇄ Real** en Simulador y Configuración (se quita al final, PENDIENTES #30).
 - "Editar cachuelo" en Mis cachuelos → Publiqué (mientras esté abierto).
 - Onboarding corregido: publicar es gratis, destacar cuesta S/3.
+- Incluye el deploy automático de v0.18.1 (PR #2).
 - Los datos del perfil y el portafolio aún no se guardan en Supabase (pendiente para el final).
-- Detalle: [docs/cambios/CAMBIOS_v0.18.2.md](docs/cambios/CAMBIOS_v0.18.2.md)
+- Detalle: [docs/cambios/CAMBIOS_v0.19.md](docs/cambios/CAMBIOS_v0.19.md)
+
+## v0.18.1: Deploy automático en Netlify · 17 oct 2026
+- Netlify conectado a GitHub: merge a `main` publica solo; cada Pull Request tiene vista previa (modo demo, sin mapa).
+- Variables `VITE_*` en el panel de Netlify; ya no se compila ni se arrastra `dist` a mano.
+- Caché larga para `/assets`, sin caché para `index.html`.
+- Detalle: [docs/cambios/CAMBIOS_v0.18.1.md](docs/cambios/CAMBIOS_v0.18.1.md)
 
 ## v0.18: Doble rol, catálogo ampliado y simulador · 9 oct 2026
 - **Doble rol:** una cuenta publica y postula. "Mis cachuelos" tiene Publiqué / Postulé / Historial.

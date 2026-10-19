@@ -47,7 +47,8 @@ Equipo: Sergio Cotillo (tecnología/finanzas), Miki (operaciones), Mauricio (cre
 - `npm install` · `npm run dev` · `npm run build`
 
 ## Despliegue (estado actual)
-- Netlify, carga MANUAL: `npm run build` y arrastrar SOLO la carpeta `dist` (pestaña Deploys). Nunca la raíz del proyecto.
-- Las variables `VITE_*` se leen del `.env` local al compilar (no del panel de Netlify en carga manual).
-- Supabase en modo demo (valores de ejemplo de `.env.example`) hasta conectar el proyecto real.
-- Google Maps: key restringida a la URL de Netlify + `http://localhost:5173/*`; Map ID propio en `.env`.
+- Netlify con deploy AUTOMÁTICO desde GitHub (`netlify.toml`): merge a `main` = producción; cada PR = vista previa (forzada a modo demo y sin key de Maps).
+- Las variables `VITE_*` de producción están en el panel de Netlify (Environment variables), no en el `.env` local. Cambiarlas exige redeploy.
+- Carga manual (arrastrar SOLO `dist`) queda solo para emergencias.
+- Hay un Supabase real, pero desde v0.19 la app corre en MODO DEMO (`VITE_DEMO_MODE=true` en `.env` y `netlify.toml`) porque el perfil v0.18, el portafolio y Mis cachuelos aún no leen Supabase. Interruptor provisional Demo/Real en Simulador y Configuración (`src/features/demo/BackendModeSwitch.jsx`). Quitar ambos al conectar los datos (PENDIENTES #30).
+- Google Maps: key restringida a la URL de Netlify + `http://localhost:5173/*`; key y Map ID en `.env` local y en el panel de Netlify.
