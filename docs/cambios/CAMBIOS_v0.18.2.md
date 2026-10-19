@@ -12,6 +12,15 @@ abría el `ProfileScreen` antiguo, sin portafolio. La conexión del portafolio c
 - El login y el registro siguen usando Supabase Auth.
 - Archivo: `src/lib/demoBackend.js`. Documentado en `.env.example` (por defecto `false`).
 
+## Además
+- **Interruptor Demo ⇄ Real (provisional):** en Simulador y en Configuración, tarjeta "Modo".
+  Cambia entre datos ficticios y Supabase en este navegador (recarga la app). Solo aparece si
+  hay un Supabase real en el `.env`. Se elimina al final (PENDIENTES #30).
+- **Editar cachuelo en Mis cachuelos v0.18:** botón "Editar cachuelo" en Publiqué mientras
+  está abierto (sin oferta aceptada). En demo los cambios se guardan en el navegador, también
+  para los cachuelos de las personas del simulador. "Reiniciar simulación" los borra.
+- **Onboarding:** ya no dice "publica por S/5". Publicar es gratis; destacar cuesta S/3.
+
 ## Cómo usarlo
 1. En `.env` agregar `VITE_DEMO_MODE=true`.
 2. `npm run build` (o `npm run dev`).

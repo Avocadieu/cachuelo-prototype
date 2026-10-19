@@ -4,6 +4,9 @@ Resumen corto de cada versión. El detalle completo, con capturas, decisiones y 
 
 ## v0.18.2: Modo demo forzado · 19 oct 2026
 - `VITE_DEMO_MODE=true` muestra el perfil v0.18 (portafolio, doble rol) aunque haya un Supabase real; el login sigue siendo real.
+- Interruptor provisional **Demo ⇄ Real** en Simulador y Configuración (se quita al final).
+- "Editar cachuelo" en Mis cachuelos → Publiqué (mientras esté abierto).
+- Onboarding corregido: publicar es gratis, destacar cuesta S/3.
 - Los datos del perfil y el portafolio aún no se guardan en Supabase (pendiente para el final).
 - Detalle: [docs/cambios/CAMBIOS_v0.18.2.md](docs/cambios/CAMBIOS_v0.18.2.md)
 

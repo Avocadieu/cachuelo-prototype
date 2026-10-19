@@ -6,7 +6,20 @@
 // sigue usando Supabase Auth; perfiles, feed y Mis cachuelos usan el mundo simulado).
 const url = import.meta.env.VITE_SUPABASE_URL || '';
 const forced = import.meta.env.VITE_DEMO_MODE === 'true';
-export const isDemoBackend = forced || !url || /TU-PROYECTO|demo\.supabase|example\.supabase|\/\/x\.supabase/i.test(url);
+/** Hay un Supabase real configurado (no la URL de ejemplo). */
+export const hasRealBackend = !!url && !/TU-PROYECTO|demo\.supabase|example\.supabase|\/\/x\.supabase/i.test(url);
+
+// PROVISIONAL (quitar al conectar los datos): interruptor Demo ⇄ Real guardado
+// en este navegador. Gana sobre VITE_DEMO_MODE; sin Supabase real siempre es demo.
+const MODE_KEY = 'cachuelo_backend_mode';   // 'demo' | 'real'
+const override = (() => { try { return localStorage.getItem(MODE_KEY); } catch { return null; } })();
+export const isDemoBackend = !hasRealBackend || (override === 'demo' || override === 'real' ? override === 'demo' : forced);
+
+/** Cambia entre datos ficticios y Supabase. Recarga la app (el modo se lee al iniciar). */
+export const setBackendMode = (mode) => {
+  try { localStorage.setItem(MODE_KEY, mode); } catch { /* sin almacenamiento: no se puede cambiar */ }
+  window.location.reload();
+};
 
 /** Convierte errores técnicos en mensajes entendibles. */
 export const friendlyError = (err) => {

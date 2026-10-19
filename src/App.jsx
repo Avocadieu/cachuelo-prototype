@@ -11,6 +11,7 @@ import CategoryPicker, { CategorySheet, CatChip } from './features/catalog/Categ
 import { feed as simFeed, SIM_EVENT, hasOffer as simHasOffer, offersFor as simOffersFor, ago as simAgo } from './features/demo/demoWorld.js';
 import DemoMyCachuelos from './features/demo/DemoMyCachuelos.jsx';
 import SimulatorScreen from './features/demo/SimulatorScreen.jsx';
+import BackendModeSwitch from './features/demo/BackendModeSwitch.jsx';
 import UserProfileScreen from './features/profiles/UserProfileScreen.jsx';
 import { DISTRITOS, DISTRITOS_LIMA, DEPARTAMENTOS_PERU, CIUDADES_PERU } from './data/places.js';
 import { Stars, Avatar, Badge, Btn, Input, Textarea, CategoryIcon, TabBar, Screen, TABBAR_SPACE, SkeletonCard } from './ui/primitives.jsx';
@@ -311,7 +312,7 @@ const OnboardingScreen = ({ onDone }) => {
     },
     {
       emoji: '📢', color: '#FFF7ED', accent: C.primary,
-      title: 'Publica tu necesidad', sub: 'Publica lo que necesitas por solo S/5. Tu cachuelo llega a miles de trabajadores calificados.',
+      title: 'Publica tu necesidad', sub: 'Publicar es gratis. Destácalo por S/3 para aparecer primero ante miles de trabajadores calificados.',
     },
     {
       emoji: '⭐', color: '#F0FDF4', accent: C.success,
@@ -2672,6 +2673,7 @@ const ConfigScreen = ({ onBack, onNavigate, onLogout, onAdmin, onAdminTools, use
             </button>
           );
         })}
+        <BackendModeSwitch style={{ marginTop: 8 }} />
       </div>
     </Screen>
   );
@@ -4755,7 +4757,7 @@ export default function App() {
       case 'map':         return <MapScreen cachuelos={cachuelos} onViewCachuelo={viewCachuelo} onNavigate={navigate} onOpenSearch={() => navigate('search')} />;
       case 'search':      return <SearchScreen onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} />;
       case 'mycachuelos': return isDemoBackend
-        ? <DemoMyCachuelos key={`${user?.id}-${focusCachueloId}`} user={user} focusId={focusCachueloId} onNavigate={(t) => { setFocusCachueloId(null); navigate(t); }} onViewCachuelo={viewCachuelo} onViewProfile={openProfile} />
+        ? <DemoMyCachuelos key={`${user?.id}-${focusCachueloId}`} user={user} focusId={focusCachueloId} onEdit={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} onNavigate={(t) => { setFocusCachueloId(null); navigate(t); }} onViewCachuelo={viewCachuelo} onViewProfile={openProfile} />
         : <MyCachuelos onNavigate={navigate} onViewCachuelo={viewCachuelo} user={user} onVerPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('mycachuelos'); setScreen('postulantes'); }} onIniciarChat={(data) => { setChatData(data); setPrevScreen('mycachuelos'); setScreen('chat'); }} onEditar={(c) => { setCachueloParaEditar(c); setScreen('editcachuelo'); }} />;
       case 'editcachuelo': return <EditCachueloScreen cachuelo={cachueloParaEditar} onBack={() => setScreen('mycachuelos')} onSaved={refreshCachuelos} onNavigate={navigate} />;
       case 'profile':     return isDemoBackend

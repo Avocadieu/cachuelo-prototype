@@ -65,7 +65,30 @@ export async function insertCachuelo(payload, author = {}) {
   return { error, geoSkipped: false };
 }
 
+/** Ediciones hechas en demo, por id (sirven también para los cachuelos sembrados del simulador). */
+export const DEMO_EDITS_KEY = 'cachuelo_demo_edits_v1';
+const readDemoEditsMap = () => { try { return JSON.parse(localStorage.getItem(DEMO_EDITS_KEY) || '{}') || {}; } catch { return {}; } };
+export const readDemoEdits = (id) => readDemoEditsMap()[id] || null;
+
 export async function updateCachuelo(id, payload) {
+  if (isDemoBackend) {
+    const cat = CATEGORIES.find(c => c.id === payload.categoria_id);
+    const remote = payload.tipo === 'Remoto';
+    const pos = payload.lat != null ? fuzzPoint(payload.lat, payload.lng, ZONE_FUZZ_MAX_M) : { lat: null, lng: null };
+    const patch = {
+      title: payload.titulo, servicio: payload.servicio || '', description: payload.descripcion || '',
+      ...(cat ? { category: cat.label, emoji: cat.emoji } : {}),
+      price: Number(payload.precio), payType: payload.tipo_pago, duration: payload.duracion || '',
+      type: payload.tipo, remote, location: remote ? 'Remoto' : (payload.distrito || 'Lima'), district: payload.distrito || '',
+      departamento: payload.departamento || null, ciudad: payload.ciudad || null, lat: pos.lat, lng: pos.lng,
+      fecha_inicio: payload.fecha_flexible ? 'flexible' : (payload.fecha_inicio || ''), requisitos: payload.requisitos || [],
+    };
+    const own = readDemoCachuelos();
+    if (own.some(c => c.id === id)) demoStore.write(DEMO_KEY, own.map(c => (c.id === id ? { ...c, ...patch } : c)));
+    else { try { localStorage.setItem(DEMO_EDITS_KEY, JSON.stringify({ ...readDemoEditsMap(), [id]: patch })); } catch { return { error: new Error('No hay espacio en el navegador para guardar el cambio.') }; } }
+    window.dispatchEvent(new CustomEvent(DEMO_EVENT));
+    return { error: null, geoSkipped: false, demo: true };
+  }
   let { error } = await supabase.from('cachuelos').update(payload).eq('id', id);
   if (isMissingColumn(error)) {
     console.warn('[Cachuelo] Columnas de mapa no encontradas. Corre la migración v0.15. Guardando sin ubicación.');

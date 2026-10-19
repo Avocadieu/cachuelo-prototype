@@ -8,6 +8,7 @@ import { Avatar, Btn, Screen } from '../../ui/primitives.jsx';
 import { toast } from '../../ui/toast.jsx';
 import { useVerification } from '../verification/VerificationScreen.jsx';
 import { ensureDemoVerified, verifUserId } from '../verification/verificationStore.js';
+import BackendModeSwitch from './BackendModeSwitch.jsx';
 import { useSim, PERSONAS, personaToUser, baseProfile, statsFor, resetSimulation, SELF_ID, getPersona } from './demoWorld.js';
 
 const ROLE_TAG = {
@@ -137,6 +138,8 @@ export default function SimulatorScreen({ user, selfUser, onSwitchUser, onNaviga
             })}
           </div>
         ))}
+
+        <BackendModeSwitch style={{ marginTop: 14 }} />
 
         {/* Reinicio */}
         <div style={{ marginTop: 14, padding: 14, borderRadius: 18, border: `1px solid ${C.border}`, background: 'var(--c-card-el)' }}>
