@@ -456,7 +456,7 @@ const WelcomeScreen = ({ onEmailLogin, onGoogleLogin, onPhoneLogin }) => {
   );
 };
 
-const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
+const LoginScreen = ({ onLogin, onBack }) => {
   const { C } = useTheme();
   const [mode, setMode] = useState('login'); // login | register | phone
   const [email, setEmail] = useState('');
@@ -487,8 +487,7 @@ const LoginScreen = ({ onLogin, onAdmin, onBack }) => {
 
   const handleLogin = async () => {
     setError('');
-    // Bypass admin dashboard
-    if (email === 'cachuelo@mvp.com' && pass === 'cachuelomvp') { onAdmin(); return; }
+    // v0.20: el admin entra con su propia cuenta (profiles.rol = 'admin'); ya no hay acceso escrito en el código
     setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     setLoading(false);
@@ -3102,6 +3101,36 @@ const ProfileScreen = ({ onNavigate, onAdmin, onAdminTools, onLogout, user }) =>
 };
 
 // 10. DASHBOARD ADMIN ──────────────────────────────────────────────────────────
+// Solo deja pasar a una sesión de Supabase cuyo perfil tenga rol 'admin'.
+// Es una barrera de interfaz: los datos los protege RLS (is_admin()).
+const AdminGate = ({ onBack, children }) => {
+  const { C } = useTheme();
+  const [status, setStatus] = useState('checking'); // checking | ok | denied
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { if (alive) setStatus('denied'); return; }
+      const { data } = await supabase.from('profiles').select('rol').eq('id', session.user.id).single();
+      if (alive) setStatus(data?.rol === 'admin' ? 'ok' : 'denied');
+    })();
+    return () => { alive = false; };
+  }, []);
+  if (status === 'ok') return children;
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center', background: C.bg }}>
+      {status === 'checking'
+        ? <div style={{ color: C.textMuted, fontSize: 14 }}>Verificando permisos…</div>
+        : <>
+            <div style={{ fontSize: 40 }}>🔒</div>
+            <div style={{ color: C.text, fontSize: 16, fontWeight: 700 }}>Solo para administradores</div>
+            <div style={{ color: C.textMuted, fontSize: 13 }}>Inicia sesión con una cuenta de administrador para ver esta sección.</div>
+            <Btn onClick={onBack}>Volver</Btn>
+          </>}
+    </div>
+  );
+};
+
 const AdminDashboard = ({ onBack }) => {
   const [adminTab, setAdminTab] = useState('kpis');
   const registeredUsers = JSON.parse(localStorage.getItem('cachuelo_users') || '[]');
@@ -3987,11 +4016,25 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
   const handleCompletar = async () => {
     if (submittingRating) return;
     setSubmittingRating(true);
-    // 1. Marcar postulacion y cachuelo como completados
-    await supabase.from('postulaciones').update({ estado: 'Completado', updated_at: new Date().toISOString() }).eq('id', postulacion_id);
+    // 1. Marcar postulacion y cachuelo como completados.
+    // v0.20: RLS no devuelve error cuando bloquea un UPDATE, solo 0 filas; por eso
+    // pedimos las filas (.select) y no seguimos si no se guardó nada.
+    const { data: postRows, error: postError } = await supabase.from('postulaciones')
+      .update({ estado: 'Completado', updated_at: new Date().toISOString() }).eq('id', postulacion_id).select('id');
+    let cachRows = [];
+    if (cachuelo?.id) {
+      const { data, error } = await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id).select('id');
+      if (error) console.error('Error completando cachuelo:', error);
+      cachRows = data || [];
+    }
+    if (postError || (!postRows?.length && !cachRows.length)) {
+      console.error('No se pudo marcar como completado:', postError || 'RLS bloqueó el cambio (0 filas)');
+      toast(postError ? friendlyError(postError) : 'No se pudo marcar como completado. Inténtalo de nuevo.', 'error');
+      setSubmittingRating(false);
+      return;
+    }
     await supabase.from('postulacion_historial').insert({ postulacion_id, estado: 'Completado' });
-    if (cachuelo?.id) await supabase.from('cachuelos').update({ estado: 'Completado' }).eq('id', cachuelo.id);
-    // 2. Actualizar rating del trabajador (promedio acumulado) + guardar reseña
+    // 2. Guardar la reseña
     const trabajadorId = postulante?.postulante_id || postulante?.id;
     if (trabajadorId) {
       // v0.18: el promedio y los contadores los recalcula el servidor (trigger
@@ -4005,7 +4048,13 @@ const ChatScreen = ({ chatData, currentUser, onBack, onNavigate, onAceptado }) =
         estrellas: ratingStars,
         comentario: ratingComment.trim() || null,
       });
-      if (resenaError) console.error('Error insertando reseña:', resenaError);
+      if (resenaError) {
+        // El trabajo sí quedó completado; solo falló la reseña
+        console.error('Error insertando reseña:', resenaError);
+        toast(`Trabajo completado, pero la reseña no se guardó: ${friendlyError(resenaError)}`, 'error');
+      } else {
+        toast('¡Gracias! Tu reseña se guardó.', 'success');
+      }
     }
     setEstado('Completado');
     setShowRatingModal(false);
@@ -4740,7 +4789,7 @@ export default function App() {
                             onGoogleLogin={() => afterLogin({ email: 'google@user.com', nombre: 'Usuario', apellido: 'Google' })}
                             onPhoneLogin={() => setScreen('login')}
                           />;
-      case 'login':       return <LoginScreen onLogin={afterLogin} onAdmin={() => setScreen('admin')} />;
+      case 'login':       return <LoginScreen onLogin={afterLogin} />;
       case 'home':        return <HomeScreen onVerify={goVerify} loading={cachuelosLoading} onNavigate={navigate} onViewCachuelo={viewCachuelo} cachuelos={cachuelos} user={user} onNotifications={() => { setPrevScreen('home'); setScreen('notifications'); }} />;
       case 'notifications': return <NotificationsScreen user={user} onBack={() => setScreen(prevScreen)} onNavigate={navigate} onViewPostulantes={(c) => { setCachueloParaPostulantes(c); setPostulantesParent('notifications'); setScreen('postulantes'); }} onViewCachuelo={(c) => { setSelectedCachuelo(c); setPrevScreen('notifications'); setScreen('detail'); }} onOpenChat={(data) => { setChatData(data); setPrevScreen('notifications'); setScreen('chat'); }} />;
       case 'detail':      return <DetailScreen onVerify={goVerify} tab={prevScreen === 'map' ? 'map' : prevScreen === 'mycachuelos' ? 'mycachuelos' : 'home'} cachuelo={selectedCachuelo} onBack={() => setScreen(prevScreen)} onNavigate={navigate} user={user} onRequireAuth={() => setScreen('login')} onViewPublisher={(uid) => (isDemoBackend ? openProfile(uid) : (setViewedUserId(uid), setPrevScreen('detail'), setScreen('publicprofile')))} onVerPostulantes={(c) => { if (isDemoBackend) { setFocusCachueloId(c.id); navigate('mycachuelos'); return; } setCachueloParaPostulantes(c); setPostulantesParent('detail'); setScreen('postulantes'); }} />;
@@ -4764,8 +4813,8 @@ export default function App() {
         ? <UserProfileScreen key={user?.id || 'self'} userId={user?.id || 'demo-user'} selfUser={user} own onNavigate={navigate} onViewProfile={openProfile} onViewCachuelo={viewCachuelo} onVerify={goVerify} onConfig={() => setScreen('config')} />
         : <ProfileScreen onNavigate={navigate} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setScreen('welcome'); }} />;
       case 'config':      return <ConfigScreen onSimulator={() => navigate('simulator')} onVerify={() => { setPrevScreen('config'); setScreen('verification'); }} onAdminVerif={() => setScreen('adminverif')} onBack={() => setScreen('profile')} onNavigate={navigate} user={user} onLogout={async () => { await supabase.auth.signOut(); setUser(null); setSelfUser(null); setScreen('welcome'); }} onAdmin={() => setScreen('admin')} onAdminTools={() => setScreen('admintools')} />;
-      case 'admin':       return <AdminDashboard onBack={() => setScreen('profile')} />;
-      case 'admintools':  return <AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} />;
+      case 'admin':       return <AdminGate onBack={() => setScreen('profile')}><AdminDashboard onBack={() => setScreen('profile')} /></AdminGate>;
+      case 'admintools':  return <AdminGate onBack={() => setScreen('profile')}><AdminToolsScreen onBack={() => setScreen('profile')} onRefresh={refreshCachuelos} /></AdminGate>;
       default:            return <SplashScreen />;
     }
   };
