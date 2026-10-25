@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║              CACHUELO MVP – PENDIENTES DE DESARROLLO         ║
-║                     Actualizado: 2026-10-19                  ║
+║                     Actualizado: 2026-10-25                  ║
 ╚══════════════════════════════════════════════════════════════╝
 
 1. RESEÑAS NO SE MUESTRAN EN EL PERFIL
@@ -9,6 +9,13 @@
    las reseñas no aparecen. El insert falla silenciosamente, posiblemente
    porque el trabajo fue completado antes de que existiera el código de
    inserción. Pendiente investigar con el console.error ya agregado.
+   🟡 EN CURSO (v0.20): handleCompletar ya detecta el UPDATE bloqueado por
+   RLS (0 filas), no marca "Completado" si falla y avisa con toast si la
+   reseña no se guarda. Falta: correr en el Supabase real la consulta de
+   diagnóstico (políticas de postulaciones/cachuelos/resenas, columnas y
+   triggers de resenas) y decidir el arreglo (Edge Function o política
+   UPDATE del dueño). También falta que el trabajador califique al
+   contratante.
 
 2. MEJORAR VISUALIZACIÓN DEL PERFIL DE USUARIO ✅ COMPLETADO
    Rediseño completo de ProfileScreen y PublicProfileScreen (v0.13).
@@ -243,7 +250,11 @@
     es una línea en src/data/categories.js + una fila en SQL (sin
     cambiar id ni label existentes).
 
-36. LOGIN DE ADMINISTRADOR SIN CONTRASEÑA EN EL CÓDIGO
+36. LOGIN DE ADMINISTRADOR SIN CONTRASEÑA EN EL CÓDIGO ✅ COMPLETADO (v0.20)
+    Se quitó el acceso cachuelo@mvp.com del login. AdminGate protege las
+    pantallas admin y admintools (sesión + profiles.rol = 'admin'). Falta:
+    dar rol admin a una cuenta real por SQL y decidir si el repo pasa a
+    privado (hoy es PÚBLICO).
     Hoy el acceso admin usa un correo y contraseña escritos en
     src/App.jsx (pantalla de login). Reemplazarlo por el rol `admin` de
     Supabase (existe desde v0.17). Mientras tanto, mantener el
